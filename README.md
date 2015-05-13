@@ -4,4 +4,4 @@ The Visto JavaScript Framework (VistoJS) integrates  KnockoutJS, JQuery and  Req
 
  The main advantages of this library is that it allows to develop component-based and implement reusable views which are composed of predefined programming blocks (view, view model and HTML). These views can be reused as sub views, in dialogs or as page instances. The programming API and paradigm is very similar to the one found in Windows Phone XAML or Windows 8 Store Apps programming (MVVM pattern, view "code-behind", paging/navigation).
 
-[Introduction](https://github.com/VistoJS/Core/wiki/Introductiom)
+[Introduction](https://github.com/VistoJS/Core/wiki/Introduction)
