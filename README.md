@@ -14,9 +14,12 @@ The Visto JavaScript Framework (VistoJS) integrates  KnockoutJS, JQuery and  Req
     - Possible to load sub views declaratively and pass parameters to it (one-way and two-way bindings) 
     - Possible to instantiate multiple instances of the same view 
     - No "page build-up flickering" by displaying a view not until every sub view has been loaded
-- Support for stack-based  paging and  dialogs The framework automatically calls onNavigateTo, loaded, destroy and other  event methods
-    - More maintainable and understandable code by enforcing structure and conventions The resulting application is component based and different application areas can be grouped in packages
-- Support for GUI  internationalization Declarative internationalization (with the data-translate attribute) which automatically updates if the language is changed 
+- Support for stack-based  paging and  dialogs 
+    - The framework automatically calls onNavigateTo, loaded, destroy and other  event methods
+    - More maintainable and understandable code by enforcing structure and conventions 
+        - The resulting application is component based and different application areas can be grouped in packages
+- Support for GUI  internationalization 
+    - Declarative internationalization (with the data-translate attribute) which automatically updates if the language is changed 
     - Immediate language changes using "language bindings"
 - Visto.js file size is 18kb minimized (22kb debug)
     - Complete framework (with all libraries like JQuery, JQuery UI, KnockoutJS, RequireJS, etc.)
