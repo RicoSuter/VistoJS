@@ -11,7 +11,7 @@ The Visto JavaScript Framework (VistoJS) integrates  KnockoutJS, JQuery and  Req
 - Support for views with "code-behind" and view models (declared using HTML) 
     - Support for  event methods on views and view models like "loaded", "onNavigatedTo", etc. 
     - The view model and the view are connected using KnockoutJS bindings 
-    - Possible to load sub views declaratively and pass parameters to it (one-way and two-way bindings) 
+    - Load sub views declaratively using ''custom tags'' and pass parameters which may be one-way and two-way bound
     - Possible to instantiate multiple instances of the same view 
     - No "page build-up flickering" by displaying a view not until every sub view has been loaded
 - Support for stack-based  paging and  dialogs 
