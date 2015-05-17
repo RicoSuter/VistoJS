@@ -52,6 +52,6 @@ The "common" package provides some reusable controls/views; the package is not r
 
 ## Final notes
 
-This project is developed and maintained by [Rico Suter](http://rsuter.com). 
+The Visto JavaScript framework is developed and maintained by [Rico Suter](http://rsuter.com). 
 
 
