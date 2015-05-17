@@ -1,0 +1,46 @@
+﻿<div>
+    <vs-page-header />
+
+	<div class="page_menu">
+		<ul class='menu'>
+			<li><a href="#" data-bind="click: visto.navigateBack">Back</a></li>
+		</ul>
+	</div>
+
+	<div class="page_content">
+		<div class="box">
+			<table class="list">
+				<tr>
+					<th style="width: auto">Sample list</th>
+					<th style="width: 150px">&nbsp;</th>
+				</tr>
+			
+				<!-- ko foreach: items -->
+				<tr>
+					<td><a data-bind="click: $parent.showItem, text: title" href="#" /></td>
+					<td style="text-align: right">
+						<a data-bind="click: $root.deleteItem.bind($root, $data)" href="#">Delete</a>
+					</td>
+				</tr>
+				<!-- /ko -->
+			
+				<tr data-bind="visible: items().length == 0 && !isLoading()">
+					<td colspan="2">No items</td>
+				</tr>
+				<tr data-bind="visible: items().length == 0 && isLoading()">
+					<td colspan="2">Loading...</td>
+				</tr>
+			</table>
+		</div>
+	
+		<div style="padding-left: 8px">
+			<ul class='menu'>
+				<li>
+					<a data-bind="click: addItem" href="#">Add item</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+
+    <vs-page-footer />
+</div>

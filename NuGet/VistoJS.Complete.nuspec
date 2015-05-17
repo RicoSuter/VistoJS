@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>VistoJS.Complete</id>
+        <version>1.2.0.0</version>
+        <title>VistoJS.Complete</title>
+        <authors>Rico Suter</authors>
+        <owners>Rico Suter</owners>
+        <licenseUrl>https://visto.codeplex.com/license</licenseUrl>
+        <projectUrl>http://www.vistojs.com</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Installs the Visto JavaScript Framework and some base files. </description>
+        <releaseNotes />
+        <dependencies>
+            <dependency id="VistoJS" version="1.2.0.0" />
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="..\Visto\images\loading.gif" target="content\images\loading.gif" />
+        <file src="..\Visto\css\style.css" target="content\css\style.css" />
+        <file src="..\Visto\scripts\app.js" target="content\scripts\app.js" />
+        <file src="..\Visto\index.html" target="content\index.html" />
+        <file src="VistoJS.Complete_install.ps1" target="tools\install.ps1" />
+    </files>
+</package>

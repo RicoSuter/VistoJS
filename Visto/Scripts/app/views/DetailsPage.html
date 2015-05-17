@@ -1,0 +1,19 @@
+﻿<div>
+    <vs-page-header />
+
+	<div class="page_menu">
+		<ul class='menu'>
+			<li><a href="#" data-bind="click: visto.navigateBack">Back</a></li>
+		</ul>
+	</div>
+
+	<div class="page_content">
+        <div class="box box_content" data-bind="if: item() != null">
+            Details for item: <br />
+            Title '<span data-bind="text: item().title" />' <br />
+            ID <span data-bind="text: item().id" />
+        </div>
+	</div>
+
+    <vs-page-footer />
+</div>

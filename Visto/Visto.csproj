@@ -1,0 +1,226 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <ProjectGuid>{B4D4E401-5AA8-4982-9C0A-B0D7B8733312}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <OutputPath>bin</OutputPath>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <TypeScriptToolsVersion>1.4</TypeScriptToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>VistoJS</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>False</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>37070</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:36320/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>http://localhost:8080/</CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <TypeScriptTarget>ES3</TypeScriptTarget>
+    <TypeScriptIncludeComments>true</TypeScriptIncludeComments>
+    <TypeScriptSourceMap>true</TypeScriptSourceMap>
+    <TypeScriptModuleKind>amd</TypeScriptModuleKind>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TypeScriptTarget>ES3</TypeScriptTarget>
+    <TypeScriptIncludeComments>false</TypeScriptIncludeComments>
+    <TypeScriptSourceMap>false</TypeScriptSourceMap>
+    <TypeScriptModuleKind>AMD</TypeScriptModuleKind>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Content\Images\loading.gif" />
+    <Content Include="Content\site.css" />
+    <Content Include="index.html" />
+    <TypeScriptCompile Include="Scripts\common\views\TabControl.ts" />
+    <TypeScriptCompile Include="Scripts\common\main.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\LanguageSelectorModel.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\dialogs\PromptModel.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\dialogs\ConfirmModel.ts" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\ListPageModel.ts" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\DetailsPageModel.ts" />
+    <Content Include="Scripts\app.js">
+      <DependentUpon>app.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\viewModels\DetailsPageModel.js">
+      <DependentUpon>DetailsPageModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\viewModels\ListPageModel.js">
+      <DependentUpon>ListPageModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\views\DetailsPage.html" />
+    <Content Include="Scripts\app\views\ListPage.html" />
+    <Content Include="Scripts\app\views\TabPage.html" />
+    <Content Include="Scripts\app\views\SampleDialog.html" />
+    <Content Include="Scripts\app\views\tabs\Tab1.html" />
+    <Content Include="Scripts\app\views\tabs\Tab2.html" />
+    <Content Include="Scripts\app\views\WebViewPage.html" />
+    <Content Include="Scripts\libs\visto.js">
+      <DependentUpon>visto.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\main.js">
+      <DependentUpon>main.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\dialogs\ConfirmModel.js">
+      <DependentUpon>ConfirmModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\dialogs\ConfirmModel.min.js">
+      <DependentUpon>ConfirmModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\dialogs\ListPickerModel.js">
+      <DependentUpon>ListPickerModel.ts</DependentUpon>
+    </Content>
+    <TypeScriptCompile Include="Scripts\common\viewModels\dialogs\ListPickerModel.ts" />
+    <Content Include="Scripts\common\viewModels\dialogs\PromptModel.js">
+      <DependentUpon>PromptModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\dialogs\PromptModel.min.js">
+      <DependentUpon>PromptModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\LanguageSelectorModel.js">
+      <DependentUpon>LanguageSelectorModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\LanguageSelectorModel.min.js">
+      <DependentUpon>LanguageSelectorModel.ts</DependentUpon>
+    </Content>
+    <TypeScriptCompile Include="Scripts\common\views\dialogs\Prompt.ts" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\controls\SampleControlModel.ts" />
+    <Content Include="Scripts\app\viewModels\controls\SampleControlModel.js">
+      <DependentUpon>SampleControlModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\viewModels\controls\SampleControlModel.min.js">
+      <DependentUpon>SampleControlModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\TabControlModel.js">
+      <DependentUpon>TabControlModel.ts</DependentUpon>
+    </Content>
+    <TypeScriptCompile Include="Scripts\common\viewModels\TabControlModel.ts" />
+    <Content Include="Scripts\common\views\dialogs\ListPicker.html" />
+    <Content Include="Scripts\common\views\dialogs\ProgressDialog.html" />
+    <Content Include="Scripts\common\views\dialogs\Prompt.js">
+      <DependentUpon>Prompt.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\views\dialogs\Prompt.min.js">
+      <DependentUpon>Prompt.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\views\dialogs\Confirm.html" />
+    <Content Include="Scripts\common\views\dialogs\Prompt.html" />
+    <Content Include="Scripts\common\views\LanguageSelector.html" />
+    <Content Include="Scripts\app\views\controls\SampleControl.html" />
+    <Content Include="Scripts\libs\jquery.browser.js" />
+    <Content Include="Scripts\libs\jqueryui.d.ts" />
+    <Content Include="Scripts\libs\jqueryui.js" />
+    <Content Include="Scripts\libs\jquery.js" />
+    <Content Include="Scripts\libs\visto.extensions.d.ts" />
+    <Content Include="Scripts\libs\hashchange.js" />
+    <Content Include="Scripts\libs\jquery.d.ts" />
+    <Content Include="Scripts\libs\knockout.d.ts" />
+    <Content Include="Scripts\libs\knockout.js" />
+    <TypeScriptCompile Include="Scripts\app.ts" />
+    <Content Include="Scripts\libs\require.js" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\MainPageModel.ts" />
+    <Content Include="Scripts\app\viewModels\MainPageModel.js">
+      <DependentUpon>MainPageModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\viewModels\MainPageModel.min.js">
+      <DependentUpon>MainPageModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\views\MainPage.html" />
+    <Content Include="Scripts\app\views\PageFooter.html" />
+    <Content Include="Scripts\app\views\PageHeader.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\app\languages\de.json" />
+    <Content Include="Scripts\app\languages\en.json" />
+    <Content Include="Scripts\common\languages\de.json" />
+    <Content Include="Scripts\common\languages\en.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\common\views\TabControl.html" />
+    <TypeScriptCompile Include="Scripts\common\views\WebView.ts" />
+    <Content Include="Scripts\libs\visto.modules.d.ts" />
+    <TypeScriptCompile Include="Scripts\libs\visto.ts" />
+    <TypeScriptCompile Include="Scripts\SampleService.ts" />
+    <Content Include="Scripts\common\views\WebView.js">
+      <DependentUpon>WebView.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\SampleService.js">
+      <DependentUpon>SampleService.ts</DependentUpon>
+    </Content>
+    <Content Include="Content\Static\a.html" />
+    <Content Include="Content\Static\b.html" />
+    <Content Include="web.config" />
+    <None Include="web.Debug.config">
+      <DependentUpon>web.config</DependentUpon>
+    </None>
+    <None Include="web.Release.config">
+      <DependentUpon>web.config</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\app\viewModels\MainPageModel.js.map">
+      <DependentUpon>MainPageModel.ts</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\common\viewModels\LanguageSelectorModel.js.map">
+      <DependentUpon>LanguageSelectorModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\dialogs\PromptModel.js.map">
+      <DependentUpon>PromptModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\views\dialogs\Prompt.js.map">
+      <DependentUpon>Prompt.ts</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\app\viewModels\controls\SampleControlModel.js.map">
+      <DependentUpon>SampleControlModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\dialogs\ConfirmModel.js.map">
+      <DependentUpon>ConfirmModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\main.js.map">
+      <DependentUpon>main.ts</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
+  </PropertyGroup>
+  <Import Project="$(VSToolsPath)\TypeScript\Microsoft.TypeScript.targets" />
+</Project>
