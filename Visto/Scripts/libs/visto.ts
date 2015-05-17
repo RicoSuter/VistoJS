@@ -159,7 +159,7 @@ function loadLanguageFile(packageName: string, completed: () => void) {
         languageStrings[lang] = <any>([]);
 
     if (languageStrings[lang][packageName] === undefined) { // TODO avoid multiple simultaneous loadings
-        var url = "scripts/" + packageName + "/languages/" + lang + ".json";
+        var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
         if (languageLoadings[url] === undefined) {
             languageLoadings[url] = [completed];
             $.ajax({
@@ -834,7 +834,7 @@ class ViewFactory {
             log("Loading view from server: " + this.viewLocator.name);
 
             $.ajax({
-                url: "scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
+                url: "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
                 dataType: "html"
             }).done((data: string) => {
                 data = this.processCustomTags(data);

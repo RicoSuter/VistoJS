@@ -138,7 +138,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         if (languageStrings[lang] === undefined)
             languageStrings[lang] = ([]);
         if (languageStrings[lang][packageName] === undefined) {
-            var url = "scripts/" + packageName + "/languages/" + lang + ".json";
+            var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
             if (languageLoadings[url] === undefined) {
                 languageLoadings[url] = [completed];
                 $.ajax({
@@ -740,7 +740,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 };
                 log("Loading view from server: " + this.viewLocator.name);
                 $.ajax({
-                    url: "scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
+                    url: "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
                     dataType: "html"
                 }).done(function (data) {
                     data = _this.processCustomTags(data);
