@@ -6,6 +6,8 @@ The Visto JavaScript Framework (VistoJS) integrates  KnockoutJS, JQuery and  Req
 
 [Introduction to the Visto JavaScript Framework](https://github.com/VistoJS/Core/wiki/Introduction)
 
+[Live demo appliation](https://rawgit.com/VistoJS/Core/master/Visto/index.html)
+
 ## Features
 
 - Support for views with "code-behind" and view models (declared using HTML) 
