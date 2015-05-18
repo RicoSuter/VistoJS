@@ -51,7 +51,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Initializes the framework and navigates to the first page or restores the pages.
      */
     function initialize(options) {
-        defaultPackage = options.defaultPackage === undefined ? "app" : options.defaultPackage;
+        defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
             $(document).bind("keypress", function (ev) {
@@ -339,7 +339,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             navigationHistory.pop();
             navigationCount--;
             var previousPage = pageStack[pageStack.length - 2];
-            currentPage.view.destroyView();
+            currentPage.view.__destroyView();
             pageStack.pop();
             currentPage.element.remove();
             previousPage.element.css("visibility", "visible");
@@ -408,12 +408,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     });
     function dialog(a, b, c, d, e, f) {
         if (typeof a === "string")
-            dialogCore(a, b, c, d, e);
+            showDialog(a, b, c, d, e);
         else
-            dialogCore(getViewName(a, b), c, d, e, f);
+            showDialog(getViewName(a, b), c, d, e, f);
     }
     exports.dialog = dialog;
-    function dialogCore(fullViewName, parameters, dialogOptions, closed, completed) {
+    function showDialog(fullViewName, parameters, dialogOptions, closed, completed) {
         var dialog = $("<div />");
         $('body').append(dialog);
         dialog.view(fullViewName, parameters, function (view, viewModel) {
@@ -432,7 +432,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             dialogOptions.zIndex = 99999;
             dialog.dialog(dialogOptions);
             dialog.bind('dialogclose', function () {
-                view.destroyView();
+                view.__destroyView();
                 dialog.dialog("destroy");
                 openedDialogs--;
                 if (closed !== null && closed !== undefined)
@@ -465,7 +465,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var loader = new ViewFactory();
             loader.create($(element), value.name, value, function (view) {
                 ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-                    view.destroyView();
+                    view.__destroyView();
                 });
                 if (rootView !== null)
                     rootView.__addSubView(view);
@@ -988,7 +988,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.VistoParameters = VistoParameters;
     var VistoViewModel = (function () {
         function VistoViewModel(view, parameters) {
-            this.visto = exports;
             this.__restoreQuery = null;
             this.view = view;
             this.parameters = parameters;
@@ -1043,7 +1042,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.VistoViewModel = VistoViewModel;
     var VistoViewBase = (function () {
         function VistoViewBase() {
-            this.visto = exports;
             this.parentView = null;
             this.isDestroyed = false;
             this.subViews = [];
@@ -1133,9 +1131,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         /**
          * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects.
          */
-        VistoViewBase.prototype.destroyView = function () {
+        VistoViewBase.prototype.__destroyView = function () {
             $.each(this.subViews, function (index, view) {
-                view.destroyView();
+                view.__destroyView();
             });
             if (!this.isDestroyed) {
                 log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " + this.subViews.length + " subviews");

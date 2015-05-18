@@ -11,8 +11,6 @@
 declare function require(module: any, success: (...modules: any[]) => void, failed?: () => void): void;
 declare function require(modules: string[], success: (...modules: any[]) => void, failed?: () => void): void;
 
-declare var exports: IVisto;
-
 export import __hashchange = require("libs/hashchange");
 
 // ----------------------------
@@ -60,7 +58,7 @@ var initialBody = $("body").find("div");
  * Initializes the framework and navigates to the first page or restores the pages. 
  */
 export function initialize(options: IVistoOptions) {
-    defaultPackage = options.defaultPackage === undefined ? "app" : options.defaultPackage;  
+    defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;  
     setUserLanguage(options.supportedLanguages);
 
     if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
@@ -356,7 +354,7 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
         navigationCount--;
 
         var previousPage = pageStack[pageStack.length - 2];
-        currentPage.view.destroyView();
+        currentPage.view.__destroyView();
 
         pageStack.pop();
 
@@ -441,11 +439,11 @@ export function dialog(fullViewName: string, parameters: {}, dialogOptions: any,
 export function dialog(modulePackage: IModule, viewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => void): void;
 export function dialog(a: any, b: any, c: any, d: any, e?: any, f?: any) {
     if (typeof a === "string")
-        dialogCore(a, b, c, d, e);
+        showDialog(a, b, c, d, e);
     else
-        dialogCore(getViewName(a, b), c, d, e, f);
+        showDialog(getViewName(a, b), c, d, e, f);
 }
-function dialogCore(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => void) {
+function showDialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => void) {
     var dialog = $("<div />");
     $('body').append(dialog);
 
@@ -470,7 +468,7 @@ function dialogCore(fullViewName: string, parameters: {}, dialogOptions: any, cl
         dialog.dialog(dialogOptions);
 
         dialog.bind('dialogclose',() => {
-            view.destroyView();
+            view.__destroyView();
             dialog.dialog("destroy");
             openedDialogs--;
 
@@ -510,7 +508,7 @@ ko.bindingHandlers["view"] = {
 
         var loader = new ViewFactory();
         loader.create($(element),(<any>value).name, value, view => {
-            ko.utils.domNodeDisposal.addDisposeCallback(element,() => { view.destroyView(); });
+            ko.utils.domNodeDisposal.addDisposeCallback(element,() => { view.__destroyView(); });
             if (rootView !== null)
                 rootView.__addSubView(view);
         });
@@ -1139,7 +1137,6 @@ export class VistoParameters {
 }
 
 export class VistoViewModel {
-    visto = exports;
     parameters: VistoParameters;
 
     private view: VistoViewBase;
@@ -1211,7 +1208,6 @@ export class VistoViewBase {
     viewPackage: string;
 
     element: JQuery;
-    visto = exports;
     parameters: VistoParameters;
     parentView: VistoViewBase = null;
 
@@ -1316,9 +1312,9 @@ export class VistoViewBase {
     /**
      * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects. 
      */
-    destroyView() {
+    __destroyView() {
         $.each(this.subViews,(index: number, view: VistoViewBase) => {
-            view.destroyView();
+            view.__destroyView();
         });
 
         if (!this.isDestroyed) {
