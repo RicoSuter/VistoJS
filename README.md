@@ -11,17 +11,17 @@ The main advantages of this library is that it allows you to develop component-b
 ## Features
 
 - Support for views with "code-behind" and view models (declared using HTML) 
-    - Support for  event methods on views and view models like "loaded", "onNavigatedTo", etc. 
-    - The view model and the view are connected using KnockoutJS bindings 
+    - Support for **event methods** on views and view models like "loaded", "onNavigatedTo", etc. 
+    - The view model and the view are connected using **KnockoutJS bindings** 
     - Load sub views declaratively using **custom tags** and pass parameters which may be one-way and two-way bound
     - Instantiate multiple instances of the same view 
     - No "page build-up flickering" by displaying a view not until every sub view has been loaded
-- Support for stack-based  paging and  dialogs 
-    - The framework automatically calls onNavigateTo, loaded, destroy and other  event methods
-    - More maintainable and understandable code by enforcing structure and conventions 
+- Support for **stack-based paging** and **dialogs** 
+    - The framework automatically calls onNavigateTo, loaded, destroy and other event methods
+    - More maintainable and understandable code by **enforcing structure and conventions**
         - The resulting application is component based and different application areas can be grouped in packages
-- Support for GUI  internationalization 
-    - Declarative internationalization (with the data-translate attribute) which automatically updates if the language is changed 
+- Support for **UI internationalization**
+    - **Declarative** internationalization (with the data-translate attribute) which automatically updates if the language is changed 
     - Immediate language changes using "language bindings"
 - Visto.js file size is 18kb minimized (22kb debug)
     - Complete framework (with all libraries like JQuery, JQuery UI, KnockoutJS, RequireJS, etc.)
