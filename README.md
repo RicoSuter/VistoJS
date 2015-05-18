@@ -30,25 +30,29 @@ The main advantages of this library is that it allows you to develop component-b
 
 ## Dependencies and used technologies
 
-- RequireJS: Used for module (AMD) loading and dependency management 
-- KnockoutJS: Provides bindings to HTML and JavaScript (needed for MVVM support) 
-- JQuery: DOM and HTML manipulations
+- [KnockoutJS](http://knockoutjs.com): Provides bindings to HTML and JavaScript (needed for MVVM support) 
+- [JQuery](http://jquery.com): DOM and HTML manipulations
+- [RequireJS](http://www.requirejs.org): Used for module (AMD) loading and dependency management 
 - Hashchange to detect user back navigation 
-- (optional) JQuery UI for  dialogs
+- (optional) [JQuery UI](http://jqueryui.com) for  dialogs
 
-The Visto JavaScript Library is designed to be used with TypeScript but is fully working with vanilla JavaScript. 
+The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with vanilla JavaScript. 
 
-## Usage and installation
+## First steps
 
-To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open `Visto/index.html` to start the sample project in your browser. 
+To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open `Visto/index.html` to execute the sample project in your browser. 
 
-Open the Visual Studio solution `Visto.sln` to start developing an application using the Visto JavaScript Library (TypeScript must be installed). 
+Open the Visual Studio solution `Visto.sln` to start developing on the sample application (TypeScript must be installed). 
 
 The "common" package provides some reusable controls/views; the package is not required to use the Visto JavaScript Library. 
 
-**IMPORTANT:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (`Documents\IISExpress\config\...`) configuration: 
+**Important:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (`Documents\IISExpress\config\...`) configuration: 
 
     <mimeMap fileExtension=".json" mimeType="application/json" />
+    
+## Installation in new projects
+
+TODO: NuGet package
 
 ## Final notes
 
