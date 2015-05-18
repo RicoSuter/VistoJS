@@ -1,7 +1,7 @@
 import visto = require("libs/visto");
 import ns = require("../../viewModels/dialogs/PromptModel");
 
-export class Prompt extends visto.VistoDialog<ns.PromptModel>  { 
+export class Prompt extends visto.Dialog<ns.PromptModel>  { 
 	language = visto.language;
 
 	onLoaded() {		

@@ -1,4 +1,4 @@
-// Visto JavaScript Framework (VistoJS) v1.3.0
+// Visto JavaScript Framework (VistoJS) v2.0.0
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = this.__extends || function (d, b) {
@@ -21,6 +21,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var pageStackAttribute = "page-stack";
     var lazySubviewLoadingOption = "lazySubviewLoading";
     var defaultPackage = "app";
+    var isPageParameter = "__isPage";
     // ----------------------------
     // Declarations
     // ----------------------------
@@ -35,6 +36,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var loadedViews = ([]);
     var isNavigating = false;
     var openedDialogs = 0;
+    var defaultCommands = {
+        navigateBack: function () {
+            navigateBack();
+        }
+    };
     // internationalization variables
     exports.language = ko.observable(null);
     exports.supportedLanguages = [];
@@ -546,7 +552,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         // load currently visible page
         var currentPage = getCurrentPage($(frame));
         showLoading(currentPage !== null);
-        if (currentPage !== null && currentPage !== undefined && $.isFunction(currentPage.view.onNavigatingFrom)) {
+        if (currentPage !== null && currentPage !== undefined) {
             currentPage.view.onNavigatingFrom("forward", function (navigate) {
                 tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate, function (view, restoreQuery) {
                     if (completed !== undefined)
@@ -580,6 +586,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     }
     function tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate, completed) {
         if (navigate) {
+            if (parameters === undefined || parameters == null)
+                parameters = {};
+            parameters[isPageParameter] = true;
             pageContainer.view(fullViewName, parameters, function (view, viewModel, restoreQuery) {
                 currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
                 window.location = "#" + currentNavigationPath;
@@ -600,9 +609,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     element: pageContainer
                 });
                 log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
-                if ($.isFunction(view.onNavigatedTo))
-                    view.onNavigatedTo("forward");
-                if (currentPage !== null && currentPage !== undefined && $.isFunction(currentPage.view.onNavigatedFrom))
+                view.onNavigatedTo("forward");
+                if (currentPage !== null && currentPage !== undefined)
                     currentPage.view.onNavigatedFrom("forward");
                 isNavigating = false;
                 completed(view, restoreQuery);
@@ -670,7 +678,285 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.hideLoading = hideLoading;
     ;
     // ----------------------------
-    // Classes
+    // View model
+    // ----------------------------
+    var ViewModel = (function () {
+        function ViewModel(view, parameters) {
+            this.defaultCommands = defaultCommands;
+            this.__restoreQuery = null;
+            this.view = view;
+            this.parameters = parameters;
+        }
+        /**
+         * Enables page restoring for the current page.
+         * This method must be called in the initialize() method.
+         * Page restore only works for a page if all previous pages in the page stack support page restore.
+         */
+        ViewModel.prototype.enablePageRestore = function (restoreQuery) {
+            this.__restoreQuery = restoreQuery === undefined ? "" : restoreQuery;
+        };
+        /**
+         * Subscribes to the given subscribable and stores the subscription automatic clean up.
+         */
+        ViewModel.prototype.subscribe = function (subscribable, callback) {
+            this.view.subscribe(subscribable, callback);
+        };
+        /**
+         * Loads a translated string.
+         */
+        ViewModel.prototype.getString = function (key) {
+            return this.view.getString(key);
+        };
+        /**
+         * [Virtual] Initializes the view before it is added to the DOM.
+         */
+        ViewModel.prototype.initialize = function (parameters) {
+            // must be empty
+        };
+        /**
+         * [Virtual] Called when the view has been added to the DOM.
+         */
+        ViewModel.prototype.onLoaded = function () {
+            // must be empty
+        };
+        /**
+         * [Virtual] Called before the view is added to the DOM with the ability to perform async work.
+         * The callback() must be called when the work has been performed.
+         */
+        ViewModel.prototype.onLoading = function (callback) {
+            callback();
+        };
+        /**
+         * [Virtual] Called to clean up resources when the view has been removed from the DOM.
+         */
+        ViewModel.prototype.destroy = function () {
+            // must be empty
+        };
+        return ViewModel;
+    })();
+    exports.ViewModel = ViewModel;
+    // ----------------------------
+    // View
+    // ----------------------------
+    var ViewBase = (function () {
+        function ViewBase() {
+            this.parentView = null;
+            this.isDestroyed = false;
+            this.subViews = [];
+            this.disposables = [];
+        }
+        /**
+         * Enables page restoring for the current page.
+         * This method must be called in the initialize() method.
+         * Page restore only works for a page if all previous pages in the page stack support page restore.
+         */
+        ViewBase.prototype.enablePageRestore = function (restoreQuery) {
+            this.viewModel.enablePageRestore(restoreQuery);
+        };
+        /**
+         * Subscribes to the given subscribable and stores the subscription automatic clean up.
+         */
+        ViewBase.prototype.subscribe = function (subscribable, callback) {
+            var subscription = subscribable.subscribe(callback);
+            this.disposables.push(subscription);
+            return subscription;
+        };
+        /**
+         * Loads a translated string.
+         */
+        ViewBase.prototype.getString = function (key) {
+            return getString(key, this.viewPackage);
+        };
+        /**
+         * Finds an element inside this view.
+         */
+        ViewBase.prototype.getElement = function (selector) {
+            if (selector[0] === "#")
+                return this.element.find(selector[0] + this.viewId + "_" + selector.substring(1)); // TODO: How to reference?
+            return this.element.find(selector);
+        };
+        /**
+         * Finds an element by ID inside this view.
+         */
+        ViewBase.prototype.getElementById = function (id) {
+            return this.getElement("#" + id); // TODO: How to reference?
+        };
+        // event methods
+        /**
+         * [Virtual] Initializes the view before it is added to the DOM.
+         */
+        ViewBase.prototype.initialize = function (parameters) {
+            // must be empty
+        };
+        /**
+         * [Virtual] Called before the view is added to the DOM with the ability to perform async work.
+         * The callback() must be called when the work has been performed.
+         */
+        ViewBase.prototype.onLoading = function (callback) {
+            callback();
+        };
+        /**
+         * [Virtual] Called when the view has been added to the DOM.
+         */
+        ViewBase.prototype.onLoaded = function () {
+            // must be empty
+        };
+        /**
+         * [Virtual] Called to clean up resources when the view has been removed from the DOM.
+         */
+        ViewBase.prototype.destroy = function () {
+            // must be empty
+        };
+        /**
+         * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects.
+         */
+        ViewBase.prototype.__destroyView = function () {
+            $.each(this.subViews, function (index, view) {
+                view.__destroyView();
+            });
+            if (!this.isDestroyed) {
+                log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " + this.subViews.length + " subviews");
+                delete views[this.viewId];
+                this.viewModel.destroy();
+                this.destroy();
+                $.each(this.disposables, function (index, item) {
+                    item.dispose();
+                });
+                this.isDestroyed = true;
+            }
+        };
+        // ReSharper disable InconsistentNaming
+        ViewBase.prototype.__setParentView = function (parentView) {
+            if (this.parentView !== null)
+                throw "Parent view has already been set.";
+            this.parentView = parentView;
+        };
+        ViewBase.prototype.__addSubView = function (view) {
+            this.subViews.push(view);
+        };
+        return ViewBase;
+    })();
+    exports.ViewBase = ViewBase;
+    var View = (function (_super) {
+        __extends(View, _super);
+        function View() {
+            _super.apply(this, arguments);
+        }
+        return View;
+    })(ViewBase);
+    exports.View = View;
+    // ----------------------------
+    // Page
+    // ----------------------------
+    var Page = (function (_super) {
+        __extends(Page, _super);
+        function Page() {
+            _super.apply(this, arguments);
+        }
+        /**
+         * [Virtual] Called when navigated to this page.
+         */
+        Page.prototype.onNavigatedTo = function (type) {
+            // must be empty
+        };
+        /**
+         * [Virtual] Called after navigated from this page.
+         */
+        Page.prototype.onNavigatedFrom = function (type) {
+            // must be empty
+        };
+        /**
+         * [Virtual] Called when navigating to this page.
+         * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
+         */
+        Page.prototype.onNavigatingFrom = function (type, callback) {
+            callback(true);
+        };
+        return Page;
+    })(View);
+    exports.Page = Page;
+    var PageBase = (function (_super) {
+        __extends(PageBase, _super);
+        function PageBase() {
+            _super.apply(this, arguments);
+        }
+        return PageBase;
+    })(Page);
+    exports.PageBase = PageBase;
+    // ----------------------------
+    // Dialog
+    // ----------------------------
+    var Dialog = (function (_super) {
+        __extends(Dialog, _super);
+        function Dialog() {
+            _super.apply(this, arguments);
+        }
+        Dialog.prototype.initializeDialog = function (options) {
+            // must be empty
+        };
+        return Dialog;
+    })(View);
+    exports.Dialog = Dialog;
+    // ----------------------------
+    // Parameters
+    // ----------------------------
+    var Parameters = (function () {
+        function Parameters(parameters) {
+            if (parameters === undefined || parameters === null)
+                this.parameters = ({});
+            else
+                this.parameters = (parameters);
+        }
+        Parameters.prototype.getObservable = function (key, defaultValue) {
+            if (this.parameters[key] === undefined)
+                this.parameters[key] = ko.observable(defaultValue);
+            else if ($.isFunction(this.parameters[key]))
+                return this.parameters[key];
+            else
+                this.parameters[key] = ko.observable(this.parameters[key]);
+            return this.parameters[key];
+        };
+        Parameters.prototype.getObservableArray = function (key, defaultValue) {
+            if (this.parameters[key] === undefined)
+                this.parameters[key] = ko.observableArray(defaultValue);
+            else if ($.isFunction(this.parameters[key]))
+                return this.parameters[key];
+            else
+                this.parameters[key] = ko.observableArray(this.parameters[key]);
+            return this.parameters[key];
+        };
+        Parameters.prototype.getValue = function (key, defaultValue) {
+            if (this.parameters[key] === undefined) {
+                this.parameters[key] = defaultValue;
+                return defaultValue;
+            }
+            else if ($.isFunction(this.parameters[key]))
+                return this.parameters[key]();
+            return this.parameters[key];
+        };
+        /**
+         * Sets a value either writing back through a binding or directly on the parameters object.
+         */
+        Parameters.prototype.setValue = function (key, value) {
+            if ($.isFunction(this.parameters[key]))
+                this.parameters[key](value);
+            else
+                this.parameters[key] = value;
+        };
+        Parameters.prototype.hasValue = function (key) {
+            return this.parameters[key] !== undefined;
+        };
+        Parameters.prototype.isPageRestore = function () {
+            return this.getRestoreQuery() !== undefined;
+        };
+        Parameters.prototype.getRestoreQuery = function () {
+            return this.parameters["restoreQuery"];
+        };
+        return Parameters;
+    })();
+    exports.Parameters = Parameters;
+    // ----------------------------
+    // View factory
     // ----------------------------
     var ViewFactory = (function () {
         function ViewFactory() {
@@ -682,7 +968,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.element = element;
             if (currentContext === undefined || currentContext === null) {
                 // from foreach, other late-bindings or root view
-                this.context = new VistoContext(completed);
+                this.context = new ViewContext(completed);
                 this.parentView = getViewFromElement(element);
                 this.completed = null;
                 this.isRootView = true;
@@ -694,7 +980,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.isRootView = false;
             }
             this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-            this.parameters = new VistoParameters(params);
+            this.parameters = new Parameters(params);
             var lazySubviewLoading = this.parameters.getValue(lazySubviewLoadingOption, false);
             if (!lazySubviewLoading)
                 this.context.viewCount++;
@@ -804,7 +1090,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (hasView)
                 view = (new this.viewModule[this.viewLocator.className]());
             else
-                view = new VistoView();
+                view = this.parameters.getValue(isPageParameter) ? new Page() : new View();
             view.element = this.element;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;
@@ -821,7 +1107,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (hasViewModel)
                 viewModel = (new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
             else
-                viewModel = new VistoViewModel(view, this.parameters);
+                viewModel = new ViewModel(view, this.parameters);
             view.viewModel = viewModel;
             return viewModel;
         };
@@ -866,8 +1152,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         return ViewFactory;
     })();
-    var VistoContext = (function () {
-        function VistoContext(completed) {
+    var ViewContext = (function () {
+        function ViewContext(completed) {
             this.factories = [];
             this.initializers = [];
             this.rootPackage = defaultPackage;
@@ -879,7 +1165,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.loadedViewCount = 0;
             this.completed = completed;
         }
-        VistoContext.prototype.loaded = function () {
+        ViewContext.prototype.loaded = function () {
             var _this = this;
             this.loadedViewCount++;
             if (this.loadedViewCount === this.viewCount) {
@@ -912,7 +1198,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
             }
         };
-        return VistoContext;
+        return ViewContext;
     })();
     var ViewLocator = (function () {
         function ViewLocator(fullViewName, context, parentView) {
@@ -934,248 +1220,5 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
         return ViewLocator;
     })();
-    var VistoParameters = (function () {
-        function VistoParameters(parameters) {
-            if (parameters === undefined || parameters === null)
-                this.parameters = ({});
-            else
-                this.parameters = (parameters);
-        }
-        VistoParameters.prototype.setValue = function (key, value) {
-            if ($.isFunction(this.parameters[key]))
-                this.parameters[key](value);
-            else
-                this.parameters[key] = value;
-        };
-        VistoParameters.prototype.getObservable = function (key, defaultValue) {
-            if (this.parameters[key] === undefined)
-                this.parameters[key] = ko.observable(defaultValue);
-            else if ($.isFunction(this.parameters[key]))
-                return this.parameters[key];
-            else
-                this.parameters[key] = ko.observable(this.parameters[key]);
-            return this.parameters[key];
-        };
-        VistoParameters.prototype.getObservableArray = function (key, defaultValue) {
-            if (this.parameters[key] === undefined)
-                this.parameters[key] = ko.observableArray(defaultValue);
-            else if ($.isFunction(this.parameters[key]))
-                return this.parameters[key];
-            else
-                this.parameters[key] = ko.observableArray(this.parameters[key]);
-            return this.parameters[key];
-        };
-        VistoParameters.prototype.getValue = function (key, defaultValue) {
-            if (this.parameters[key] === undefined) {
-                this.parameters[key] = defaultValue;
-                return defaultValue;
-            }
-            else if ($.isFunction(this.parameters[key]))
-                return this.parameters[key]();
-            return this.parameters[key];
-        };
-        VistoParameters.prototype.hasValue = function (key) {
-            return this.parameters[key] !== undefined;
-        };
-        VistoParameters.prototype.isPageRestore = function () {
-            return this.getRestoreQuery() !== undefined;
-        };
-        VistoParameters.prototype.getRestoreQuery = function () {
-            return this.parameters["restoreQuery"];
-        };
-        return VistoParameters;
-    })();
-    exports.VistoParameters = VistoParameters;
-    var VistoViewModel = (function () {
-        function VistoViewModel(view, parameters) {
-            this.__restoreQuery = null;
-            this.view = view;
-            this.parameters = parameters;
-        }
-        /**
-         * Enables page restoring for the current page.
-         * This method must be called in the initialize() method.
-         * Page restore only works for a page if all previous pages in the page stack support page restore.
-         */
-        VistoViewModel.prototype.enablePageRestore = function (restoreQuery) {
-            this.__restoreQuery = restoreQuery === undefined ? "" : restoreQuery;
-        };
-        /**
-         * Subscribes to the given subscribable and stores the subscription automatic clean up.
-         */
-        VistoViewModel.prototype.subscribe = function (subscribable, callback) {
-            this.view.subscribe(subscribable, callback);
-        };
-        /**
-         * Loads a translated string.
-         */
-        VistoViewModel.prototype.getString = function (key) {
-            return this.view.getString(key);
-        };
-        /**
-         * [Virtual] Initializes the view before it is added to the DOM.
-         */
-        VistoViewModel.prototype.initialize = function (parameters) {
-            // must be empty
-        };
-        /**
-         * [Virtual] Called when the view has been added to the DOM.
-         */
-        VistoViewModel.prototype.onLoaded = function () {
-            // must be empty
-        };
-        /**
-         * [Virtual] Called before the view is added to the DOM with the ability to perform async work.
-         * The callback() must be called when the work has been performed.
-         */
-        VistoViewModel.prototype.onLoading = function (callback) {
-            callback();
-        };
-        /**
-         * [Virtual] Called to clean up resources when the view has been removed from the DOM.
-         */
-        VistoViewModel.prototype.destroy = function () {
-            // must be empty
-        };
-        return VistoViewModel;
-    })();
-    exports.VistoViewModel = VistoViewModel;
-    var VistoViewBase = (function () {
-        function VistoViewBase() {
-            this.parentView = null;
-            this.isDestroyed = false;
-            this.subViews = [];
-            this.disposables = [];
-        }
-        /**
-         * Enables page restoring for the current page.
-         * This method must be called in the initialize() method.
-         * Page restore only works for a page if all previous pages in the page stack support page restore.
-         */
-        VistoViewBase.prototype.enablePageRestore = function (restoreQuery) {
-            this.viewModel.enablePageRestore(restoreQuery);
-        };
-        /**
-         * Subscribes to the given subscribable and stores the subscription automatic clean up.
-         */
-        VistoViewBase.prototype.subscribe = function (subscribable, callback) {
-            var subscription = subscribable.subscribe(callback);
-            this.disposables.push(subscription);
-            return subscription;
-        };
-        /**
-         * Loads a translated string.
-         */
-        VistoViewBase.prototype.getString = function (key) {
-            return getString(key, this.viewPackage);
-        };
-        /**
-         * Finds an element inside this view.
-         */
-        VistoViewBase.prototype.getElement = function (selector) {
-            if (selector[0] === "#")
-                return this.element.find(selector[0] + this.viewId + "_" + selector.substring(1)); // TODO: How to reference?
-            return this.element.find(selector);
-        };
-        /**
-         * Finds an element by ID inside this view.
-         */
-        VistoViewBase.prototype.getElementById = function (id) {
-            return this.getElement("#" + id); // TODO: How to reference?
-        };
-        // event methods
-        /**
-         * [Virtual] Initializes the view before it is added to the DOM.
-         */
-        VistoViewBase.prototype.initialize = function (parameters) {
-            // must be empty
-        };
-        /**
-         * [Virtual] Called before the view is added to the DOM with the ability to perform async work.
-         * The callback() must be called when the work has been performed.
-         */
-        VistoViewBase.prototype.onLoading = function (callback) {
-            callback();
-        };
-        /**
-         * [Virtual] Called when the view has been added to the DOM.
-         */
-        VistoViewBase.prototype.onLoaded = function () {
-            // must be empty
-        };
-        /**
-         * [Virtual] Called when navigated to this page.
-         */
-        VistoViewBase.prototype.onNavigatedTo = function (type) {
-            // must be empty
-        };
-        /**
-         * [Virtual] Called after navigated from this page.
-         */
-        VistoViewBase.prototype.onNavigatedFrom = function (type) {
-            // must be empty
-        };
-        /**
-         * [Virtual] Called when navigating to this page.
-         * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
-         */
-        VistoViewBase.prototype.onNavigatingFrom = function (type, callback) {
-            callback(true);
-        };
-        /**
-         * [Virtual] Called to clean up resources when the view has been removed from the DOM.
-         */
-        VistoViewBase.prototype.destroy = function () {
-            // must be empty
-        };
-        /**
-         * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects.
-         */
-        VistoViewBase.prototype.__destroyView = function () {
-            $.each(this.subViews, function (index, view) {
-                view.__destroyView();
-            });
-            if (!this.isDestroyed) {
-                log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " + this.subViews.length + " subviews");
-                delete views[this.viewId];
-                this.viewModel.destroy();
-                this.destroy();
-                $.each(this.disposables, function (index, item) {
-                    item.dispose();
-                });
-                this.isDestroyed = true;
-            }
-        };
-        // ReSharper disable InconsistentNaming
-        VistoViewBase.prototype.__setParentView = function (parentView) {
-            if (this.parentView !== null)
-                throw "Parent view has already been set.";
-            this.parentView = parentView;
-        };
-        VistoViewBase.prototype.__addSubView = function (view) {
-            this.subViews.push(view);
-        };
-        return VistoViewBase;
-    })();
-    exports.VistoViewBase = VistoViewBase;
-    var VistoView = (function (_super) {
-        __extends(VistoView, _super);
-        function VistoView() {
-            _super.apply(this, arguments);
-        }
-        return VistoView;
-    })(VistoViewBase);
-    exports.VistoView = VistoView;
-    var VistoDialog = (function (_super) {
-        __extends(VistoDialog, _super);
-        function VistoDialog() {
-            _super.apply(this, arguments);
-        }
-        VistoDialog.prototype.initializeDialog = function (options) {
-            // must be empty
-        };
-        return VistoDialog;
-    })(VistoView);
-    exports.VistoDialog = VistoDialog;
 });
 //# sourceMappingURL=visto.js.map

@@ -81,7 +81,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             this.registerLinkEvents();
         };
         return WebView;
-    })(visto.VistoViewBase);
+    })(visto.ViewBase);
     exports.WebView = WebView;
 });
 //# sourceMappingURL=WebView.js.map

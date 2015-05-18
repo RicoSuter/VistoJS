@@ -1,7 +1,7 @@
 ﻿import visto = require("libs/visto");
 import common = require("../main");
 
-export class WebView extends visto.VistoViewBase {
+export class WebView extends visto.ViewBase {
     url: KnockoutObservable<string>;
     initialHtml: string;
     currentBaseUrl: string;

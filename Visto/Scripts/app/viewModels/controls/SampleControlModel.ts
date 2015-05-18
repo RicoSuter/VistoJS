@@ -1,7 +1,7 @@
 import visto = require("libs/visto");
 import common = require("common/main");
 
-export class SampleControlModel extends visto.VistoViewModel {
+export class SampleControlModel extends visto.ViewModel {
     selectedText: KnockoutObservable<string>;
     transformedText: KnockoutComputed<string>;
 

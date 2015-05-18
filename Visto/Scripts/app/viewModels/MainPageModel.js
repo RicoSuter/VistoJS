@@ -40,7 +40,7 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
             });
         };
         return MainPageModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.MainPageModel = MainPageModel;
     ;
 });

@@ -1,4 +1,4 @@
-﻿// Visto JavaScript Framework (VistoJS) v1.3.0
+﻿// Visto JavaScript Framework (VistoJS) v2.0.0
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
@@ -21,6 +21,7 @@ var viewIdAttribute = "visto-view-id";
 var pageStackAttribute = "page-stack";
 var lazySubviewLoadingOption = "lazySubviewLoading";
 var defaultPackage = "app";
+var isPageParameter = "__isPage";
 
 // ----------------------------
 // Declarations
@@ -31,13 +32,17 @@ export var loadingScreenDelay = 300;
 export var isLogging = true;
 
 // variables
-var views: { [a: string]: VistoViewBase } = {};
+var views: { [a: string]: ViewBase } = {};
 var viewCount = 0;
 var navigationCount = 0;
 var navigationHistory = new Array();
 var loadedViews: { [key: string]: ILoadingView } = <any>([]);
 var isNavigating = false;
 var openedDialogs = 0;
+
+var defaultCommands = {
+    navigateBack() { navigateBack(); }
+}
 
 // internationalization variables
 export var language = ko.observable(null);
@@ -47,7 +52,7 @@ var languageStrings: { [language: string]: { [path: string]: { [key: string]: st
 
 // local variables
 var currentNavigationPath = "";
-var currentContext: VistoContext = null;
+var currentContext: ViewContext = null;
 var initialBody = $("body").find("div");
 
 // ----------------------------
@@ -279,7 +284,7 @@ function replaceLanguageStrings(element: JQuery, path?: string) {
 /**
  * Gets the parent view of the given element.
  */
-export function getViewFromElement(element: JQuery): VistoViewBase {
+export function getViewFromElement(element: JQuery): ViewBase {
     while ((element = element.parent()) != undefined) {
         if (parent.length === 0)
             return null;
@@ -317,8 +322,8 @@ export function restorePages(fullViewName: string, params?: {}, completed?: any)
 /**
  * Navigates to a given page using the body element as frame.
  */
-export function navigateTo(fullViewName: string, params?: {}, completed?: (view: VistoViewBase, restoreQuery: string) => void): void;
-export function navigateTo(modulePackage: IModule, viewName: string, params?: {}, completed?: (view: VistoViewBase, restoreQuery: string) => void): void;
+export function navigateTo(fullViewName: string, params?: {}, completed?: (view: ViewBase, restoreQuery: string) => void): void;
+export function navigateTo(modulePackage: IModule, viewName: string, params?: {}, completed?: (view: ViewBase, restoreQuery: string) => void): void;
 export function navigateTo(a: any, b: any, c?: any, d?: any): void {
     if (typeof a === "string")
         (<any>$("body")).navigateTo(a, b, c);
@@ -330,7 +335,7 @@ export function navigateTo(a: any, b: any, c?: any, d?: any): void {
  * Gets the current page. 
  */
 export function currentPage() {
-    return <VistoViewBase>(<any>$("body")).currentPage();
+    return <ViewBase>(<any>$("body")).currentPage();
 };
 
 var backNavigationCompleted: (navigate: boolean) => void = null;
@@ -435,19 +440,19 @@ export function navigateHome(completed: (successful: boolean) => void) {
 /**
  * Shows a dialog. 
  */
-export function dialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => void): void;
-export function dialog(modulePackage: IModule, viewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => void): void;
+export function dialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
+export function dialog(modulePackage: IModule, viewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
 export function dialog(a: any, b: any, c: any, d: any, e?: any, f?: any) {
     if (typeof a === "string")
         showDialog(a, b, c, d, e);
     else
         showDialog(getViewName(a, b), c, d, e, f);
 }
-function showDialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => void) {
+function showDialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void) {
     var dialog = $("<div />");
     $('body').append(dialog);
 
-    (<any>dialog).view(fullViewName, parameters,(view: VistoDialog<VistoViewModel>, viewModel: VistoViewModel) => {
+    (<any>dialog).view(fullViewName, parameters,(view: Dialog<ViewModel>, viewModel: ViewModel) => {
         if (dialogOptions === undefined || dialogOptions === null)
             dialogOptions = {};
 
@@ -500,7 +505,7 @@ ko.virtualElements.allowedBindings["stopBinding"] = true;
 // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
 ko.bindingHandlers["view"] = {
     init(element: Element, valueAccessor: any) {
-        var rootView: VistoViewBase = null;
+        var rootView: ViewBase = null;
         if (currentContext !== null)
             rootView = currentContext.rootView;
 
@@ -520,7 +525,7 @@ ko.bindingHandlers["view"] = {
 // ----------------------------
 
 // Inserts a view inside an element (JQuery)
-$.fn.view = function (fullViewName: string, parameters: { [key: string]: any }, completed: (view: VistoViewBase, viewModel: VistoViewModel, restoreQuery: string) => void) {
+$.fn.view = function (fullViewName: string, parameters: { [key: string]: any }, completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void) {
     var loader = new ViewFactory();
     loader.create(this, fullViewName, parameters, completed);
     return this;
@@ -529,7 +534,7 @@ $.fn.view = function (fullViewName: string, parameters: { [key: string]: any }, 
 var isRestoringPages = false; 
 
 // Restores the page stack using the current query hash 
-$.fn.restorePages = function (fullViewName: string, parameters: VistoParameters, completed: (view: VistoViewBase) => void) {
+$.fn.restorePages = function (fullViewName: string, parameters: Parameters, completed: (view: ViewBase) => void) {
     var frame = $(this);
 
     var urlSegments = decodeURIComponent(window.location.hash).split("/");
@@ -539,7 +544,7 @@ $.fn.restorePages = function (fullViewName: string, parameters: VistoParameters,
         showLoading(false);
         var currentSegmentIndex = 1;
 
-        var navigateTo = (view: VistoViewBase) => {
+        var navigateTo = (view: ViewBase) => {
             var segment = urlSegments[currentSegmentIndex];
             if (segment != null) {
                 var segmentParts = segment.split(":");
@@ -548,7 +553,7 @@ $.fn.restorePages = function (fullViewName: string, parameters: VistoParameters,
                     currentSegmentIndex++;
                     var fullViewName = segmentParts[0] + ":" + segmentParts[1];
                     var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                    (<any>frame).navigateTo(fullViewName, { restoreQuery: restoreQuery }, (view: VistoViewBase) => {
+                    (<any>frame).navigateTo(fullViewName, { restoreQuery: restoreQuery }, (view: ViewBase) => {
                         navigateTo(view);
                     });
                 } else
@@ -561,7 +566,7 @@ $.fn.restorePages = function (fullViewName: string, parameters: VistoParameters,
         (<any>frame).navigateTo(fullViewName, parameters, completed);
 };
 
-function finishPageRestore(frame: JQuery, view: VistoViewBase, completed: (view: VistoViewBase) => void) {
+function finishPageRestore(frame: JQuery, view: ViewBase, completed: (view: ViewBase) => void) {
     hideLoading();
     isRestoringPages = false;
 
@@ -582,7 +587,7 @@ $.fn.currentPage = function () {
 };
 
 // Navigates to a page (JQuery)
-$.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (view: VistoViewBase, restoreQuery: string) => void) {
+$.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (view: ViewBase, restoreQuery: string) => void) {
     var frame = $(this);
 
     if (isNavigating) {
@@ -601,16 +606,16 @@ $.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (vi
     // load currently visible page
     var currentPage = getCurrentPage($(frame));
     showLoading(currentPage !== null);
-    if (currentPage !== null && currentPage !== undefined && $.isFunction(currentPage.view.onNavigatingFrom)) {
+    if (currentPage !== null && currentPage !== undefined) {
         currentPage.view.onNavigatingFrom("forward",(navigate) => {
-            tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate,(view: VistoViewBase, restoreQuery: string) => {
+            tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate,(view: ViewBase, restoreQuery: string) => {
                 if (completed !== undefined)
                     completed(view, restoreQuery);
                 hideLoading();
             });
         });
     } else {
-        tryNavigateForward(fullViewName, parameters, frame, pageContainer, true,(view: VistoViewBase, restoreQuery: string) => {
+        tryNavigateForward(fullViewName, parameters, frame, pageContainer, true,(view: ViewBase, restoreQuery: string) => {
             if (completed !== undefined)
                 completed(view, restoreQuery);
             hideLoading();
@@ -635,9 +640,14 @@ function getCurrentPage(element: JQuery): IPage {
     return null;
 }
 
-function tryNavigateForward(fullViewName: string, parameters: {}, frame: JQuery, pageContainer: JQuery, navigate: boolean, completed: (view: VistoViewBase, restoreQuery: string) => void) {
+function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean, completed: (view: ViewBase, restoreQuery: string) => void) {
     if (navigate) {
-        (<any>pageContainer).view(fullViewName, parameters,(view: VistoViewBase, viewModel: VistoViewModel, restoreQuery: string) => {
+        if (parameters === undefined || parameters == null)
+            parameters = {};
+
+        parameters[isPageParameter] = true; 
+
+        (<any>pageContainer).view(fullViewName, parameters,(view: PageBase, viewModel: ViewModel, restoreQuery: string) => {
             currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
@@ -665,10 +675,10 @@ function tryNavigateForward(fullViewName: string, parameters: {}, frame: JQuery,
 
             log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
 
-            if ($.isFunction(view.onNavigatedTo))
-                view.onNavigatedTo("forward");
-            if (currentPage !== null && currentPage !== undefined && $.isFunction(currentPage.view.onNavigatedFrom))
-                currentPage.view.onNavigatedFrom("forward");
+            view.onNavigatedTo("forward");
+
+            if (currentPage !== null && currentPage !== undefined)
+                (<PageBase>currentPage.view).onNavigatedFrom("forward");
 
             isNavigating = false;
             completed(view, restoreQuery);
@@ -737,12 +747,325 @@ export function hideLoading() {
 };
 
 // ----------------------------
-// Classes
+// View model
+// ----------------------------
+
+export class ViewModel {
+    parameters: Parameters;
+    defaultCommands = defaultCommands;
+
+    private view: ViewBase;
+    __restoreQuery: string = null;
+
+    constructor(view: ViewBase, parameters: Parameters) {
+        this.view = view;
+        this.parameters = parameters;
+    }
+
+    /**
+     * Enables page restoring for the current page. 
+     * This method must be called in the initialize() method. 
+     * Page restore only works for a page if all previous pages in the page stack support page restore.
+     */
+    enablePageRestore(restoreQuery?: string) {
+        this.__restoreQuery = restoreQuery === undefined ? "" : restoreQuery;
+    }
+    
+    /**
+     * Subscribes to the given subscribable and stores the subscription automatic clean up. 
+     */
+    subscribe<T>(subscribable: KnockoutSubscribable<T>, callback: (newValue: T) => void) {
+        this.view.subscribe(subscribable, callback);
+    }
+
+    /**
+     * Loads a translated string.
+     */
+    getString(key: string) {
+        return this.view.getString(key);
+    }
+
+    /**
+     * [Virtual] Initializes the view before it is added to the DOM.
+     */
+    initialize(parameters: Parameters) {
+        // must be empty
+    }
+
+    /**
+     * [Virtual] Called when the view has been added to the DOM.
+     */
+    onLoaded() {
+        // must be empty
+    }
+
+    /**
+     * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
+     * The callback() must be called when the work has been performed.
+     */
+    onLoading(callback: () => void) {
+        callback();
+    }
+
+    /**
+     * [Virtual] Called to clean up resources when the view has been removed from the DOM. 
+     */
+    destroy() {
+        // must be empty
+    }
+}
+
+// ----------------------------
+// View
+// ----------------------------
+
+export class ViewBase {
+    viewId: string;
+    viewName: string;
+    viewClass: string;
+    viewPackage: string;
+
+    element: JQuery;
+    parameters: Parameters;
+    parentView: ViewBase = null;
+
+    private isDestroyed = false;
+    private subViews: ViewBase[] = [];
+    private disposables: IDisposable[] = [];
+
+    /**
+     * Enables page restoring for the current page. 
+     * This method must be called in the initialize() method. 
+     * Page restore only works for a page if all previous pages in the page stack support page restore.
+     */
+    enablePageRestore(restoreQuery?: string) {
+        (<View<ViewModel>>this).viewModel.enablePageRestore(restoreQuery);
+    }
+    
+    /**
+     * Subscribes to the given subscribable and stores the subscription automatic clean up. 
+     */
+    subscribe<T>(subscribable: KnockoutSubscribable<T>, callback: (newValue: T) => void) {
+        var subscription = subscribable.subscribe(callback);
+        this.disposables.push(subscription);
+        return subscription;
+    }
+
+    /**
+     * Loads a translated string.
+     */
+    getString(key: string) {
+        return getString(key, this.viewPackage);
+    }
+
+    /**
+     * Finds an element inside this view. 
+     */
+    getElement(selector: string) {
+        if (selector[0] === "#")
+            return this.element.find(selector[0] + this.viewId + "_" + selector.substring(1)); // TODO: How to reference?
+        return this.element.find(selector);
+    }
+
+    /**
+     * Finds an element by ID inside this view. 
+     */
+    getElementById(id: string) {
+        return this.getElement("#" + id); // TODO: How to reference?
+    }
+
+    // event methods
+
+    /**
+     * [Virtual] Initializes the view before it is added to the DOM.
+     */
+    initialize(parameters: Parameters) {
+        // must be empty
+    }
+    
+    /**
+     * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
+     * The callback() must be called when the work has been performed.
+     */
+    onLoading(callback: () => void) {
+        callback();
+    }
+
+    /**
+     * [Virtual] Called when the view has been added to the DOM.
+     */
+    onLoaded() {
+        // must be empty
+    }
+
+    /**
+     * [Virtual] Called to clean up resources when the view has been removed from the DOM. 
+     */
+    destroy() {
+        // must be empty
+    }
+
+    /**
+     * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects. 
+     */
+    __destroyView() {
+        $.each(this.subViews,(index: number, view: ViewBase) => {
+            view.__destroyView();
+        });
+
+        if (!this.isDestroyed) {
+            log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " +
+                this.subViews.length + " subviews");
+
+            delete views[this.viewId];
+
+            (<View<ViewModel>>this).viewModel.destroy();
+            this.destroy();
+
+            $.each(this.disposables,(index: number, item: IDisposable) => {
+                item.dispose();
+            });
+
+            this.isDestroyed = true;
+        }
+    }
+
+    // ReSharper disable InconsistentNaming
+
+    __setParentView(parentView: ViewBase) {
+        if (this.parentView !== null)
+            throw "Parent view has already been set.";
+        this.parentView = parentView;
+    }
+
+    __addSubView(view: ViewBase) {
+        this.subViews.push(view);
+    }
+
+    // ReSharper restore InconsistentNaming
+}
+
+export class View<TViewModel extends ViewModel> extends ViewBase {
+    viewModel: TViewModel;
+}
+
+// ----------------------------
+// Page
+// ----------------------------
+
+export class Page<TViewModel extends ViewModel> extends View<TViewModel> {
+    /**
+     * [Virtual] Called when navigated to this page. 
+     */
+    onNavigatedTo(type: string) {
+        // must be empty
+    }
+
+    /**
+     * [Virtual] Called after navigated from this page. 
+     */
+    onNavigatedFrom(type: string) {
+        // must be empty
+    }
+
+    /**
+     * [Virtual] Called when navigating to this page. 
+     * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
+     */
+    onNavigatingFrom(type: string, callback: (navigate: boolean) => void) {
+        callback(true);
+    }
+}
+
+export class PageBase extends Page<ViewModel> {
+
+}
+
+// ----------------------------
+// Dialog
+// ----------------------------
+
+export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
+    dialog: JQuery;
+
+    initializeDialog(options: any) {
+        // must be empty
+    }
+}
+
+// ----------------------------
+// Parameters
+// ----------------------------
+
+export class Parameters {
+    private parameters: { [key: string]: any };
+
+    constructor(parameters: {}) {
+        if (parameters === undefined || parameters === null)
+            this.parameters = <any>({});
+        else
+            this.parameters = <any>(parameters);
+    }
+
+    getObservable<T>(key: string, defaultValue?: T): KnockoutObservable<T> {
+        if (this.parameters[key] === undefined)
+            this.parameters[key] = ko.observable(defaultValue);
+        else if ($.isFunction(this.parameters[key]))
+            return this.parameters[key];
+        else
+            this.parameters[key] = ko.observable(this.parameters[key]);
+        return this.parameters[key];
+    }
+
+    getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
+        if (this.parameters[key] === undefined)
+            this.parameters[key] = ko.observableArray(defaultValue);
+        else if ($.isFunction(this.parameters[key]))
+            return this.parameters[key];
+        else
+            this.parameters[key] = ko.observableArray(this.parameters[key]);
+        return this.parameters[key];
+    }
+
+    getValue<T>(key: string, defaultValue?: T): T {
+        if (this.parameters[key] === undefined) {
+            this.parameters[key] = defaultValue;
+            return defaultValue;
+        } else if ($.isFunction(this.parameters[key]))
+            return this.parameters[key]();
+        return this.parameters[key];
+    }
+
+    /**
+     * Sets a value either writing back through a binding or directly on the parameters object. 
+     */
+    setValue<T>(key: string, value: T) {
+        if ($.isFunction(this.parameters[key]))
+            this.parameters[key](value);
+        else
+            this.parameters[key] = value;
+    }
+
+    hasValue(key: string) {
+        return this.parameters[key] !== undefined;
+    }
+
+    isPageRestore() {
+        return this.getRestoreQuery() !== undefined;
+    }
+
+    getRestoreQuery() {
+        return this.parameters["restoreQuery"];
+    }
+}
+
+// ----------------------------
+// View factory
 // ----------------------------
 
 class ViewFactory {
     element: JQuery;
-    parameters: VistoParameters;
+    parameters: Parameters;
 
     viewId: string;
     viewModule: any;
@@ -750,26 +1073,26 @@ class ViewFactory {
     viewLocator: ViewLocator;
 
     isRootView: boolean;
-    context: VistoContext;
+    context: ViewContext;
 
-    parentView: VistoViewBase;
+    parentView: ViewBase;
 
-    view: VistoViewBase;
-    viewModel: VistoViewModel;
+    view: ViewBase;
+    viewModel: ViewModel;
 
     rootElement: HTMLElement;
 
-    completed: (view: VistoViewBase, viewModel: VistoViewModel, restoreQuery: string) => void;
+    completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void;
 
     /**
      * Creates a view for the given element.
      */
-    create(element: JQuery, fullViewName: string, params: {}, completed: (view: VistoViewBase, viewModel: VistoViewModel, restoreQuery: string) => void) {
+    create(element: JQuery, fullViewName: string, params: {}, completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void) {
         this.element = element;
 
         if (currentContext === undefined || currentContext === null) {
             // from foreach, other late-bindings or root view
-            this.context = new VistoContext(completed);
+            this.context = new ViewContext(completed);
             this.parentView = getViewFromElement(element);
             this.completed = null;
             this.isRootView = true;
@@ -781,7 +1104,7 @@ class ViewFactory {
         }
 
         this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-        this.parameters = new VistoParameters(params);
+        this.parameters = new Parameters(params);
 
         var lazySubviewLoading = this.parameters.getValue(lazySubviewLoadingOption, false);
         if (!lazySubviewLoading)
@@ -908,13 +1231,13 @@ class ViewFactory {
     }
 
     private instantiateView() {
-        var view: VistoViewBase;
+        var view: ViewBase;
 
         var hasView = this.viewModule !== undefined && this.viewModule !== null;
         if (hasView)
-            view = <VistoViewBase>(new this.viewModule[this.viewLocator.className]());
+            view = <ViewBase>(new this.viewModule[this.viewLocator.className]());
         else
-            view = new VistoView();
+            view = this.parameters.getValue(isPageParameter) ? new Page() : new View();
 
         view.element = this.element;
         view.viewId = this.viewId;
@@ -931,14 +1254,14 @@ class ViewFactory {
         return view;
     }
 
-    private instantiateViewModel(view: VistoViewBase) {
-        var viewModel: VistoViewModel;
+    private instantiateViewModel(view: ViewBase) {
+        var viewModel: ViewModel;
 
         var hasViewModel = this.viewModelModule !== undefined && this.viewModelModule !== null;
         if (hasViewModel)
-            viewModel = <VistoViewModel>(new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
+            viewModel = <ViewModel>(new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
         else
-            viewModel = new VistoViewModel(view, this.parameters);
+            viewModel = new ViewModel(view, this.parameters);
 
         (<any>view).viewModel = viewModel;
 
@@ -994,23 +1317,23 @@ class ViewFactory {
     // ReSharper restore InconsistentNaming
 }
 
-class VistoContext {
+class ViewContext {
     factories: ViewFactory[] = [];
     initializers: (() => void)[] = [];
 
     rootPackage = defaultPackage;
-    rootView: VistoViewBase = null;
+    rootView: ViewBase = null;
 
     parentPackage = defaultPackage;
-    parentView: VistoViewBase = null;
+    parentView: ViewBase = null;
 
     viewCount = 0;
     restoreQuery: string = undefined;
     loadedViewCount = 0;
 
-    completed: (rootView: VistoViewBase, rootViewModel: VistoViewModel, restoreQuery: string) => void;
+    completed: (rootView: ViewBase, rootViewModel: ViewModel, restoreQuery: string) => void;
 
-    constructor(completed: (rootView: VistoViewBase, rootViewModel: VistoViewModel, restoreQuery: string) => void) {
+    constructor(completed: (rootView: ViewBase, rootViewModel: ViewModel, restoreQuery: string) => void) {
         this.completed = completed;
     }
 
@@ -1057,7 +1380,7 @@ class ViewLocator {
     name: string;
     className: string;
 
-    constructor(fullViewName: string, context: VistoContext, parentView: VistoViewBase) {
+    constructor(fullViewName: string, context: ViewContext, parentView: ViewBase) {
         if (fullViewName.indexOf(":") !== -1) {
             var arr = fullViewName.split(":");
             this.package = getPackageName(arr[0]);
@@ -1077,290 +1400,6 @@ class ViewLocator {
     }
 }
 
-export class VistoParameters {
-    private parameters: { [key: string]: any };
-
-    constructor(parameters: {}) {
-        if (parameters === undefined || parameters === null)
-            this.parameters = <any>({});
-        else
-            this.parameters = <any>(parameters);
-    }
-
-    setValue<T>(key: string, value: T) {
-        if ($.isFunction(this.parameters[key]))
-            this.parameters[key](value);
-        else
-            this.parameters[key] = value;
-    }
-
-    getObservable<T>(key: string, defaultValue?: T): KnockoutObservable<T> {
-        if (this.parameters[key] === undefined)
-            this.parameters[key] = ko.observable(defaultValue);
-        else if ($.isFunction(this.parameters[key]))
-            return this.parameters[key];
-        else
-            this.parameters[key] = ko.observable(this.parameters[key]);
-        return this.parameters[key];
-    }
-
-    getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
-        if (this.parameters[key] === undefined)
-            this.parameters[key] = ko.observableArray(defaultValue);
-        else if ($.isFunction(this.parameters[key]))
-            return this.parameters[key];
-        else
-            this.parameters[key] = ko.observableArray(this.parameters[key]);
-        return this.parameters[key];
-    }
-
-    getValue<T>(key: string, defaultValue?: T): T {
-        if (this.parameters[key] === undefined) {
-            this.parameters[key] = defaultValue;
-            return defaultValue;
-        } else if ($.isFunction(this.parameters[key]))
-            return this.parameters[key]();
-        return this.parameters[key];
-    }
-
-    hasValue(key: string) {
-        return this.parameters[key] !== undefined;
-    }
-
-    isPageRestore() {
-        return this.getRestoreQuery() !== undefined;
-    }
-
-    getRestoreQuery() {
-        return this.parameters["restoreQuery"];
-    }
-}
-
-export class VistoViewModel {
-    parameters: VistoParameters;
-
-    private view: VistoViewBase;
-    __restoreQuery: string = null;
-
-    constructor(view: VistoViewBase, parameters: VistoParameters) {
-        this.view = view;
-        this.parameters = parameters;
-    }
-
-    /**
-     * Enables page restoring for the current page. 
-     * This method must be called in the initialize() method. 
-     * Page restore only works for a page if all previous pages in the page stack support page restore.
-     */
-    enablePageRestore(restoreQuery?: string) {
-        this.__restoreQuery = restoreQuery === undefined ? "" : restoreQuery;
-    }
-    
-    /**
-     * Subscribes to the given subscribable and stores the subscription automatic clean up. 
-     */
-    subscribe<T>(subscribable: KnockoutSubscribable<T>, callback: (newValue: T) => void) {
-        this.view.subscribe(subscribable, callback);
-    }
-
-    /**
-     * Loads a translated string.
-     */
-    getString(key: string) {
-        return this.view.getString(key);
-    }
-
-    /**
-     * [Virtual] Initializes the view before it is added to the DOM.
-     */
-    initialize(parameters: VistoParameters) {
-        // must be empty
-    }
-
-    /**
-     * [Virtual] Called when the view has been added to the DOM.
-     */
-    onLoaded() {
-        // must be empty
-    }
-
-    /**
-     * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
-     * The callback() must be called when the work has been performed.
-     */
-    onLoading(callback: () => void) {
-        callback();
-    }
-
-    /**
-     * [Virtual] Called to clean up resources when the view has been removed from the DOM. 
-     */
-    destroy() {
-        // must be empty
-    }
-
-}
-
-export class VistoViewBase {
-    viewId: string;
-    viewName: string;
-    viewClass: string;
-    viewPackage: string;
-
-    element: JQuery;
-    parameters: VistoParameters;
-    parentView: VistoViewBase = null;
-
-    private isDestroyed = false;
-    private subViews: VistoViewBase[] = [];
-    private disposables: IDisposable[] = [];
-
-    /**
-     * Enables page restoring for the current page. 
-     * This method must be called in the initialize() method. 
-     * Page restore only works for a page if all previous pages in the page stack support page restore.
-     */
-    enablePageRestore(restoreQuery?: string) {
-        (<VistoView<VistoViewModel>>this).viewModel.enablePageRestore(restoreQuery);
-    }
-    
-    /**
-     * Subscribes to the given subscribable and stores the subscription automatic clean up. 
-     */
-    subscribe<T>(subscribable: KnockoutSubscribable<T>, callback: (newValue: T) => void) {
-        var subscription = subscribable.subscribe(callback);
-        this.disposables.push(subscription);
-        return subscription;
-    }
-
-    /**
-     * Loads a translated string.
-     */
-    getString(key: string) {
-        return getString(key, this.viewPackage);
-    }
-
-    /**
-     * Finds an element inside this view. 
-     */
-    getElement(selector: string) {
-        if (selector[0] === "#")
-            return this.element.find(selector[0] + this.viewId + "_" + selector.substring(1)); // TODO: How to reference?
-        return this.element.find(selector);
-    }
-
-    /**
-     * Finds an element by ID inside this view. 
-     */
-    getElementById(id: string) {
-        return this.getElement("#" + id); // TODO: How to reference?
-    }
-
-    // event methods
-
-    /**
-     * [Virtual] Initializes the view before it is added to the DOM.
-     */
-    initialize(parameters: VistoParameters) {
-        // must be empty
-    }
-    
-    /**
-     * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
-     * The callback() must be called when the work has been performed.
-     */
-    onLoading(callback: () => void) {
-        callback();
-    }
-
-    /**
-     * [Virtual] Called when the view has been added to the DOM.
-     */
-    onLoaded() {
-        // must be empty
-    }
-
-    /**
-     * [Virtual] Called when navigated to this page. 
-     */
-    onNavigatedTo(type: string) {
-        // must be empty
-    }
-
-    /**
-     * [Virtual] Called after navigated from this page. 
-     */
-    onNavigatedFrom(type: string) {
-        // must be empty
-    }
-
-    /**
-     * [Virtual] Called when navigating to this page. 
-     * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
-     */
-    onNavigatingFrom(type: string, callback: (navigate: boolean) => void) {
-        callback(true);
-    }
-
-    /**
-     * [Virtual] Called to clean up resources when the view has been removed from the DOM. 
-     */
-    destroy() {
-        // must be empty
-    }
-
-    /**
-     * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects. 
-     */
-    __destroyView() {
-        $.each(this.subViews,(index: number, view: VistoViewBase) => {
-            view.__destroyView();
-        });
-
-        if (!this.isDestroyed) {
-            log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " +
-                this.subViews.length + " subviews");
-
-            delete views[this.viewId];
-
-            (<VistoView<VistoViewModel>>this).viewModel.destroy();
-            this.destroy();
-
-            $.each(this.disposables,(index: number, item: IDisposable) => {
-                item.dispose();
-            });
-
-            this.isDestroyed = true;
-        }
-    }
-
-    // ReSharper disable InconsistentNaming
-
-    __setParentView(parentView: VistoViewBase) {
-        if (this.parentView !== null)
-            throw "Parent view has already been set.";
-        this.parentView = parentView;
-    }
-
-    __addSubView(view: VistoViewBase) {
-        this.subViews.push(view);
-    }
-
-    // ReSharper restore InconsistentNaming
-}
-
-export class VistoView<TViewModel extends VistoViewModel> extends VistoViewBase {
-    viewModel: TViewModel;
-}
-
-export class VistoDialog<TViewModel extends VistoViewModel> extends VistoView<TViewModel> {
-    dialog: JQuery;
-
-    initializeDialog(options: any) {
-        // must be empty
-    }
-}
-
 // ----------------------------
 // Interfaces
 // ----------------------------
@@ -1371,7 +1410,7 @@ export interface IModule {
 }
 
 interface IPage {
-    view: VistoViewBase;
+    view: PageBase;
     hash: number;
     element: JQuery;
 }

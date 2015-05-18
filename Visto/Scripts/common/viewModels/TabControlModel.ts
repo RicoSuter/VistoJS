@@ -5,8 +5,8 @@ export interface ITab {
     view: string; 
 }
 
-export class TabControlModel extends visto.VistoViewModel {
-    parentView: visto.VistoViewBase;
+export class TabControlModel extends visto.ViewModel {
+    parentView: visto.ViewBase;
     tabs: KnockoutObservableArray<ITab>;
 	selectedTab = ko.observable<string>(null);
 

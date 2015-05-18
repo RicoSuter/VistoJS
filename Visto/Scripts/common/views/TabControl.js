@@ -14,7 +14,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.viewModel.parentView = this.parentView;
         };
         return TabControl;
-    })(visto.VistoView);
+    })(visto.View);
     exports.TabControl = TabControl;
 });
 //# sourceMappingURL=TabControl.js.map

@@ -3,7 +3,7 @@ import common = require("common/main");
 import svc = require("SampleService");
 import package = require("module");
 
-export class ListPageModel extends visto.VistoViewModel {
+export class ListPageModel extends visto.ViewModel {
 	items = ko.observableArray<svc.ISampleItem>();
     isLoading = ko.observable(false);
 

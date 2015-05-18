@@ -21,7 +21,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             });
         };
         return Prompt;
-    })(visto.VistoDialog);
+    })(visto.Dialog);
     exports.Prompt = Prompt;
 });
 //# sourceMappingURL=Prompt.js.map

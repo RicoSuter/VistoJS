@@ -22,7 +22,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             });
         };
         return LanguageSelectorModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.LanguageSelectorModel = LanguageSelectorModel;
 });
 //# sourceMappingURL=LanguageSelectorModel.js.map

@@ -15,7 +15,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.output = parameters.getObservable("output", "");
         };
         return PromptModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.PromptModel = PromptModel;
 });
 //# sourceMappingURL=PromptModel.js.map

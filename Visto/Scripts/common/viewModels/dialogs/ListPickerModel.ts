@@ -1,6 +1,6 @@
 import visto = require("libs/visto");
 
-export class ListPickerModel extends visto.VistoViewModel {
+export class ListPickerModel extends visto.ViewModel {
 	items: KnockoutObservableArray<any>;
 	selectedItem: KnockoutObservable<any>;
 
@@ -10,7 +10,7 @@ export class ListPickerModel extends visto.VistoViewModel {
 	optionsValue: string; 
 	optionsText: string; 
 	
-    initialize(parameters: visto.VistoParameters) {
+    initialize(parameters: visto.Parameters) {
 		this.items = parameters.getObservableArray<any>("items");
 		this.selectedItem = parameters.getObservable<any>("selectedItem");
 

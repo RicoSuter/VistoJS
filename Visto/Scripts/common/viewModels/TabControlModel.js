@@ -28,7 +28,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.selectedTab(tab.view.toString());
         };
         return TabControlModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.TabControlModel = TabControlModel;
 });
 //# sourceMappingURL=TabControlModel.js.map

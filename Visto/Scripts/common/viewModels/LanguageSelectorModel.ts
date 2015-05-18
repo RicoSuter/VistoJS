@@ -1,6 +1,6 @@
 import visto = require("libs/visto");
 
-export class LanguageSelectorModel extends visto.VistoViewModel {
+export class LanguageSelectorModel extends visto.ViewModel {
 	language = ko.observable(visto.language());
 	supportedLanguages = visto.supportedLanguages;
 

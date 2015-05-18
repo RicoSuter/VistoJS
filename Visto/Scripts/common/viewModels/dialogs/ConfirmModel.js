@@ -14,7 +14,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.message = parameters.getValue("message");
         };
         return ConfirmModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.ConfirmModel = ConfirmModel;
 });
 //# sourceMappingURL=ConfirmModel.js.map

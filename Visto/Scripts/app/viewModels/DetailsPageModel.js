@@ -33,7 +33,7 @@ define(["require", "exports", "libs/visto", "SampleService"], function (require,
                 callback();
         };
         return DetailsPageModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.DetailsPageModel = DetailsPageModel;
     ;
 });

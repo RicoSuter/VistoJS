@@ -23,7 +23,7 @@ define(["require", "exports", "libs/visto", "common/main"], function (require, e
             });
         };
         return SampleControlModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.SampleControlModel = SampleControlModel;
 });
 //# sourceMappingURL=SampleControlModel.js.map

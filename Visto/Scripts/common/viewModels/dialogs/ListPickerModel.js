@@ -18,7 +18,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.optionsText = parameters.getValue("optionsText", "title");
         };
         return ListPickerModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.ListPickerModel = ListPickerModel;
 });
 //# sourceMappingURL=ListPickerModel.js.map

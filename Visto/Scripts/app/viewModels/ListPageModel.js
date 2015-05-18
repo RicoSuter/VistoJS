@@ -37,7 +37,7 @@ define(["require", "exports", "libs/visto", "common/main", "SampleService", "mod
             this.items.remove(item);
         };
         return ListPageModel;
-    })(visto.VistoViewModel);
+    })(visto.ViewModel);
     exports.ListPageModel = ListPageModel;
     ;
 });
