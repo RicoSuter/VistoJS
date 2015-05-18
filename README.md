@@ -6,7 +6,7 @@ The Visto JavaScript Framework (VistoJS) integrates  KnockoutJS, JQuery and  Req
 
 [Introduction to the Visto JavaScript Framework](https://github.com/VistoJS/Core/wiki/Introduction)
 
-[Live demo appliation](https://rawgit.com/VistoJS/Core/master/Visto/index.html)
+[Live demo application](https://rawgit.com/VistoJS/Core/master/Visto/index.html)
 
 ## Features
 
@@ -40,13 +40,13 @@ The Visto JavaScript Library is designed to be used with TypeScript but is fully
 
 ## Usage and installation
 
-To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open "Visto/index.html" to start the sample project in your browser. 
+To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open `Visto/index.html` to start the sample project in your browser. 
 
 Open the Visual Studio solution `Visto.sln` to start developing an application using the Visto JavaScript Library (TypeScript must be installed). 
 
 The "common" package provides some reusable controls/views; the package is not required to use the Visto JavaScript Library. 
 
-**IMPORTANT:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (Documents\IISExpress\config\...) configuration: 
+**IMPORTANT:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (`Documents\IISExpress\config\...`) configuration: 
 
     <mimeMap fileExtension=".json" mimeType="application/json" />
 
