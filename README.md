@@ -52,7 +52,7 @@ The "common" package provides some reusable controls/views; the package is not r
     
 ## Installation in new projects
 
-TODO: NuGet package
+TODO: Use NuGet package
 
 ## Final notes
 
