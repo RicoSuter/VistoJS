@@ -21,8 +21,8 @@ The main advantages of this library is that it allows you to develop component-b
     - More maintainable and understandable code by **enforcing structure and conventions**
         - The resulting application is component based and different application areas can be grouped in packages
 - Support for **declarative UI internationalization**
-    - Declarative internationalization (with the `data-translate` attribute) which automatically updates when the language is changed 
-    - Immediate language changes using "language bindings"
+    - Declarative internationalization (with the `data-translate` attribute) to automatically update the UI when the language changed
+    - Immediate language changes using "language bindings" which are also usable in code
 - Visto.js file size is 18kb minimized (22kb debug)
     - Complete framework (with all libraries like JQuery, JQuery UI, KnockoutJS, RequireJS, etc.)
         - With JQuery UI (needed for dialogs): 388kb 
