@@ -6,7 +6,7 @@ export class DetailsPageModel extends visto.ViewModel {
 
     initialize(parameters: visto.Parameters) {
         if (!this.parameters.isPageRestore()) {
-            this.item(parameters.getValue<svc.ISampleItem>("item", null));
+            this.item(parameters.getObject<svc.ISampleItem>("item", null));
             this.enablePageRestore(this.item().id.toString());
         }
     }

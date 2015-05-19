@@ -6,7 +6,7 @@ export class PromptModel extends visto.ViewModel {
     output: KnockoutObservable<string>;
 
 	initialize(parameters: visto.Parameters) {
-		this.message = parameters.getObservable<string>("message");
-		this.output = parameters.getObservable("output", "");
+        this.message = parameters.getObservableString("message");
+        this.output = parameters.getObservableString("output", "");
 	}
 }

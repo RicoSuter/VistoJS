@@ -12,11 +12,11 @@ export class ListPickerModel extends visto.ViewModel {
 	
     initialize(parameters: visto.Parameters) {
 		this.items = parameters.getObservableArray<any>("items");
-		this.selectedItem = parameters.getObservable<any>("selectedItem");
+		this.selectedItem = parameters.getObservableObject<any>("selectedItem");
 
-		this.enable = parameters.getObservable<boolean>("enable", true);
-		this.label = parameters.getObservable<string>("label");
+		this.enable = parameters.getObservableBoolean("enable", true);
+        this.label = parameters.getObservableString("label");
 
-		this.optionsText = parameters.getValue<string>("optionsText", "title");
+        this.optionsText = parameters.getString("optionsText", "title");
 	}
 }

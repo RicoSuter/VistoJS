@@ -12,7 +12,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
         }
         WebView.prototype.onLoading = function (completed) {
             var _this = this;
-            this.url = this.parameters.getObservable("url", "");
+            this.url = this.parameters.getObservableString("url", "");
             this.subscribe(this.url, function (newUrl) { return _this.navigateToUrl(newUrl); });
             this.registerSubmitEvent();
             $.ajax({

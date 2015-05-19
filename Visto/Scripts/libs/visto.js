@@ -807,6 +807,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewBase.prototype.destroy = function () {
             // must be empty
         };
+        // ReSharper disable InconsistentNaming
         /**
          * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects.
          */
@@ -825,7 +826,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.isDestroyed = true;
             }
         };
-        // ReSharper disable InconsistentNaming
         ViewBase.prototype.__setParentView = function (parentView) {
             if (this.parentView !== null)
                 throw "Parent view has already been set.";
@@ -901,56 +901,92 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Parameters
     // ----------------------------
     var Parameters = (function () {
-        function Parameters(parameters) {
-            if (parameters === undefined || parameters === null)
-                this.parameters = ({});
-            else
-                this.parameters = (parameters);
+        function Parameters(parameters, element) {
+            this.parameters = {};
+            this.originalParameters = {};
+            if (parameters !== undefined && parameters !== null)
+                this.originalParameters = (parameters);
+            this.parseElementChildren(element);
         }
-        Parameters.prototype.getObservable = function (key, defaultValue) {
-            if (this.parameters[key] === undefined)
-                this.parameters[key] = ko.observable(defaultValue);
-            else if ($.isFunction(this.parameters[key]))
-                return this.parameters[key];
-            else
-                this.parameters[key] = ko.observable(this.parameters[key]);
-            return this.parameters[key];
+        Parameters.prototype.getObservableString = function (key, defaultValue) {
+            return this.getObservableWithConversion(key, function (value) { return value.toString(); }, defaultValue);
         };
-        Parameters.prototype.getObservableArray = function (key, defaultValue) {
-            if (this.parameters[key] === undefined)
-                this.parameters[key] = ko.observableArray(defaultValue);
-            else if ($.isFunction(this.parameters[key]))
-                return this.parameters[key];
-            else
-                this.parameters[key] = ko.observableArray(this.parameters[key]);
-            return this.parameters[key];
+        Parameters.prototype.getObservableNumber = function (key, defaultValue) {
+            return this.getObservableWithConversion(key, function (value) { return Number(value); }, defaultValue);
         };
-        Parameters.prototype.getValue = function (key, defaultValue) {
-            if (this.parameters[key] === undefined) {
-                this.parameters[key] = defaultValue;
-                return defaultValue;
-            }
-            else if ($.isFunction(this.parameters[key]))
-                return this.parameters[key]();
-            return this.parameters[key];
+        Parameters.prototype.getObservableBoolean = function (key, defaultValue) {
+            return this.getObservableWithConversion(key, function (value) { return Boolean(value); }, defaultValue);
         };
-        /**
-         * Sets a value either writing back through a binding or directly on the parameters object.
-         */
-        Parameters.prototype.setValue = function (key, value) {
-            if ($.isFunction(this.parameters[key]))
-                this.parameters[key](value);
-            else
-                this.parameters[key] = value;
+        Parameters.prototype.getObservableObject = function (key, defaultValue) {
+            return this.getObservableWithConversion(key, function (value) { return value; }, defaultValue);
+        };
+        Parameters.prototype.getString = function (key, defaultValue) {
+            return this.getObservableString(key, defaultValue)();
+        };
+        Parameters.prototype.getNumber = function (key, defaultValue) {
+            return this.getObservableNumber(key, defaultValue)();
+        };
+        Parameters.prototype.getBoolean = function (key, defaultValue) {
+            return this.getObservableBoolean(key, defaultValue)();
+        };
+        Parameters.prototype.getObject = function (key, defaultValue) {
+            return this.getObservableObject(key, defaultValue)();
         };
         Parameters.prototype.hasValue = function (key) {
-            return this.parameters[key] !== undefined;
+            return this.originalParameters[key] !== undefined;
+        };
+        Parameters.prototype.getObservableArray = function (key, defaultValue) {
+            if (this.parameters[key] === undefined) {
+                if (this.originalParameters[key] !== undefined)
+                    this.parameters[key] = ko.observableArray(this.originalParameters[key]);
+                else if (defaultValue !== undefined)
+                    this.parameters[key] = ko.observableArray(defaultValue);
+                else
+                    this.parameters[key] = ko.observableArray(null);
+            }
+            return this.parameters[key];
         };
         Parameters.prototype.isPageRestore = function () {
             return this.getRestoreQuery() !== undefined;
         };
         Parameters.prototype.getRestoreQuery = function () {
-            return this.parameters["restoreQuery"];
+            return this.originalParameters["restoreQuery"];
+        };
+        Parameters.prototype.getObservableWithConversion = function (key, valueConverter, defaultValue) {
+            if (this.parameters[key] === undefined) {
+                if (this.originalParameters[key] !== undefined)
+                    this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+                else if (defaultValue !== undefined)
+                    this.parameters[key] = ko.observable(defaultValue);
+                else
+                    this.parameters[key] = ko.observable(null);
+            }
+            return this.parameters[key];
+        };
+        Parameters.prototype.parseElementChildren = function (element) {
+            var _this = this;
+            element.children().each(function (index, child) {
+                var value = _this.createObjectFromElement($(child));
+                _this.originalParameters[convertDashedToCamelCase(child.tagName.toLowerCase())] = value;
+            });
+        };
+        Parameters.prototype.createObjectFromElement = function (element) {
+            var _this = this;
+            var children = element.children();
+            if (children.length > 0) {
+                var array = [];
+                children.each(function (index, child) {
+                    array.push(_this.createObjectFromElement($(child)));
+                });
+                return array;
+            }
+            else {
+                var object = {};
+                $.each(element.get(0).attributes, function (index, attr) {
+                    object[attr.name] = attr.value; // TODO: Also evaluate bindings 
+                });
+                return object;
+            }
         };
         return Parameters;
     })();
@@ -961,10 +997,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewFactory = (function () {
         function ViewFactory() {
         }
-        /**
-         * Creates a view for the given element.
-         */
-        ViewFactory.prototype.create = function (element, fullViewName, params, completed) {
+        ViewFactory.prototype.create = function (element, fullViewName, parameters, completed) {
             this.element = element;
             if (currentContext === undefined || currentContext === null) {
                 // from foreach, other late-bindings or root view
@@ -980,8 +1013,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.isRootView = false;
             }
             this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-            this.parameters = new Parameters(params);
-            var lazySubviewLoading = this.parameters.getValue(lazySubviewLoadingOption, false);
+            this.parameters = new Parameters(parameters, element);
+            var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
             if (!lazySubviewLoading)
                 this.context.viewCount++;
             this.loadScriptsAndLanguageFile();
@@ -1062,7 +1095,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var restoreQuery = this.parameters.isPageRestore() ? this.parameters.getRestoreQuery() : this.viewModel.__restoreQuery;
             if (this.isRootView)
                 this.context.restoreQuery = restoreQuery;
-            var lazySubviewLoading = this.parameters.getValue(lazySubviewLoadingOption, false);
+            var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
             if (lazySubviewLoading) {
                 this.__setHtml();
                 ko.applyBindings(this.viewModel, this.rootElement);
@@ -1090,7 +1123,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (hasView)
                 view = (new this.viewModule[this.viewLocator.className]());
             else
-                view = this.parameters.getValue(isPageParameter) ? new Page() : new View();
+                view = this.parameters.getBoolean(isPageParameter) ? new Page() : new View();
             view.element = this.element;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;

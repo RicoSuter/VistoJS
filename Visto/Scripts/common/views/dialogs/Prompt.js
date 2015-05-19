@@ -16,7 +16,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.getElement("#input").keypress(function (e) {
                 if (e.which === 13) {
                     _this.dialog.dialog("close");
-                    _this.parameters.setValue("completed", _this.viewModel.output());
+                    _this.parameters.getObservableString("completed")(_this.viewModel.output()); // TODO: Implement setValue
                 }
             });
         };

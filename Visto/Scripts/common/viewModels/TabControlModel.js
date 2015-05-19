@@ -15,14 +15,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.tabs = this.parameters.getObservableArray("tabs");
             this.tabsChanged();
             this.subscribe(this.tabs, this.tabsChanged);
-            this.selectedTab(this.tabs()[1].view.toString());
-        };
-        TabControlModel.prototype.tabsChanged = function () {
-            var tabs = this.tabs();
-            for (var i = 0, item; (item = tabs[i]) != undefined; i++) {
-                if (item.view !== undefined && item.view.indexOf(":") === -1)
-                    item.view = this.parentView.viewPackage + ":" + item.view;
-            }
+            this.selectedTab(this.tabs()[1].view);
         };
         TabControlModel.prototype.setTab = function (tab) {
             this.selectedTab(tab.view.toString());

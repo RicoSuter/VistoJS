@@ -7,7 +7,7 @@ export class WebView extends visto.ViewBase {
     currentBaseUrl: string;
 
     onLoading(completed: () => void) {
-        this.url = this.parameters.getObservable("url", "");
+        this.url = this.parameters.getObservableString("url", "");
         this.subscribe(this.url,(newUrl) => this.navigateToUrl(newUrl));
         this.registerSubmitEvent();
         

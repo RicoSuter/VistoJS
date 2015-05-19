@@ -63,7 +63,7 @@ var initialBody = $("body").find("div");
  * Initializes the framework and navigates to the first page or restores the pages. 
  */
 export function initialize(options: IVistoOptions) {
-    defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;  
+    defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
     setUserLanguage(options.supportedLanguages);
 
     if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
@@ -73,14 +73,14 @@ export function initialize(options: IVistoOptions) {
         });
     }
 
-    restorePages(options.defaultView); 
+    restorePages(options.defaultView);
 }
 
 export interface IVistoOptions {
-    defaultView: string; 
+    defaultView: string;
     defaultPackage: string;
-    supportedLanguages: string[]; 
-    registerEnterKeyFix: boolean; 
+    supportedLanguages: string[];
+    registerEnterKeyFix: boolean;
 }
 
 // ----------------------------
@@ -548,12 +548,12 @@ $.fn.restorePages = function (fullViewName: string, parameters: Parameters, comp
             var segment = urlSegments[currentSegmentIndex];
             if (segment != null) {
                 var segmentParts = segment.split(":");
-                var supportsPageRestore = segmentParts.length === 3; 
+                var supportsPageRestore = segmentParts.length === 3;
                 if (supportsPageRestore) {
                     currentSegmentIndex++;
                     var fullViewName = segmentParts[0] + ":" + segmentParts[1];
                     var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                    (<any>frame).navigateTo(fullViewName, { restoreQuery: restoreQuery }, (view: ViewBase) => {
+                    (<any>frame).navigateTo(fullViewName, { restoreQuery: restoreQuery },(view: ViewBase) => {
                         navigateTo(view);
                     });
                 } else
@@ -645,9 +645,9 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
         if (parameters === undefined || parameters == null)
             parameters = {};
 
-        parameters[isPageParameter] = true; 
+        parameters[isPageParameter] = true;
 
-        (<any>pageContainer).view(fullViewName, parameters,(view: PageBase, viewModel: ViewModel, restoreQuery: string) => {
+        (<any>pageContainer).view(fullViewName, parameters, (view: PageBase, viewModel: ViewModel, restoreQuery: string) => {
             currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
@@ -678,7 +678,7 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
             view.onNavigatedTo("forward");
 
             if (currentPage !== null && currentPage !== undefined)
-                (<PageBase>currentPage.view).onNavigatedFrom("forward");
+                currentPage.view.onNavigatedFrom("forward");
 
             isNavigating = false;
             completed(view, restoreQuery);
@@ -905,6 +905,8 @@ export class ViewBase {
         // must be empty
     }
 
+    // ReSharper disable InconsistentNaming
+
     /**
      * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects. 
      */
@@ -929,8 +931,6 @@ export class ViewBase {
             this.isDestroyed = true;
         }
     }
-
-    // ReSharper disable InconsistentNaming
 
     __setParentView(parentView: ViewBase) {
         if (this.parentView !== null)
@@ -998,64 +998,105 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
 // ----------------------------
 
 export class Parameters {
-    private parameters: { [key: string]: any };
+    private parameters: { [key: string]: any } = {};
+    private originalParameters: { [key: string]: any } = {};
 
-    constructor(parameters: {}) {
-        if (parameters === undefined || parameters === null)
-            this.parameters = <any>({});
-        else
-            this.parameters = <any>(parameters);
+    constructor(parameters: {}, element: JQuery) {
+        if (parameters !== undefined && parameters !== null)
+            this.originalParameters = <any>(parameters);
+        this.parseElementChildren(element);
     }
 
-    getObservable<T>(key: string, defaultValue?: T): KnockoutObservable<T> {
-        if (this.parameters[key] === undefined)
-            this.parameters[key] = ko.observable(defaultValue);
-        else if ($.isFunction(this.parameters[key]))
-            return this.parameters[key];
-        else
-            this.parameters[key] = ko.observable(this.parameters[key]);
-        return this.parameters[key];
+    getObservableString(key: string, defaultValue?: string): KnockoutObservable<string> {
+        return this.getObservableWithConversion(key, value => value.toString(), defaultValue);
     }
 
-    getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
-        if (this.parameters[key] === undefined)
-            this.parameters[key] = ko.observableArray(defaultValue);
-        else if ($.isFunction(this.parameters[key]))
-            return this.parameters[key];
-        else
-            this.parameters[key] = ko.observableArray(this.parameters[key]);
-        return this.parameters[key];
+    getObservableNumber(key: string, defaultValue?: number): KnockoutObservable<number> {
+        return this.getObservableWithConversion(key, value => Number(value), defaultValue);
     }
 
-    getValue<T>(key: string, defaultValue?: T): T {
-        if (this.parameters[key] === undefined) {
-            this.parameters[key] = defaultValue;
-            return defaultValue;
-        } else if ($.isFunction(this.parameters[key]))
-            return this.parameters[key]();
-        return this.parameters[key];
+    getObservableBoolean(key: string, defaultValue?: boolean): KnockoutObservable<boolean> {
+        return this.getObservableWithConversion(key, value => Boolean(value), defaultValue);
     }
 
-    /**
-     * Sets a value either writing back through a binding or directly on the parameters object. 
-     */
-    setValue<T>(key: string, value: T) {
-        if ($.isFunction(this.parameters[key]))
-            this.parameters[key](value);
-        else
-            this.parameters[key] = value;
+    getObservableObject<T>(key: string, defaultValue?: T) {
+        return this.getObservableWithConversion(key, value => value, defaultValue);
+    }
+
+    getString(key: string, defaultValue?: string) {
+        return this.getObservableString(key, defaultValue)();
+    }
+
+    getNumber(key: string, defaultValue?: number) {
+        return this.getObservableNumber(key, defaultValue)();
+    }
+
+    getBoolean(key: string, defaultValue?: boolean) {
+        return this.getObservableBoolean(key, defaultValue)();
+    }
+
+    getObject<T>(key: string, defaultValue?: T) {
+        return this.getObservableObject(key, defaultValue)();
     }
 
     hasValue(key: string) {
-        return this.parameters[key] !== undefined;
+        return this.originalParameters[key] !== undefined;
+    }
+
+    getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
+        if (this.parameters[key] === undefined) {
+            if (this.originalParameters[key] !== undefined)
+                this.parameters[key] = ko.observableArray(this.originalParameters[key]);
+            else if (defaultValue !== undefined)
+                this.parameters[key] = ko.observableArray(defaultValue);
+            else
+                this.parameters[key] = ko.observableArray(null);
+        }
+        return this.parameters[key];
     }
 
     isPageRestore() {
         return this.getRestoreQuery() !== undefined;
     }
 
-    getRestoreQuery() {
-        return this.parameters["restoreQuery"];
+    getRestoreQuery(): string {
+        return this.originalParameters["restoreQuery"];
+    }
+
+    private getObservableWithConversion<T>(key: string, valueConverter: (value: any) => T, defaultValue: T): KnockoutObservable<T> {
+        if (this.parameters[key] === undefined) {
+            if (this.originalParameters[key] !== undefined)
+                this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+            else if (defaultValue !== undefined)
+                this.parameters[key] = ko.observable(defaultValue);
+            else
+                this.parameters[key] = ko.observable(null);
+        }
+        return this.parameters[key];
+    }
+
+    private parseElementChildren(element: JQuery) {
+        element.children().each((index: number, child: Element) => {
+            var value = this.createObjectFromElement($(child));
+            this.originalParameters[convertDashedToCamelCase(child.tagName.toLowerCase())] = value;
+        });
+    }
+
+    private createObjectFromElement(element: JQuery): any {
+        var children = element.children();
+        if (children.length > 0) {
+            var array: any[] = [];
+            children.each((index: number, child: Element) => {
+                array.push(this.createObjectFromElement($(child)));
+            });
+            return array;
+        } else {
+            var object: { [key: string]: any } = {};
+            $.each(element.get(0).attributes,(index: number, attr: Attr) => {
+                object[attr.name] = attr.value; // TODO: Also evaluate bindings 
+            });
+            return object;
+        }
     }
 }
 
@@ -1084,10 +1125,7 @@ class ViewFactory {
 
     completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void;
 
-    /**
-     * Creates a view for the given element.
-     */
-    create(element: JQuery, fullViewName: string, params: {}, completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void) {
+    create(element: JQuery, fullViewName: string, parameters: {}, completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void) {
         this.element = element;
 
         if (currentContext === undefined || currentContext === null) {
@@ -1104,9 +1142,9 @@ class ViewFactory {
         }
 
         this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-        this.parameters = new Parameters(params);
+        this.parameters = new Parameters(parameters, element);
 
-        var lazySubviewLoading = this.parameters.getValue(lazySubviewLoadingOption, false);
+        var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
         if (!lazySubviewLoading)
             this.context.viewCount++;
 
@@ -1203,7 +1241,7 @@ class ViewFactory {
         if (this.isRootView)
             this.context.restoreQuery = restoreQuery;
 
-        var lazySubviewLoading = this.parameters.getValue(lazySubviewLoadingOption, false);
+        var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
         if (lazySubviewLoading) {
             this.__setHtml();
             ko.applyBindings(this.viewModel, this.rootElement);
@@ -1237,7 +1275,7 @@ class ViewFactory {
         if (hasView)
             view = <ViewBase>(new this.viewModule[this.viewLocator.className]());
         else
-            view = this.parameters.getValue(isPageParameter) ? new Page() : new View();
+            view = this.parameters.getBoolean(isPageParameter) ? new Page() : new View();
 
         view.element = this.element;
         view.viewId = this.viewId;

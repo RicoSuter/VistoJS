@@ -11,7 +11,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             _super.apply(this, arguments);
         }
         ConfirmModel.prototype.initialize = function (parameters) {
-            this.message = parameters.getValue("message");
+            this.message = parameters.getString("message");
         };
         return ConfirmModel;
     })(visto.ViewModel);

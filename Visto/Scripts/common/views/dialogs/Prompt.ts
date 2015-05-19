@@ -8,7 +8,7 @@ export class Prompt extends visto.Dialog<ns.PromptModel>  {
 		this.getElement("#input").keypress(e => {
 			if (e.which === 13) {
 				this.dialog.dialog("close");
-                this.parameters.setValue("completed", this.viewModel.output());
+                this.parameters.getObservableString("completed")(this.viewModel.output()); // TODO: Implement setValue
 			}
 		});
 	}

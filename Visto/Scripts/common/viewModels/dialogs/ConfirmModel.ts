@@ -4,6 +4,6 @@ export class ConfirmModel extends visto.ViewModel {
 	message: string;
 
     initialize(parameters: visto.Parameters) {
-		this.message = parameters.getValue<string>("message");
+        this.message = parameters.getString("message");
 	}
 }

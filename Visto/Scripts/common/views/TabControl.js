@@ -11,7 +11,17 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             _super.apply(this, arguments);
         }
         TabControl.prototype.initialize = function () {
-            this.viewModel.parentView = this.parentView;
+            var _this = this;
+            this.viewModel.tabsChanged = function () {
+                _this.tabsChanged();
+            };
+        };
+        TabControl.prototype.tabsChanged = function () {
+            var tabs = this.viewModel.tabs();
+            for (var i = 0, item; (item = tabs[i]) != undefined; i++) {
+                if (item.view !== undefined && item.view.indexOf(":") === -1)
+                    item.view = this.parentView.viewPackage + ":" + item.view;
+            }
         };
         return TabControl;
     })(visto.View);

@@ -11,8 +11,8 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             _super.apply(this, arguments);
         }
         PromptModel.prototype.initialize = function (parameters) {
-            this.message = parameters.getObservable("message");
-            this.output = parameters.getObservable("output", "");
+            this.message = parameters.getObservableString("message");
+            this.output = parameters.getObservableString("output", "");
         };
         return PromptModel;
     })(visto.ViewModel);

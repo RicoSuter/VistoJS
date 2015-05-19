@@ -12,7 +12,7 @@ define(["require", "exports", "libs/visto", "common/main"], function (require, e
         }
         SampleControlModel.prototype.initialize = function () {
             var _this = this;
-            this.selectedText = this.parameters.getObservable("selectedText", "n/a");
+            this.selectedText = this.parameters.getObservableString("selectedText", "n/a");
             this.transformedText = ko.computed(function () { return _this.selectedText().toUpperCase(); });
         };
         SampleControlModel.prototype.changeText = function () {

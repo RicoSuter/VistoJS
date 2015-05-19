@@ -1,20 +1,18 @@
 ﻿<div>
-	<div class="page_menu">
-		<ul class="menu" data-bind="foreach: tabs">
-			<!-- ko if: $data.view != undefined -->
-			<li class="tab" data-bind="css: { active: $parent.selectedTab() == $data.view }, click: $parent.setTab.bind($parent, $data)"><a href="#" data-bind="text: $data.title" /></li>
-			<!-- /ko -->
-			<!-- ko if: $data.view == undefined -->
-			<li data-bind="click: $data.click"><a href="#" data-bind="text: $data.title" /></li>
-			<!-- /ko -->
-		</ul>
-	</div>
-    
-	<div class="page_content">
-		<div class="box" data-bind="foreach: tabs">
-			<!-- ko if: $data.view != undefined -->
-			<div class="box_content" data-bind="visible: $parent.selectedTab() == $data.view, view: { name: $data.view }" />	
-			<!-- /ko -->
-		</div>
-	</div>
+    <div class="page_menu">
+        <ul class="menu" data-bind="foreach: tabs">
+            <!-- ko if: $data.view != undefined -->
+            <li class="tab" data-bind="css: { active: $parent.selectedTab() == $data.view }, click: $parent.setTab.bind($parent, $data)"><a href="#" data-bind="text: $data.title"></a></li>
+            <!-- /ko --><!-- ko if: $data.view == undefined -->
+            <li data-bind="click: $data.click"><a href="#" data-bind="text: $data.title"></a></li>
+            <!-- /ko -->
+        </ul>
+    </div>
+    <div class="page_content">
+        <div class="box" data-bind="foreach: tabs">
+            <!-- ko if: $data.view != undefined -->
+            <div class="box_content" data-bind="visible: $parent.selectedTab() == $data.view, view: { name: $data.view }"></div>
+            <!-- /ko -->
+        </div>
+    </div>
 </div>

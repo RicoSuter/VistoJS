@@ -12,10 +12,10 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         }
         ListPickerModel.prototype.initialize = function (parameters) {
             this.items = parameters.getObservableArray("items");
-            this.selectedItem = parameters.getObservable("selectedItem");
-            this.enable = parameters.getObservable("enable", true);
-            this.label = parameters.getObservable("label");
-            this.optionsText = parameters.getValue("optionsText", "title");
+            this.selectedItem = parameters.getObservableObject("selectedItem");
+            this.enable = parameters.getObservableBoolean("enable", true);
+            this.label = parameters.getObservableString("label");
+            this.optionsText = parameters.getString("optionsText", "title");
         };
         return ListPickerModel;
     })(visto.ViewModel);

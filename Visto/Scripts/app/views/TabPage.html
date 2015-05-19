@@ -1,10 +1,13 @@
 ﻿<div>
     <vs-page-header subtitle="Page 2" />
-    <vs-tab-control package="common"
-                    tabs="{[
-                              { title: 'Back', click: defaultCommands.navigateBack },
-                              { view: 'tabs/Tab1', title: 'Tab 1' },
-                              { view: 'tabs/Tab2', title: 'Tab 2' }
-                          ]}" />
-	<vs-page-footer />
+
+    <vs-tab-control package="common">
+        <tabs>
+            <tab title="Back" click="{defaultcommands.navigateback}" />
+            <tab title="Tab 1" view="tabs/Tab1" />
+            <tab title="Tab 2" view="tabs/Tab2" />
+        </tabs>
+    </vs-tab-control>
+
+    <vs-page-footer />
 </div>

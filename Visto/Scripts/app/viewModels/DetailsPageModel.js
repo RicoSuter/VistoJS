@@ -13,7 +13,7 @@ define(["require", "exports", "libs/visto", "SampleService"], function (require,
         }
         DetailsPageModel.prototype.initialize = function (parameters) {
             if (!this.parameters.isPageRestore()) {
-                this.item(parameters.getValue("item", null));
+                this.item(parameters.getObject("item", null));
                 this.enablePageRestore(this.item().id.toString());
             }
         };
