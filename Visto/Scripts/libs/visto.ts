@@ -76,6 +76,9 @@ export function initialize(options: IVistoOptions) {
     restorePages(options.defaultView);
 }
 
+/**
+ * Interface containing the initialization options. 
+ */
 export interface IVistoOptions {
     defaultView: string;
     defaultPackage: string;
@@ -322,8 +325,8 @@ export function restorePages(fullViewName: string, params?: {}, completed?: any)
 /**
  * Navigates to a given page using the body element as frame.
  */
-export function navigateTo(fullViewName: string, params?: {}, completed?: (view: ViewBase, restoreQuery: string) => void): void;
-export function navigateTo(modulePackage: IModule, viewName: string, params?: {}, completed?: (view: ViewBase, restoreQuery: string) => void): void;
+export function navigateTo(fullViewName: string, params?: {}, completed?: (view: ViewBase) => void): void;
+export function navigateTo(modulePackage: IModule, viewName: string, params?: {}, completed?: (view: ViewBase) => void): void;
 export function navigateTo(a: any, b: any, c?: any, d?: any): void {
     if (typeof a === "string")
         (<any>$("body")).navigateTo(a, b, c);
@@ -369,11 +372,8 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
 
         log("Navigated back to " + previousPage.view.viewClass + ", page stack size: " + pageStack.length);
 
-        // TODO: Use instance of
-        if ($.isFunction(previousPage.view.onNavigatedTo))
-            previousPage.view.onNavigatedTo("back");
-        if ($.isFunction(currentPage.view.onNavigatedFrom))
-            currentPage.view.onNavigatedFrom("back");
+        previousPage.view.onNavigatedTo("back");
+        currentPage.view.onNavigatedFrom("back");
     }
     else
         (<any>window).location = "#" + currentPage.hash;
@@ -388,7 +388,7 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
 /**
  * Navigates back to the home page (first page in stack).
  */
-export function navigateHome(completed: (successful: boolean) => void) {
+export function navigateHome(completed?: (successful: boolean) => void) {
     if (navigationCount <= 1) {
         if ($.isFunction(completed))
             completed(true);
@@ -525,7 +525,7 @@ ko.bindingHandlers["view"] = {
 // ----------------------------
 
 // Inserts a view inside an element (JQuery)
-$.fn.view = function (fullViewName: string, parameters: { [key: string]: any }, completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void) {
+$.fn.view = function (fullViewName: string, parameters: { [key: string]: any }, completed: (view: ViewBase, viewModel: ViewModel) => void) {
     var loader = new ViewFactory();
     loader.create(this, fullViewName, parameters, completed);
     return this;
@@ -587,12 +587,12 @@ $.fn.currentPage = function () {
 };
 
 // Navigates to a page (JQuery)
-$.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (view: ViewBase, restoreQuery: string) => void) {
+$.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (view: ViewBase) => void) {
     var frame = $(this);
 
     if (isNavigating) {
         if ($.isFunction(completed))
-            completed(null, null);
+            completed(null);
         return frame;
     }
     isNavigating = true;
@@ -608,16 +608,16 @@ $.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (vi
     showLoading(currentPage !== null);
     if (currentPage !== null && currentPage !== undefined) {
         currentPage.view.onNavigatingFrom("forward",(navigate) => {
-            tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate,(view: ViewBase, restoreQuery: string) => {
+            tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate,(view: ViewBase) => {
                 if (completed !== undefined)
-                    completed(view, restoreQuery);
+                    completed(view);
                 hideLoading();
             });
         });
     } else {
-        tryNavigateForward(fullViewName, parameters, frame, pageContainer, true,(view: ViewBase, restoreQuery: string) => {
+        tryNavigateForward(fullViewName, parameters, frame, pageContainer, true,(view: ViewBase) => {
             if (completed !== undefined)
-                completed(view, restoreQuery);
+                completed(view);
             hideLoading();
         });
     }
@@ -640,14 +640,14 @@ function getCurrentPage(element: JQuery): IPage {
     return null;
 }
 
-function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean, completed: (view: ViewBase, restoreQuery: string) => void) {
+function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean, completed: (view: ViewBase) => void) {
     if (navigate) {
         if (parameters === undefined || parameters == null)
             parameters = {};
 
         parameters[isPageParameter] = true;
 
-        (<any>pageContainer).view(fullViewName, parameters, (view: PageBase, viewModel: ViewModel, restoreQuery: string) => {
+        (<any>pageContainer).view(fullViewName, parameters,(view: PageBase, viewModel: ViewModel, restoreQuery: string) => {
             currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
@@ -681,10 +681,10 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
                 currentPage.view.onNavigatedFrom("forward");
 
             isNavigating = false;
-            completed(view, restoreQuery);
+            completed(view);
         });
     } else
-        completed(null, null);
+        completed(null);
 };
 
 // ----------------------------
@@ -754,11 +754,15 @@ export class ViewModel {
     parameters: Parameters;
     defaultCommands = defaultCommands;
 
-    private view: ViewBase;
+// ReSharper disable InconsistentNaming
+
+    __view: ViewBase;
     __restoreQuery: string = null;
 
+// ReSharper restore InconsistentNaming
+
     constructor(view: ViewBase, parameters: Parameters) {
-        this.view = view;
+        this.__view = view;
         this.parameters = parameters;
     }
 
@@ -775,14 +779,14 @@ export class ViewModel {
      * Subscribes to the given subscribable and stores the subscription automatic clean up. 
      */
     subscribe<T>(subscribable: KnockoutSubscribable<T>, callback: (newValue: T) => void) {
-        this.view.subscribe(subscribable, callback);
+        this.__view.subscribe(subscribable, callback);
     }
 
     /**
      * Loads a translated string.
      */
     getString(key: string) {
-        return this.view.getString(key);
+        return this.__view.getString(key);
     }
 
     /**

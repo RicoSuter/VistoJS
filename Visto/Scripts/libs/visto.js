@@ -351,11 +351,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             previousPage.element.css("visibility", "visible");
             previousPage.element.css("position", "");
             log("Navigated back to " + previousPage.view.viewClass + ", page stack size: " + pageStack.length);
-            // TODO: Use instance of
-            if ($.isFunction(previousPage.view.onNavigatedTo))
-                previousPage.view.onNavigatedTo("back");
-            if ($.isFunction(currentPage.view.onNavigatedFrom))
-                currentPage.view.onNavigatedFrom("back");
+            previousPage.view.onNavigatedTo("back");
+            currentPage.view.onNavigatedFrom("back");
         }
         else
             window.location = "#" + currentPage.hash;
@@ -540,7 +537,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         var frame = $(this);
         if (isNavigating) {
             if ($.isFunction(completed))
-                completed(null, null);
+                completed(null);
             return frame;
         }
         isNavigating = true;
@@ -554,17 +551,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         showLoading(currentPage !== null);
         if (currentPage !== null && currentPage !== undefined) {
             currentPage.view.onNavigatingFrom("forward", function (navigate) {
-                tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate, function (view, restoreQuery) {
+                tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate, function (view) {
                     if (completed !== undefined)
-                        completed(view, restoreQuery);
+                        completed(view);
                     hideLoading();
                 });
             });
         }
         else {
-            tryNavigateForward(fullViewName, parameters, frame, pageContainer, true, function (view, restoreQuery) {
+            tryNavigateForward(fullViewName, parameters, frame, pageContainer, true, function (view) {
                 if (completed !== undefined)
-                    completed(view, restoreQuery);
+                    completed(view);
                 hideLoading();
             });
         }
@@ -613,11 +610,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (currentPage !== null && currentPage !== undefined)
                     currentPage.view.onNavigatedFrom("forward");
                 isNavigating = false;
-                completed(view, restoreQuery);
+                completed(view);
             });
         }
         else
-            completed(null, null);
+            completed(null);
     }
     ;
     // ----------------------------
@@ -681,10 +678,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // View model
     // ----------------------------
     var ViewModel = (function () {
+        // ReSharper restore InconsistentNaming
         function ViewModel(view, parameters) {
             this.defaultCommands = defaultCommands;
             this.__restoreQuery = null;
-            this.view = view;
+            this.__view = view;
             this.parameters = parameters;
         }
         /**
@@ -699,13 +697,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Subscribes to the given subscribable and stores the subscription automatic clean up.
          */
         ViewModel.prototype.subscribe = function (subscribable, callback) {
-            this.view.subscribe(subscribable, callback);
+            this.__view.subscribe(subscribable, callback);
         };
         /**
          * Loads a translated string.
          */
         ViewModel.prototype.getString = function (key) {
-            return this.view.getString(key);
+            return this.__view.getString(key);
         };
         /**
          * [Virtual] Initializes the view before it is added to the DOM.
