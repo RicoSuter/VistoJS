@@ -2,46 +2,52 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>VistoJS</id>
-        <version>1.2.0.0</version>
+        <version>2.0.0.0</version>
         <title>VistoJS</title>
         <authors>Rico Suter</authors>
         <owners>Rico Suter</owners>
         <licenseUrl>https://visto.codeplex.com/license</licenseUrl>
         <projectUrl>http://www.vistojs.com</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
-        <description>Installs the Visto JavaScript Framework core files. </description>
+        <description>Installs the Visto JavaScript Framework core files.</description>
         <releaseNotes />
     </metadata>
     <files>
-        <file src="..\Visto\scripts\libs\hashchange.js" target="content\scripts\libs\hashchange.js" />
-        <file src="..\Visto\scripts\libs\jquery.browser.js" target="content\scripts\libs\jquery.browser.js" />
-        <file src="..\Visto\scripts\libs\jquery.d.ts" target="content\scripts\libs\jquery.d.ts" />
-        <file src="..\Visto\scripts\libs\jquery.js" target="content\scripts\libs\jquery.js" />
-        <file src="..\Visto\scripts\libs\jqueryui.d.ts" target="content\scripts\libs\jqueryui.d.ts" />
-        <file src="..\Visto\scripts\libs\jqueryui.js" target="content\scripts\libs\jqueryui.js" />
-        <file src="..\Visto\scripts\libs\knockout.d.ts" target="content\scripts\libs\knockout.d.ts" />
-        <file src="..\Visto\scripts\libs\knockout.js" target="content\scripts\libs\knockout.js" />
-        <file src="..\Visto\scripts\libs\require.js" target="content\scripts\libs\require.js" />
-        <file src="..\Visto\scripts\libs\visto.d.ts" target="content\scripts\libs\visto.d.ts" />
-        <file src="..\Visto\scripts\libs\visto.min.js" target="content\scripts\libs\visto.min.js" />
-        <file src="..\Visto\scripts\libs\visto.js" target="content\scripts\libs\visto.js" />
-        <file src="..\Visto\scripts\libs\visto.main.d.ts" target="content\scripts\libs\visto.main.d.ts" />
-        <file src="..\Visto\scripts\myToolkit\languages\de.json" target="content\scripts\myToolkit\languages\de.json" />
-        <file src="..\Visto\scripts\myToolkit\languages\en.json" target="content\scripts\myToolkit\languages\en.json" />
-        <file src="..\Visto\scripts\myToolkit\viewModels\dialogs\ConfirmModel.ts" target="content\scripts\myToolkit\viewModels\dialogs\ConfirmModel.ts" />
-        <file src="..\Visto\scripts\myToolkit\viewModels\dialogs\ListPickerModel.ts" target="content\scripts\myToolkit\viewModels\dialogs\ListPickerModel.ts" />
-        <file src="..\Visto\scripts\myToolkit\viewModels\dialogs\PromptModel.ts" target="content\scripts\myToolkit\viewModels\dialogs\PromptModel.ts" />
-        <file src="..\Visto\scripts\myToolkit\viewModels\LanguageSelectorModel.ts" target="content\scripts\myToolkit\viewModels\LanguageSelectorModel.ts" />
-        <file src="..\Visto\scripts\myToolkit\viewModels\TabControlModel.ts" target="content\scripts\myToolkit\viewModels\TabControlModel.ts" />
-        <file src="..\Visto\scripts\myToolkit\views\dialogs\Confirm.html" target="content\scripts\myToolkit\views\dialogs\Confirm.html" />
-        <file src="..\Visto\scripts\myToolkit\views\dialogs\ListPicker.html" target="content\scripts\myToolkit\views\dialogs\ListPicker.html" />
-        <file src="..\Visto\scripts\myToolkit\views\dialogs\ProgressDialog.html" target="content\scripts\myToolkit\views\dialogs\ProgressDialog.html" />
-        <file src="..\Visto\scripts\myToolkit\views\dialogs\Prompt.html" target="content\scripts\myToolkit\views\dialogs\Prompt.html" />
-        <file src="..\Visto\scripts\myToolkit\views\dialogs\Prompt.ts" target="content\scripts\myToolkit\views\dialogs\Prompt.ts" />
-        <file src="..\Visto\scripts\myToolkit\views\LanguageSelector.html" target="content\scripts\myToolkit\views\LanguageSelector.html" />
-        <file src="..\Visto\scripts\myToolkit\views\TabControl.html" target="content\scripts\myToolkit\views\TabControl.html" />
-        <file src="..\Visto\scripts\myToolkit\main.ts" target="content\scripts\myToolkit\main.ts" />
-        <file src="..\Visto\scripts\module.d.ts" target="content\scripts\module.d.ts" />
+        <file src="..\Visto\Scripts\libs\hashchange.js" target="content\Scripts\libs\hashchange.js" />
+        <file src="..\Visto\Scripts\libs\jquery.browser.js" target="content\Scripts\libs\jquery.browser.js" />
+        <file src="..\Visto\Scripts\libs\jquery.d.ts" target="content\Scripts\libs\jquery.d.ts" />
+        <file src="..\Visto\Scripts\libs\jquery.js" target="content\Scripts\libs\jquery.js" />
+        <file src="..\Visto\Scripts\libs\jqueryui.d.ts" target="content\Scripts\libs\jqueryui.d.ts" />
+        <file src="..\Visto\Scripts\libs\jqueryui.js" target="content\Scripts\libs\jqueryui.js" />
+        <file src="..\Visto\Scripts\libs\knockout.d.ts" target="content\Scripts\libs\knockout.d.ts" />
+        <file src="..\Visto\Scripts\libs\knockout.js" target="content\Scripts\libs\knockout.js" />
+        <file src="..\Visto\Scripts\libs\require.js" target="content\Scripts\libs\require.js" />
+        
+        <file src="..\Visto\Scripts\libs\visto.ts" target="content\Scripts\libs\visto.ts" />
+        <file src="..\Visto\Scripts\libs\visto.extensions.d.ts" target="content\Scripts\libs\visto.extensions.d.ts" />
+        <file src="..\Visto\Scripts\libs\visto.modules.d.ts" target="content\Scripts\libs\visto.modules.d.ts" />
+
+        <file src="..\Visto\Scripts\common\languages\de.json" target="content\Scripts\common\languages\de.json" />
+        <file src="..\Visto\Scripts\common\languages\en.json" target="content\Scripts\common\languages\en.json" />
+        
+        <file src="..\Visto\Scripts\common\viewModels\dialogs\ConfirmModel.ts" target="content\Scripts\common\viewModels\dialogs\ConfirmModel.ts" />
+        <file src="..\Visto\Scripts\common\viewModels\dialogs\ListPickerModel.ts" target="content\Scripts\common\viewModels\dialogs\ListPickerModel.ts" />
+        <file src="..\Visto\Scripts\common\viewModels\dialogs\PromptModel.ts" target="content\Scripts\common\viewModels\dialogs\PromptModel.ts" />
+        <file src="..\Visto\Scripts\common\viewModels\LanguageSelectorModel.ts" target="content\Scripts\common\viewModels\LanguageSelectorModel.ts" />
+        <file src="..\Visto\Scripts\common\viewModels\TabControlModel.ts" target="content\Scripts\common\viewModels\TabControlModel.ts" />
+
+        <file src="..\Visto\Scripts\common\views\dialogs\Confirm.html" target="content\Scripts\common\views\dialogs\Confirm.html" />
+        <file src="..\Visto\Scripts\common\views\dialogs\ListPicker.html" target="content\Scripts\common\views\dialogs\ListPicker.html" />
+        <file src="..\Visto\Scripts\common\views\dialogs\ProgressDialog.html" target="content\Scripts\common\views\dialogs\ProgressDialog.html" />
+        <file src="..\Visto\Scripts\common\views\dialogs\Prompt.html" target="content\Scripts\common\views\dialogs\Prompt.html" />
+        <file src="..\Visto\Scripts\common\views\dialogs\Prompt.ts" target="content\Scripts\common\views\dialogs\Prompt.ts" />
+        <file src="..\Visto\Scripts\common\views\LanguageSelector.html" target="content\Scripts\common\views\LanguageSelector.html" />
+        <file src="..\Visto\Scripts\common\views\TabControl.html" target="content\Scripts\common\views\TabControl.html" />
+        
+        <file src="..\Visto\Scripts\common\views\TabControl.ts" target="content\Scripts\common\views\TabControl.ts" />
+        <file src="..\Visto\Scripts\common\views\WebView.ts" target="content\Scripts\common\views\WebView.ts" />
+        <file src="..\Visto\Scripts\common\main.ts" target="content\Scripts\common\main.ts" />
+        
         <file src="VistoJS_install.ps1" target="tools\install.ps1" />
     </files>
 </package>

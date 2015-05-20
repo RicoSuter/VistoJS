@@ -454,7 +454,9 @@ function showDialog(fullViewName: string, parameters: IDialogOptions, onClosed?:
     $('body').append(dialog);
     (<any>parameters)[isDialogParameter] = true;
 
+    showLoading();
     (<any>dialog).view(fullViewName, parameters,(view: Dialog<ViewModel>) => {
+        hideLoading();
         openedDialogs++;
         createDialog(dialog, view, parameters, onClosed);
         view.dialog = dialog;

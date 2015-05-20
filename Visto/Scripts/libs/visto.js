@@ -421,7 +421,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         var dialog = $("<div />");
         $('body').append(dialog);
         parameters[isDialogParameter] = true;
+        showLoading();
         dialog.view(fullViewName, parameters, function (view) {
+            hideLoading();
             openedDialogs++;
             createDialog(dialog, view, parameters, onClosed);
             view.dialog = dialog;
