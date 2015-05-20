@@ -28,15 +28,13 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
             common.alert("Not implemented", this.getString("notImplementedMessage"));
         };
         MainPageModel.prototype.showDialog = function () {
-            visto.dialog(package, "SampleDialog", {}, {
+            visto.dialog(package, "SampleDialog", {
                 title: "Sample dialog",
-                modal: true,
-                dialogClass: "box no-close",
-                buttons: {
-                    "OK": function () {
-                        $(this).dialog("close");
-                    }
-                }
+                buttons: [
+                    { label: "OK", click: function (dialog) {
+                        dialog.close();
+                    } }
+                ]
             });
         };
         return MainPageModel;

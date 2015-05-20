@@ -48,12 +48,11 @@ The "common" package provides some reusable controls/views; the package is not r
 
     <mimeMap fileExtension=".json" mimeType="application/json" />
     
-## Installation in new projects
+## Installation
 
-TODO: Use NuGet package
+1. Create a new web project with TypeScript support
+2. Install the NuGet package "VistoJS.Complete"
 
 ## Final notes
 
 The Visto JavaScript framework is developed and maintained by [Rico Suter](http://rsuter.com). 
-
-

@@ -3,44 +3,46 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      * Shows a confirm dialog box with with various buttons.
      */
     function confirm(title, message, buttons, completed) {
-        var buttonCollection = {};
+        var buttonCollection = [];
         if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
-            buttonCollection["Ja"] = function () {
-                var self = this;
-                $(self).dialog("close");
-                completed("yes");
-            };
+            buttonCollection.push({
+                label: "Yes",
+                click: function (dialog) {
+                    dialog.close();
+                    completed("yes");
+                }
+            });
         }
         if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
-            buttonCollection["Nein"] = function () {
-                var self = this;
-                $(self).dialog("close");
-                completed("no");
-            };
+            buttonCollection.push({
+                label: "No",
+                click: function (dialog) {
+                    dialog.close();
+                    completed("no");
+                }
+            });
         }
         if (buttons === 2 /* OkCancel */ || buttons === 3 /* Ok */) {
-            buttonCollection["OK"] = function () {
-                var self = this;
-                $(self).dialog("close");
-                completed("ok");
-            };
+            buttonCollection.push({
+                label: "OK",
+                click: function (dialog) {
+                    dialog.close();
+                    completed("ok");
+                }
+            });
         }
         if (buttons === 0 /* YesNoCancel */ || buttons === 2 /* OkCancel */) {
-            buttonCollection["Abbrechen"] = function () {
-                var self = this;
-                $(self).dialog("close");
-                completed("cancel");
-            };
+            buttonCollection.push({
+                label: "Cancel",
+                click: function (dialog) {
+                    dialog.close();
+                    completed("cancel");
+                }
+            });
         }
         visto.dialog(visto.getViewName(package, "dialogs/Confirm"), {
-            message: message
-        }, {
             title: title,
-            resizable: false,
-            draggable: true,
-            dialogClass: "box no-close",
-            modal: true,
-            closeOnEscape: false,
+            message: message,
             buttons: buttonCollection
         }, null, function (view) {
             view.dialog.on('keydown', function (ev) {
@@ -64,7 +66,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      * Shows a progress bar in a dialog. The dialog can be controlled using the dialog instance in the completed callback.
      */
     function progressDialog(title, completed) {
-        visto.dialog(visto.getViewName(package, "dialogs/ProgressDialog"), {}, {
+        visto.dialog(package, "dialogs/ProgressDialog", {
             title: title,
             resizable: false,
             draggable: true,
@@ -115,29 +117,27 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      */
     function prompt(title, message, defaultText, completed) {
         var output = ko.observable(defaultText);
-        visto.dialog(visto.getViewName(package, "dialogs/Prompt"), {
+        visto.dialog(package, "dialogs/Prompt", {
             message: message,
             output: output,
-            completed: completed
-        }, {
+            completed: completed,
             title: title,
-            resizable: false,
-            draggable: true,
-            dialogClass: "box no-close",
-            modal: true,
-            closeOnEscape: false,
-            buttons: {
-                "OK": function () {
-                    var self = this;
-                    $(self).dialog("close");
-                    completed(output());
+            buttons: [
+                {
+                    label: "OK",
+                    click: function (dialog) {
+                        dialog.close();
+                        completed(output());
+                    }
                 },
-                "Abbrechen": function () {
-                    var self = this;
-                    $(self).dialog("close");
-                    completed(null);
+                {
+                    label: "Cancel",
+                    click: function (dialog) {
+                        dialog.close();
+                        completed(null);
+                    }
                 }
-            }
+            ]
         }, null, function (view) {
             view.dialog.on('keyup', function (ev) {
                 if (ev.keyCode === $.ui.keyCode.ESCAPE) {
@@ -160,30 +160,28 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
         if ($.isFunction(selectedItem))
             selectedItem = selectedItem();
         selectedItem = ko.observable(selectedItem);
-        visto.dialog(visto.getViewName(package, "dialogs/ListPicker"), {
+        visto.dialog(package, "dialogs/ListPicker", {
+            title: header,
             label: label,
             selectedItem: selectedItem,
             items: items,
-            optionsText: optionsText
-        }, {
-            title: header,
-            resizable: false,
-            draggable: true,
-            dialogClass: "box no-close",
-            modal: true,
-            closeOnEscape: false,
-            buttons: {
-                "OK": function () {
-                    var self = this;
-                    $(self).dialog("close");
-                    completed(selectedItem());
+            optionsText: optionsText,
+            buttons: [
+                {
+                    label: "OK",
+                    click: function (dialog) {
+                        dialog.close();
+                        completed(selectedItem());
+                    }
                 },
-                "Abbrechen": function () {
-                    var self = this;
-                    $(self).dialog("close");
-                    completed(null);
+                {
+                    label: "Cancel",
+                    click: function (dialog) {
+                        dialog.close();
+                        completed(null);
+                    }
                 }
-            }
+            ]
         }, null, function (view) {
             view.dialog.on('keyup', function (ev) {
                 if (ev.keyCode === $.ui.keyCode.ESCAPE) {

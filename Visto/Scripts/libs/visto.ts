@@ -22,6 +22,7 @@ var pageStackAttribute = "page-stack";
 var lazySubviewLoadingOption = "lazySubviewLoading";
 var defaultPackage = "app";
 var isPageParameter = "__isPage";
+var isDialogParameter = "__isDialog";
 
 // ----------------------------
 // Declarations
@@ -440,54 +441,78 @@ export function navigateHome(completed?: (successful: boolean) => void) {
 /**
  * Shows a dialog. 
  */
-export function dialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
-export function dialog(modulePackage: IModule, viewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
-export function dialog(a: any, b: any, c: any, d: any, e?: any, f?: any) {
+export function dialog(fullViewName: string, parameters: IDialogOptions, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
+export function dialog(modulePackage: IModule, viewName: string, parameters: IDialogOptions, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
+export function dialog(a: any, b: any, c: any, d?: any, e?: any) {
     if (typeof a === "string")
-        showDialog(a, b, c, d, e);
+        showDialog(a, b, c, d);
     else
-        showDialog(getViewName(a, b), c, d, e, f);
+        showDialog(getViewName(a, b), c, d, e);
 }
-function showDialog(fullViewName: string, parameters: {}, dialogOptions: any, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void) {
+function showDialog(fullViewName: string, parameters: IDialogOptions, onClosed?: () => void, completed?: (view: Dialog<ViewModel>) => void) {
     var dialog = $("<div />");
     $('body').append(dialog);
+    (<any>parameters)[isDialogParameter] = true;
 
-    (<any>dialog).view(fullViewName, parameters,(view: Dialog<ViewModel>, viewModel: ViewModel) => {
-        if (dialogOptions === undefined || dialogOptions === null)
-            dialogOptions = {};
-
-        if ($.isFunction(view.initializeDialog))
-            view.initializeDialog(dialogOptions);
-
+    (<any>dialog).view(fullViewName, parameters,(view: Dialog<ViewModel>) => {
         openedDialogs++;
-
-        // remove focus from element of the underlying on page 
-        // (used in IE to avoid click events on enter press)
-        var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-        if (focusable != null) {
-            focusable.focus();
-            focusable.blur();
-        }
-
-        dialogOptions.zIndex = 99999;
-        dialog.dialog(dialogOptions);
-
-        dialog.bind('dialogclose',() => {
-            view.__destroyView();
-            dialog.dialog("destroy");
-            openedDialogs--;
-
-            if (closed !== null && closed !== undefined)
-                closed();
-
-            dialog.remove();
-        });
-
+        createDialog(dialog, view, parameters, onClosed);
         view.dialog = dialog;
         if ($.isFunction(completed))
-            completed(view, viewModel);
+            completed(view);
     });
 };
+
+export interface IDialogOptions {
+    title: string;
+
+    isResizable?: boolean;
+    isDraggable?: boolean;
+    showCloseButton?: boolean; 
+    buttons?: IDialogButton[];
+}
+
+export interface IDialogButton {
+    label: string;
+    click: (dialog: Dialog<ViewModel>) => void;
+}
+
+export function createDialog(dialog: JQuery, view: Dialog<ViewModel>, parameters: IDialogOptions, onClosed?: () => void) {
+    // Fix: Remove focus from element of the underlying on page (used in IE to avoid click events on enter press)
+    var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+    if (focusable != null) {
+        focusable.focus();
+        focusable.blur();
+    }
+
+    (<any>parameters).closeOnEscape = false;
+    (<any>parameters).resizable = parameters.isResizable !== undefined && parameters.isResizable;
+    (<any>parameters).draggable = parameters.isDraggable === undefined || parameters.isDraggable;
+    (<any>parameters).dialogClass = "box" + (parameters.showCloseButton !== undefined && parameters.showCloseButton ? "" : " no-close");
+
+    (<any>parameters).modal = true;
+    (<any>parameters).zIndex = 99999;
+
+    var buttons: { [key: string]: any } = { };
+    $.each(parameters.buttons,(index, item) => {
+        buttons[item.label] = () => {
+            item.click(view);
+        };
+    });
+    (<any>parameters).buttons = buttons;
+
+    dialog.dialog(parameters);
+    dialog.bind('dialogclose',() => {
+        view.__destroyView();
+        dialog.dialog("destroy");
+        openedDialogs--;
+
+        if ($.isFunction(onClosed))
+            onClosed();
+
+        dialog.remove();
+    });
+}
 
 // ----------------------------
 // KnockoutJS extensions
@@ -754,12 +779,12 @@ export class ViewModel {
     parameters: Parameters;
     defaultCommands = defaultCommands;
 
-// ReSharper disable InconsistentNaming
+    // ReSharper disable InconsistentNaming
 
     __view: ViewBase;
     __restoreQuery: string = null;
 
-// ReSharper restore InconsistentNaming
+    // ReSharper restore InconsistentNaming
 
     constructor(view: ViewBase, parameters: Parameters) {
         this.__view = view;
@@ -992,8 +1017,8 @@ export class PageBase extends Page<ViewModel> {
 export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
     dialog: JQuery;
 
-    initializeDialog(options: any) {
-        // must be empty
+    close() {
+        this.dialog.dialog("close");
     }
 }
 
@@ -1049,8 +1074,12 @@ export class Parameters {
 
     getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
         if (this.parameters[key] === undefined) {
-            if (this.originalParameters[key] !== undefined)
-                this.parameters[key] = ko.observableArray(this.originalParameters[key]);
+            if (this.originalParameters[key] !== undefined) {
+                if ($.isFunction(this.originalParameters[key]))
+                    this.parameters[key] = this.originalParameters[key];
+                else
+                    this.parameters[key] = ko.observable(this.originalParameters[key]);
+            }
             else if (defaultValue !== undefined)
                 this.parameters[key] = ko.observableArray(defaultValue);
             else
@@ -1069,8 +1098,12 @@ export class Parameters {
 
     private getObservableWithConversion<T>(key: string, valueConverter: (value: any) => T, defaultValue: T): KnockoutObservable<T> {
         if (this.parameters[key] === undefined) {
-            if (this.originalParameters[key] !== undefined)
-                this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+            if (this.originalParameters[key] !== undefined) {
+                if ($.isFunction(this.originalParameters[key]))
+                    this.parameters[key] = this.originalParameters[key];
+                else
+                    this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+            }
             else if (defaultValue !== undefined)
                 this.parameters[key] = ko.observable(defaultValue);
             else
@@ -1278,8 +1311,14 @@ class ViewFactory {
         var hasView = this.viewModule !== undefined && this.viewModule !== null;
         if (hasView)
             view = <ViewBase>(new this.viewModule[this.viewLocator.className]());
-        else
-            view = this.parameters.getBoolean(isPageParameter) ? new Page() : new View();
+        else {
+            if (this.parameters.getBoolean(isPageParameter))
+                view = new Page();
+            else if (this.parameters.getBoolean(isDialogParameter))
+                view = new Dialog();
+            else
+                view = new View();
+        }
 
         view.element = this.element;
         view.viewId = this.viewId;

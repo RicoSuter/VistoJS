@@ -22,6 +22,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var lazySubviewLoadingOption = "lazySubviewLoading";
     var defaultPackage = "app";
     var isPageParameter = "__isPage";
+    var isDialogParameter = "__isDialog";
     // ----------------------------
     // Declarations
     // ----------------------------
@@ -409,45 +410,57 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         }
     });
-    function dialog(a, b, c, d, e, f) {
+    function dialog(a, b, c, d, e) {
         if (typeof a === "string")
-            showDialog(a, b, c, d, e);
+            showDialog(a, b, c, d);
         else
-            showDialog(getViewName(a, b), c, d, e, f);
+            showDialog(getViewName(a, b), c, d, e);
     }
     exports.dialog = dialog;
-    function showDialog(fullViewName, parameters, dialogOptions, closed, completed) {
+    function showDialog(fullViewName, parameters, onClosed, completed) {
         var dialog = $("<div />");
         $('body').append(dialog);
-        dialog.view(fullViewName, parameters, function (view, viewModel) {
-            if (dialogOptions === undefined || dialogOptions === null)
-                dialogOptions = {};
-            if ($.isFunction(view.initializeDialog))
-                view.initializeDialog(dialogOptions);
+        parameters[isDialogParameter] = true;
+        dialog.view(fullViewName, parameters, function (view) {
             openedDialogs++;
-            // remove focus from element of the underlying on page 
-            // (used in IE to avoid click events on enter press)
-            var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-            if (focusable != null) {
-                focusable.focus();
-                focusable.blur();
-            }
-            dialogOptions.zIndex = 99999;
-            dialog.dialog(dialogOptions);
-            dialog.bind('dialogclose', function () {
-                view.__destroyView();
-                dialog.dialog("destroy");
-                openedDialogs--;
-                if (closed !== null && closed !== undefined)
-                    closed();
-                dialog.remove();
-            });
+            createDialog(dialog, view, parameters, onClosed);
             view.dialog = dialog;
             if ($.isFunction(completed))
-                completed(view, viewModel);
+                completed(view);
         });
     }
     ;
+    function createDialog(dialog, view, parameters, onClosed) {
+        // Fix: Remove focus from element of the underlying on page (used in IE to avoid click events on enter press)
+        var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+        if (focusable != null) {
+            focusable.focus();
+            focusable.blur();
+        }
+        parameters.closeOnEscape = false;
+        parameters.resizable = parameters.isResizable !== undefined && parameters.isResizable;
+        parameters.draggable = parameters.isDraggable === undefined || parameters.isDraggable;
+        parameters.dialogClass = "box" + (parameters.showCloseButton !== undefined && parameters.showCloseButton ? "" : " no-close");
+        parameters.modal = true;
+        parameters.zIndex = 99999;
+        var buttons = {};
+        $.each(parameters.buttons, function (index, item) {
+            buttons[item.label] = function () {
+                item.click(view);
+            };
+        });
+        parameters.buttons = buttons;
+        dialog.dialog(parameters);
+        dialog.bind('dialogclose', function () {
+            view.__destroyView();
+            dialog.dialog("destroy");
+            openedDialogs--;
+            if ($.isFunction(onClosed))
+                onClosed();
+            dialog.remove();
+        });
+    }
+    exports.createDialog = createDialog;
     // ----------------------------
     // KnockoutJS extensions
     // ----------------------------
@@ -889,8 +902,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         function Dialog() {
             _super.apply(this, arguments);
         }
-        Dialog.prototype.initializeDialog = function (options) {
-            // must be empty
+        Dialog.prototype.close = function () {
+            this.dialog.dialog("close");
         };
         return Dialog;
     })(View);
@@ -935,8 +948,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         Parameters.prototype.getObservableArray = function (key, defaultValue) {
             if (this.parameters[key] === undefined) {
-                if (this.originalParameters[key] !== undefined)
-                    this.parameters[key] = ko.observableArray(this.originalParameters[key]);
+                if (this.originalParameters[key] !== undefined) {
+                    if ($.isFunction(this.originalParameters[key]))
+                        this.parameters[key] = this.originalParameters[key];
+                    else
+                        this.parameters[key] = ko.observable(this.originalParameters[key]);
+                }
                 else if (defaultValue !== undefined)
                     this.parameters[key] = ko.observableArray(defaultValue);
                 else
@@ -952,8 +969,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         Parameters.prototype.getObservableWithConversion = function (key, valueConverter, defaultValue) {
             if (this.parameters[key] === undefined) {
-                if (this.originalParameters[key] !== undefined)
-                    this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+                if (this.originalParameters[key] !== undefined) {
+                    if ($.isFunction(this.originalParameters[key]))
+                        this.parameters[key] = this.originalParameters[key];
+                    else
+                        this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+                }
                 else if (defaultValue !== undefined)
                     this.parameters[key] = ko.observable(defaultValue);
                 else
@@ -1120,8 +1141,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var hasView = this.viewModule !== undefined && this.viewModule !== null;
             if (hasView)
                 view = (new this.viewModule[this.viewLocator.className]());
-            else
-                view = this.parameters.getBoolean(isPageParameter) ? new Page() : new View();
+            else {
+                if (this.parameters.getBoolean(isPageParameter))
+                    view = new Page();
+                else if (this.parameters.getBoolean(isDialogParameter))
+                    view = new Dialog();
+                else
+                    view = new View();
+            }
             view.element = this.element;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;

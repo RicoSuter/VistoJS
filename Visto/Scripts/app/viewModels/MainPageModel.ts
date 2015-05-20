@@ -28,15 +28,11 @@ export class MainPageModel extends visto.ViewModel {
 	}
 
 	showDialog() {
-        visto.dialog(package, "SampleDialog", {}, {
+        visto.dialog(package, "SampleDialog", <visto.IDialogOptions>{
 			title: "Sample dialog",
-			modal: true,
-			dialogClass: "box no-close",
-			buttons: {
-				"OK": function () {
-					$(this).dialog("close");
-				}
-			}
-		});
+            buttons: [
+                { label: "OK", click: (dialog) => { dialog.close(); } }
+            ]
+        });
 	}
 };

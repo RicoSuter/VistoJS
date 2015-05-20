@@ -13,9 +13,10 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         }
         TabControlModel.prototype.initialize = function () {
             this.tabs = this.parameters.getObservableArray("tabs");
+            this.showBackButton = this.parameters.getBoolean("showBackButton", true);
             this.tabsChanged();
             this.subscribe(this.tabs, this.tabsChanged);
-            this.selectedTab(this.tabs()[1].view);
+            this.selectedTab(this.tabs()[0].view);
         };
         TabControlModel.prototype.setTab = function (tab) {
             this.selectedTab(tab.view.toString());

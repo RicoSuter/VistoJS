@@ -1,3 +1,4 @@
-{
-	"labelLanguage" : "Language: "
+﻿{
+	"labelLanguage" : "Language: ", 
+    "labelNavigateBack": "Back"
 }

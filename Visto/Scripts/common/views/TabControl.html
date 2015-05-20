@@ -1,10 +1,10 @@
 ﻿<div>
     <div class="page_menu">
-        <ul class="menu" data-bind="foreach: tabs">
-            <!-- ko if: $data.view != undefined -->
+        <ul class="menu">
+            <li data-bind="visible: showBackButton, click: defaultCommands.navigateBack"><a href="#" data-translate="labelNavigateBack"></a></li>
+
+            <!-- ko foreach: tabs -->
             <li class="tab" data-bind="css: { active: $parent.selectedTab() == $data.view }, click: $parent.setTab.bind($parent, $data)"><a href="#" data-bind="text: $data.title"></a></li>
-            <!-- /ko --><!-- ko if: $data.view == undefined -->
-            <li data-bind="click: $data.click"><a href="#" data-bind="text: $data.title"></a></li>
             <!-- /ko -->
         </ul>
     </div>
