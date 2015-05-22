@@ -2,6 +2,7 @@
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
+/// <reference path="q.d.ts" />
 /// <reference path="knockout.d.ts" />
 /// <reference path="jquery.d.ts" />
 /// <reference path="jqueryui.d.ts" />
@@ -42,7 +43,7 @@ var isNavigating = false;
 var openedDialogs = 0;
 
 var defaultCommands = {
-    navigateBack() { navigateBack(); }
+    navigateBack() { return navigateBack(); }
 }
 
 // internationalization variables
@@ -54,7 +55,8 @@ var languageStrings: { [language: string]: { [path: string]: { [key: string]: st
 // local variables
 var currentNavigationPath = "";
 var currentContext: ViewContext = null;
-var initialBody = $("body").find("div");
+var defaultFrame: JQuery = null;
+var initialLoadingElement: JQuery = null;
 
 // ----------------------------
 // Initializer
@@ -65,6 +67,9 @@ var initialBody = $("body").find("div");
  */
 export function initialize(options: IVistoOptions) {
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
+    defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
+    initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+
     setUserLanguage(options.supportedLanguages);
 
     if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
@@ -74,7 +79,7 @@ export function initialize(options: IVistoOptions) {
         });
     }
 
-    restorePages(options.defaultView);
+    restorePages(defaultFrame, options.defaultView);
 }
 
 /**
@@ -85,6 +90,8 @@ export interface IVistoOptions {
     defaultPackage: string;
     supportedLanguages: string[];
     registerEnterKeyFix: boolean;
+    defaultFrame: JQuery;
+    initialLoadingElement: JQuery;
 }
 
 // ----------------------------
@@ -138,8 +145,8 @@ function getPackageName(path: string) {
 /**
  * Gets the package name where the given module is located. 
  */
-export function getPackageNameForModule(packageModule: IModule) {
-    var modulePath = "/" + packageModule.id;
+export function getPackageNameForModule(module: IModule) {
+    var modulePath = "/" + module.id;
 
     var index = modulePath.lastIndexOf("/views/");
     if (index === -1)
@@ -153,8 +160,8 @@ export function getPackageNameForModule(packageModule: IModule) {
 /**
  * Gets the full view name for the view from the given module and path. 
  */
-export function getViewName(packageModule: IModule, viewPath: string) {
-    return getPackageNameForModule(packageModule) + ":" + viewPath;
+export function getViewName(module: IModule, viewPath: string) {
+    return getPackageNameForModule(module) + ":" + viewPath;
 }
 
 /**
@@ -165,7 +172,8 @@ function loadLanguageFile(packageName: string, completed: () => void) {
     if (languageStrings[lang] === undefined)
         languageStrings[lang] = <any>([]);
 
-    if (languageStrings[lang][packageName] === undefined) { // TODO avoid multiple simultaneous loadings
+    if (languageStrings[lang][packageName] === undefined) { 
+        // TODO avoid multiple simultaneous loadings
         var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
         if (languageLoadings[url] === undefined) {
             languageLoadings[url] = [completed];
@@ -192,38 +200,38 @@ function loadLanguageFile(packageName: string, completed: () => void) {
 /**
  * Loads a translated string.
  */
-export function getString(key: string, path: string, completed?: (value: string) => void) {
-    path = getPackageName(path);
+function getString(key: string, packageName: string, completed?: (value: string) => void) {
+    packageName = getPackageName(packageName);
 
     var lang = language();
     if (languageStrings[lang] === undefined)
         languageStrings[lang] = <any>([]);
 
-    if (languageStrings[lang][path] === undefined) {
-        loadLanguageFile(path,() => { getStringForLanguage(lang, path, key, completed); });
+    if (languageStrings[lang][packageName] === undefined) {
+        loadLanguageFile(packageName,() => { getStringForLanguage(lang, packageName, key, completed); });
         if (previousLanguage !== null)
-            return getStringForLanguage(previousLanguage, path, key);
+            return getStringForLanguage(previousLanguage, packageName, key);
         return "";
     } else
-        return getStringForLanguage(lang, path, key, completed);
+        return getStringForLanguage(lang, packageName, key, completed);
 };
 
 /**
  * Loads a translated string as observable object which updates when the language changes. 
  */
-export function getStringAsObservable(key: string, path: string) {
+export function getObservableString(key: string, packageName: string) {
     var observable = ko.observable<string>();
-    observable(getString(key, path, value => { observable(value); }));
+    observable(getString(key, packageName, value => { observable(value); }));
     return observable;
 };
 
 /**
  * Loads a translated string for a given language.
  */
-export function getStringForLanguage(lang: string, path: string, key: string, completed?: (...params: string[]) => void) {
-    var value = languageStrings[lang][path][key];
+function getStringForLanguage(lang: string, packageName: string, key: string, completed?: (...params: string[]) => void) {
+    var value = languageStrings[lang][packageName][key];
     if (value === undefined)
-        value = path + ":" + key;
+        value = packageName + ":" + key;
     if (completed !== undefined)
         completed(value);
     return value;
@@ -319,43 +327,127 @@ export function addInitializer(completed: () => void) {
 /**
  * Restores the page stack on the body element as frame. 
  */
-export function restorePages(fullViewName: string, params?: {}, completed?: any) {
-    (<any>$("body")).restorePages(fullViewName, params, completed);
+function restorePages(frame: JQuery, fullViewName: string, parameters?: {}) {
+    return Q.Promise<ViewBase>((resolve, reject) => {
+        var urlSegments = decodeURIComponent(window.location.hash).split("/");
+        if (urlSegments.length > 1) {
+
+            isPageRestore = true;
+            showLoading(false);
+            var currentSegmentIndex = 1;
+
+            var navigateToNextSegment = (view: ViewBase) => {
+                var segment = urlSegments[currentSegmentIndex];
+                if (segment != null) {
+                    var segmentParts = segment.split(":");
+                    var supportsPageRestore = segmentParts.length === 3;
+                    if (supportsPageRestore) {
+                        currentSegmentIndex++;
+                        var fullViewName = segmentParts[0] + ":" + segmentParts[1];
+                        var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
+                        navigateTo(frame, fullViewName, { restoreQuery: restoreQuery }).then((view: ViewBase) => {
+                            navigateToNextSegment(view);
+                        });
+                    } else
+                        finishPageRestore(frame, view, resolve);
+                } else
+                    finishPageRestore(frame, view, resolve);
+            };
+            navigateToNextSegment(null);
+        } else {
+            navigateTo(frame, fullViewName, parameters)
+                .then((view) => resolve(view))
+                .fail(reject);
+        }
+    });
 };
 
-/**
- * Navigates to a given page using the body element as frame.
- */
-export function navigateTo(fullViewName: string, params?: {}, completed?: (view: ViewBase) => void): void;
-export function navigateTo(modulePackage: IModule, viewName: string, params?: {}, completed?: (view: ViewBase) => void): void;
-export function navigateTo(a: any, b: any, c?: any, d?: any): void {
-    if (typeof a === "string")
-        (<any>$("body")).navigateTo(a, b, c);
-    else
-        (<any>$("body")).navigateTo(getViewName(a, b), c, d);
+export var isPageRestore = false;
+
+function finishPageRestore(frame: JQuery, view: ViewBase, completed: (view: ViewBase) => void) {
+    hideLoading();
+    isPageRestore = false;
+
+    var page = getCurrentPageDescription(frame);
+    page.element.removeAttr("style");
+
+    completed(view);
 }
 
 /**
- * Gets the current page. 
+ * Navigates to a given page using in the default frame.
  */
-export function currentPage() {
-    return <ViewBase>(<any>$("body")).currentPage();
-};
+export function navigateTo(fullViewName: string, parameters?: {}): Q.Promise<PageBase>;
+export function navigateTo(modulePackage: IModule, viewName: string, parameters?: {}): Q.Promise<PageBase>;
+export function navigateTo(frame: JQuery, fullViewName: string, parameters?: {}): Q.Promise<PageBase>;
+export function navigateTo(a: any, b: any, c?: any): Q.Promise<PageBase> {
+    if (typeof a === "string")
+        return navigateToCore(defaultFrame, a, b);
+    else if (a.uri !== undefined)
+        return navigateToCore(defaultFrame, getViewName(a, b), c);
+    else
+        return navigateToCore(a, b, c);
+}
 
-var backNavigationCompleted: (navigate: boolean) => void = null;
+function navigateToCore(frame: JQuery, fullViewName: string, parameters: {}): Q.Promise<PageBase> {
+    if (isNavigating)
+        throw "Already navigating";
+    isNavigating = true;
+
+    // append new invisible page to DOM
+    var pageContainer = $(document.createElement("div"));
+    pageContainer.css("visibility", "hidden");
+    pageContainer.css("position", "absolute");
+    frame.append(pageContainer);
+
+    // load currently visible page
+    var currentPage = getCurrentPageDescription($(frame));
+    showLoading(currentPage !== null);
+    if (currentPage !== null && currentPage !== undefined) {
+        return currentPage.view.onNavigatingFrom("forward")
+            .then<PageBase>((navigate) => tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate))
+            .then((page) => {
+                hideLoading();
+                return page;
+            });
+    } else {
+        return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then((page) => {
+            hideLoading();
+            return page;
+        });
+    }
+}
+
+/**
+ * Navigates back to the home page (first page in stack).
+ */
+export function navigateHome(): Q.Promise<void> {
+    if (navigationCount <= 1) {
+        return Q<void>(null);
+    } else {
+        return navigateBack().then<void>(() => {
+            return navigateHome();
+        });
+    }
+}
 
 /**
  * Navigates to the previous page.
  */
-export function navigateBack(completed?: (navigate: boolean) => void) {
-    if (isNavigating) {
-        if ($.isFunction(completed))
-            completed(false);
-    } else {
-        backNavigationCompleted = $.isFunction(completed) ? completed : null;
-        history.go(-1);
-    }
-};
+export function navigateBack() {
+    return Q.Promise<void>((resolve, reject) => {
+        if (isNavigating)
+            reject("Already navigating");
+        else {
+            backNavigationResolve = <any>resolve;
+            backNavigationReject = reject;
+            history.go(-1);
+        }
+    });
+}
+
+var backNavigationResolve: () => void = null;
+var backNavigationReject: (reason: any) => void = null;
 
 function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage[]) {
     if (navigate) {
@@ -375,33 +467,20 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
 
         previousPage.view.onNavigatedTo("back");
         currentPage.view.onNavigatedFrom("back");
-    }
-    else
+
+        if ($.isFunction(backNavigationResolve))
+            backNavigationResolve();
+    } else {
         (<any>window).location = "#" + currentPage.hash;
+        if ($.isFunction(backNavigationReject))
+            backNavigationReject("Cannot navigate back.");
+    }
 
     isNavigating = false;
 
-    if ($.isFunction(backNavigationCompleted))
-        backNavigationCompleted(navigate);
-    backNavigationCompleted = null;
-};
-
-/**
- * Navigates back to the home page (first page in stack).
- */
-export function navigateHome(completed?: (successful: boolean) => void) {
-    if (navigationCount <= 1) {
-        if ($.isFunction(completed))
-            completed(true);
-    } else {
-        navigateBack((successful: boolean) => {
-            if (successful)
-                navigateHome(completed);
-            else if ($.isFunction(completed))
-                completed(false);
-        });
-    }
-};
+    backNavigationResolve = null;
+    backNavigationReject = null;
+}
 
 // Register callback when user manually navigates back (back key)
 (<any>$(window)).hashchange(() => {
@@ -424,7 +503,7 @@ export function navigateHome(completed?: (successful: boolean) => void) {
                     if (openedDialogs > 0)
                         tryNavigateBack(false, currentPage, pageStack);
                     else {
-                        currentPage.view.onNavigatingFrom("back",(navigate: boolean) => {
+                        currentPage.view.onNavigatingFrom("back").then((navigate: boolean) => {
                             tryNavigateBack(navigate, currentPage, pageStack);
                         });
                     }
@@ -439,47 +518,38 @@ export function navigateHome(completed?: (successful: boolean) => void) {
 // ----------------------------
 
 /**
- * Shows a dialog. 
+ * Shows a modal dialog. The provided promise is resolved when the dialog has been closed. 
  */
-export function dialog(fullViewName: string, parameters: IDialogOptions, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
-export function dialog(modulePackage: IModule, viewName: string, parameters: IDialogOptions, closed?: () => void, completed?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): void;
-export function dialog(a: any, b: any, c: any, d?: any, e?: any) {
+export function showDialog(fullViewName: string, parameters: IDialogOptions, onLoaded?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): Q.Promise<void>;
+export function showDialog(modulePackage: IModule, viewName: string, parameters: IDialogOptions, onLoaded?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): Q.Promise<void>;
+export function showDialog(a: any, b: any, c: any, d?: any): Q.Promise<void> {
     if (typeof a === "string")
-        showDialog(a, b, c, d);
+        return showDialogCore(a, b, c);
     else
-        showDialog(getViewName(a, b), c, d, e);
+        return showDialogCore(getViewName(a, b), c, d);
 }
-function showDialog(fullViewName: string, parameters: IDialogOptions, onClosed?: () => void, completed?: (view: Dialog<ViewModel>) => void) {
-    var dialog = $("<div />");
-    $('body').append(dialog);
-    (<any>parameters)[isDialogParameter] = true;
 
-    showLoading();
-    (<any>dialog).view(fullViewName, parameters,(view: Dialog<ViewModel>) => {
-        hideLoading();
-        openedDialogs++;
-        createDialog(dialog, view, parameters, onClosed);
-        view.dialog = dialog;
-        if ($.isFunction(completed))
-            completed(view);
+function showDialogCore(fullViewName: string, parameters: IDialogOptions, onLoaded?: (view: Dialog<ViewModel>) => void) {
+    return Q.Promise<any>((resolve, reject) => {
+        var dialog = $("<div />");
+        $('body').append(dialog);
+        (<any>parameters)[isDialogParameter] = true;
+
+        showLoading();
+        createView(dialog, fullViewName, <any>parameters).then((view: Dialog<ViewModel>) => {
+            hideLoading();
+
+            openedDialogs++;
+            showNativeDialog(dialog, view, parameters, () => { resolve(null); });
+
+            view.dialog = dialog;
+            if ($.isFunction(onLoaded))
+                onLoaded(view);
+        }).fail(reject);
     });
-};
-
-export interface IDialogOptions {
-    title: string;
-
-    isResizable?: boolean;
-    isDraggable?: boolean;
-    showCloseButton?: boolean; 
-    buttons?: IDialogButton[];
 }
 
-export interface IDialogButton {
-    label: string;
-    click: (dialog: Dialog<ViewModel>) => void;
-}
-
-export function createDialog(dialog: JQuery, view: Dialog<ViewModel>, parameters: IDialogOptions, onClosed?: () => void) {
+export function showNativeDialog(dialog: JQuery, view: Dialog<ViewModel>, parameters: IDialogOptions, onClosed?: () => void) {
     // Fix: Remove focus from element of the underlying on page (used in IE to avoid click events on enter press)
     var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
     if (focusable != null) {
@@ -516,6 +586,20 @@ export function createDialog(dialog: JQuery, view: Dialog<ViewModel>, parameters
     });
 }
 
+export interface IDialogOptions {
+    title: string;
+
+    isResizable?: boolean;
+    isDraggable?: boolean;
+    showCloseButton?: boolean;
+    buttons?: IDialogButton[];
+}
+
+export interface IDialogButton {
+    label: string;
+    click: (dialog: Dialog<ViewModel>) => void;
+}
+
 // ----------------------------
 // KnockoutJS extensions
 // ----------------------------
@@ -538,8 +622,8 @@ ko.bindingHandlers["view"] = {
 
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
 
-        var loader = new ViewFactory();
-        loader.create($(element),(<any>value).name, value, view => {
+        var factory = new ViewFactory();
+        factory.create($(element),(<any>value).name, value, view => {
             ko.utils.domNodeDisposal.addDisposeCallback(element,() => { view.__destroyView(); });
             if (rootView !== null)
                 rootView.__addSubView(view);
@@ -548,108 +632,25 @@ ko.bindingHandlers["view"] = {
 };
 
 // ----------------------------
-// JQuery extensions
+// Paging
 // ----------------------------
 
-// Inserts a view inside an element (JQuery)
-$.fn.view = function (fullViewName: string, parameters: { [key: string]: any }, completed: (view: ViewBase, viewModel: ViewModel) => void) {
-    var loader = new ViewFactory();
-    loader.create(this, fullViewName, parameters, completed);
-    return this;
-};
-
-var isRestoringPages = false; 
-
-// Restores the page stack using the current query hash 
-$.fn.restorePages = function (fullViewName: string, parameters: Parameters, completed: (view: ViewBase) => void) {
-    var frame = $(this);
-
-    var urlSegments = decodeURIComponent(window.location.hash).split("/");
-    if (urlSegments.length > 1) {
-
-        isRestoringPages = true;
-        showLoading(false);
-        var currentSegmentIndex = 1;
-
-        var navigateTo = (view: ViewBase) => {
-            var segment = urlSegments[currentSegmentIndex];
-            if (segment != null) {
-                var segmentParts = segment.split(":");
-                var supportsPageRestore = segmentParts.length === 3;
-                if (supportsPageRestore) {
-                    currentSegmentIndex++;
-                    var fullViewName = segmentParts[0] + ":" + segmentParts[1];
-                    var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                    (<any>frame).navigateTo(fullViewName, { restoreQuery: restoreQuery },(view: ViewBase) => {
-                        navigateTo(view);
-                    });
-                } else
-                    finishPageRestore(frame, view, completed);
-            } else
-                finishPageRestore(frame, view, completed);
-        };
-        navigateTo(null);
-    } else
-        (<any>frame).navigateTo(fullViewName, parameters, completed);
-};
-
-function finishPageRestore(frame: JQuery, view: ViewBase, completed: (view: ViewBase) => void) {
-    hideLoading();
-    isRestoringPages = false;
-
-    var page = getCurrentPage(frame);
-    page.element.removeAttr("style");
-
-    if (completed != undefined)
-        completed(view);
+/**
+ * Gets the current page from the given frame or the default frame. 
+ */
+export function getCurrentPage(frame?: JQuery): PageBase {
+    var description = getCurrentPageDescription(frame);
+    if (description !== null && description !== undefined)
+        return description.view;
+    return null; 
 }
 
-// Gets the current page (JQuery)
-$.fn.currentPage = function () {
-    var pageStack = getPageStack($(this));
-    if (pageStack === null || pageStack === undefined)
-        return null;
-
-    return pageStack[pageStack.length - 1].view;
-};
-
-// Navigates to a page (JQuery)
-$.fn.navigateTo = function (fullViewName: string, parameters: {}, completed: (view: ViewBase) => void) {
-    var frame = $(this);
-
-    if (isNavigating) {
-        if ($.isFunction(completed))
-            completed(null);
-        return frame;
-    }
-    isNavigating = true;
-
-    // append new invisible page to DOM
-    var pageContainer = $(document.createElement("div"));
-    pageContainer.css("visibility", "hidden");
-    pageContainer.css("position", "absolute");
-    frame.append(pageContainer);
-
-    // load currently visible page
-    var currentPage = getCurrentPage($(frame));
-    showLoading(currentPage !== null);
-    if (currentPage !== null && currentPage !== undefined) {
-        currentPage.view.onNavigatingFrom("forward",(navigate) => {
-            tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate,(view: ViewBase) => {
-                if (completed !== undefined)
-                    completed(view);
-                hideLoading();
-            });
-        });
-    } else {
-        tryNavigateForward(fullViewName, parameters, frame, pageContainer, true,(view: ViewBase) => {
-            if (completed !== undefined)
-                completed(view);
-            hideLoading();
-        });
-    }
-    return frame;
-};
+function getCurrentPageDescription(frame: JQuery): IPage {
+    var pageStack = getPageStack(frame);
+    if (pageStack.length > 0)
+        return pageStack[pageStack.length - 1];
+    return null;
+}
 
 function getPageStack(element: JQuery) {
     var pageStack = <IPage[]>element.data(pageStackAttribute);
@@ -660,21 +661,15 @@ function getPageStack(element: JQuery) {
     return pageStack;
 }
 
-function getCurrentPage(element: JQuery): IPage {
-    var pageStack = getPageStack(element);
-    if (pageStack.length > 0)
-        return pageStack[pageStack.length - 1];
-    return null;
-}
-
-function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean, completed: (view: ViewBase) => void) {
+function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean): Q.Promise<PageBase> {
     if (navigate) {
         if (parameters === undefined || parameters == null)
             parameters = {};
 
         parameters[isPageParameter] = true;
 
-        (<any>pageContainer).view(fullViewName, parameters,(view: PageBase, viewModel: ViewModel, restoreQuery: string) => {
+        return createView(pageContainer, fullViewName, parameters).then((view: PageBase) => {
+            var restoreQuery = view.parameters.getRestoreQuery();
             currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
@@ -683,14 +678,14 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
             navigationHistory.push(frame);
 
             // current page
-            var currentPage = getCurrentPage(frame);
+            var currentPage = getCurrentPageDescription(frame);
             if (currentPage !== null && currentPage !== undefined) {
                 currentPage.element.css("visibility", "hidden");
                 currentPage.element.css("position", "absolute");
             }
 
             // show next page by removing hiding css styles
-            if (!isRestoringPages)
+            if (!isPageRestore)
                 pageContainer.removeAttr("style");
 
             var pageStack = getPageStack(frame);
@@ -708,10 +703,10 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
                 currentPage.view.onNavigatedFrom("forward");
 
             isNavigating = false;
-            completed(view);
+            return view;
         });
     } else
-        completed(null);
+        return Q<PageBase>(null);
 };
 
 // ----------------------------
@@ -732,9 +727,9 @@ export function createLoadingElement() {
 
 // Shows the loading screen
 export function showLoading(delayed?: boolean) {
-    if (initialBody !== null) {
-        initialBody.remove();
-        initialBody = null;
+    if (initialLoadingElement !== null) {
+        initialLoadingElement.remove();
+        initialLoadingElement = null;
     }
 
     if (loadingCount === 0) {
@@ -781,15 +776,10 @@ export class ViewModel {
     parameters: Parameters;
     defaultCommands = defaultCommands;
 
-    // ReSharper disable InconsistentNaming
-
-    __view: ViewBase;
-    __restoreQuery: string = null;
-
-    // ReSharper restore InconsistentNaming
-
+    private view: ViewBase;
+    
     constructor(view: ViewBase, parameters: Parameters) {
-        this.__view = view;
+        this.view = view;
         this.parameters = parameters;
     }
 
@@ -799,21 +789,21 @@ export class ViewModel {
      * Page restore only works for a page if all previous pages in the page stack support page restore.
      */
     enablePageRestore(restoreQuery?: string) {
-        this.__restoreQuery = restoreQuery === undefined ? "" : restoreQuery;
+        this.parameters.setRestoreQuery(restoreQuery === undefined ? "" : restoreQuery);
     }
     
     /**
      * Subscribes to the given subscribable and stores the subscription automatic clean up. 
      */
     subscribe<T>(subscribable: KnockoutSubscribable<T>, callback: (newValue: T) => void) {
-        this.__view.subscribe(subscribable, callback);
+        this.view.subscribe(subscribable, callback);
     }
 
     /**
      * Loads a translated string.
      */
     getString(key: string) {
-        return this.__view.getString(key);
+        return this.view.getString(key);
     }
 
     /**
@@ -1003,8 +993,8 @@ export class Page<TViewModel extends ViewModel> extends View<TViewModel> {
      * [Virtual] Called when navigating to this page. 
      * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
      */
-    onNavigatingFrom(type: string, callback: (navigate: boolean) => void) {
-        callback(true);
+    onNavigatingFrom(type: string): Q.Promise<boolean> {
+        return Q.Promise<boolean>(resolve => resolve(true)); 
     }
 }
 
@@ -1039,19 +1029,19 @@ export class Parameters {
     }
 
     getObservableString(key: string, defaultValue?: string): KnockoutObservable<string> {
-        return this.getObservableWithConversion(key, value => value.toString(), defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => value.toString(), defaultValue);
     }
 
     getObservableNumber(key: string, defaultValue?: number): KnockoutObservable<number> {
-        return this.getObservableWithConversion(key, value => Number(value), defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => Number(value), defaultValue);
     }
 
     getObservableBoolean(key: string, defaultValue?: boolean): KnockoutObservable<boolean> {
-        return this.getObservableWithConversion(key, value => Boolean(value), defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => Boolean(value), defaultValue);
     }
 
     getObservableObject<T>(key: string, defaultValue?: T) {
-        return this.getObservableWithConversion(key, value => value, defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => value, defaultValue);
     }
 
     getString(key: string, defaultValue?: string) {
@@ -1090,12 +1080,12 @@ export class Parameters {
         return this.parameters[key];
     }
 
-    isPageRestore() {
-        return this.getRestoreQuery() !== undefined;
-    }
-
     getRestoreQuery(): string {
         return this.originalParameters["restoreQuery"];
+    }
+
+    setRestoreQuery(restoreQuery: string) {
+        this.originalParameters["restoreQuery"] = restoreQuery;
     }
 
     private getObservableWithConversion<T>(key: string, valueConverter: (value: any) => T, defaultValue: T): KnockoutObservable<T> {
@@ -1124,7 +1114,7 @@ export class Parameters {
     private createObjectFromElement(element: JQuery): any {
         var children = element.children();
         if (children.length > 0) {
-            var array: any[] = [];
+            var array: any[] = <any[]>[];
             children.each((index: number, child: Element) => {
                 array.push(this.createObjectFromElement($(child)));
             });
@@ -1142,6 +1132,15 @@ export class Parameters {
 // ----------------------------
 // View factory
 // ----------------------------
+
+export function createView(element: JQuery, fullViewName: string, parameters: { [key: string]: any }) {
+    return Q.Promise<ViewBase>((resolve) => {
+        var factory = new ViewFactory();
+        factory.create(element, fullViewName, parameters, (view) => {
+            resolve(view);
+        });
+    });
+};
 
 class ViewFactory {
     element: JQuery;
@@ -1162,9 +1161,9 @@ class ViewFactory {
 
     rootElement: HTMLElement;
 
-    completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void;
+    completed: (view: ViewBase) => void;
 
-    create(element: JQuery, fullViewName: string, parameters: {}, completed: (view: ViewBase, viewModel: ViewModel, restoreQuery: string) => void) {
+    create(element: JQuery, fullViewName: string, parameters: {}, completed: (view: ViewBase) => void) {
         this.element = element;
 
         if (currentContext === undefined || currentContext === null) {
@@ -1275,10 +1274,9 @@ class ViewFactory {
         // initialize and retrieve restore query
         this.view.initialize(this.parameters);
         this.viewModel.initialize(this.parameters);
-        var restoreQuery = this.parameters.isPageRestore() ? this.parameters.getRestoreQuery() : this.viewModel.__restoreQuery;
 
         if (this.isRootView)
-            this.context.restoreQuery = restoreQuery;
+            this.context.restoreQuery = this.parameters.getRestoreQuery();
 
         var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
         if (lazySubviewLoading) {
@@ -1304,7 +1302,7 @@ class ViewFactory {
         }
 
         if ($.isFunction(this.completed))
-            this.completed(this.view, this.viewModel, restoreQuery);
+            this.completed(this.view);
     }
 
     private instantiateView() {
@@ -1509,5 +1507,5 @@ export interface IDisposable {
 }
 
 export interface IVisto {
-    navigateBack(completed?: (navigate: boolean) => void): void;
+    navigateBack(): Q.Promise<void>;
 }

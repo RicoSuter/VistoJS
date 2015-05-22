@@ -24,10 +24,9 @@ export class ListPageModel extends visto.ViewModel {
     }
     
 	addItem() {
-		common.prompt("Add Item", "Please enter the item name: ", "", title => {
-			if (title !== "")
-				this.items.push({ id: 1, title: title }); 
-		});
+        common.prompt("Add Item", "Please enter the item name: ", "").then(title => {
+            this.items.push({ id: 1, title: title });
+        });
 	}
 
 	deleteItem(item: svc.ISampleItem) {

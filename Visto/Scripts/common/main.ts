@@ -4,63 +4,72 @@ import package = require("module");
 /**
  * Shows a confirm dialog box with with various buttons.
  */
-export function confirm(title: string, message: string, buttons: ConfirmButtons, completed: (result: string) => void) {
-    var buttonCollection: visto.IDialogButton[] = [];
-    if (buttons === ConfirmButtons.YesNoCancel || buttons === ConfirmButtons.YesNo) {
-        buttonCollection.push({
-            label: "Yes",
-            click: dialog => {
-                dialog.close();
-                completed("yes");
-            }
-        });
-    }
+export function confirm(title: string, message: string, buttons: Buttons) {
+    return Q.Promise<DialogResult>((resolve) => {
+        var buttonCollection: visto.IDialogButton[] = [];
+        if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
+            buttonCollection.push({
+                label: "Yes",
+                click: dialog => {
+                    dialog.close();
+                    resolve(DialogResult.Yes);
+                }
+            });
+        }
 
-    if (buttons === ConfirmButtons.YesNoCancel || buttons === ConfirmButtons.YesNo) {
-        buttonCollection.push({
-            label: "No",
-            click: dialog => {
-                dialog.close();
-                completed("no");
-            }
-        });
-    }
+        if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
+            buttonCollection.push({
+                label: "No",
+                click: dialog => {
+                    dialog.close();
+                    resolve(DialogResult.No);
+                }
+            });
+        }
 
-    if (buttons === ConfirmButtons.OkCancel || buttons === ConfirmButtons.Ok) {
-        buttonCollection.push({
-            label: "OK",
-            click: dialog => {
-                dialog.close();
-                completed("ok");
-            }
-        });
-    }
+        if (buttons === Buttons.OkCancel || buttons === Buttons.Ok) {
+            buttonCollection.push({
+                label: "OK",
+                click: dialog => {
+                    dialog.close();
+                    resolve(DialogResult.Ok);
+                }
+            });
+        }
 
-    if (buttons === ConfirmButtons.YesNoCancel || buttons === ConfirmButtons.OkCancel) {
-        buttonCollection.push({
-            label: "Cancel",
-            click: dialog => {
-                dialog.close();
-                completed("cancel");
-            }
-        });
-    }
+        if (buttons === Buttons.YesNoCancel || buttons === Buttons.OkCancel) {
+            buttonCollection.push({
+                label: "Cancel",
+                click: dialog => {
+                    dialog.close();
+                    resolve(DialogResult.Cancel);
+                }
+            });
+        }
 
-    visto.dialog(visto.getViewName(package, "dialogs/Confirm"), {
-        title: title,
-        message: message,
-        buttons: buttonCollection
-    }, null, view => {
+        visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
+            title: title,
+            message: message,
+            buttons: buttonCollection
+        }, view => {
             view.dialog.on('keydown', ev => {
-                if (ev.keyCode === $.ui.keyCode.ESCAPE) {
-                    view.dialog.dialog("close");
-                    completed("cancel");
+                if (ev.keyCode === $.ui.keyCode.ESCAPE && (buttons === Buttons.OkCancel || buttons === Buttons.YesNoCancel)) {
+                    view.close();
+                    resolve(DialogResult.Cancel);
                 }
             });
         });
+    });
 };
 
-export enum ConfirmButtons {
+export enum DialogResult {
+    Ok, 
+    Cancel, 
+    Yes, 
+    No, 
+}
+
+export enum Buttons {
     YesNoCancel,
     YesNo,
     OkCancel,
@@ -70,15 +79,16 @@ export enum ConfirmButtons {
 /**
  * Shows a progress bar in a dialog. The dialog can be controlled using the dialog instance in the completed callback. 
  */
-export function progressDialog(title: string, completed: (dialog: IProgressDialog) => void) {
-    visto.dialog(package, "dialogs/ProgressDialog", {
-        title: title,
-        resizable: false,
-        draggable: true,
-        dialogClass: "box no-close",
-        modal: true,
-        closeOnEscape: false
-    }, null, view => {
+export function progressDialog(title: string) {
+    return Q.Promise<IProgressDialog>((resolve) => {
+        visto.showDialog(package, "dialogs/ProgressDialog", {
+            title: title,
+            resizable: false,
+            draggable: true,
+            dialogClass: "box no-close",
+            modal: true,
+            closeOnEscape: false
+        }, view => {
             var progress: any = {
                 maximum: null,
                 value: 0,
@@ -100,8 +110,9 @@ export function progressDialog(title: string, completed: (dialog: IProgressDialo
                         view.getElement("#body").html(progress.value + " / " + progress.maximum);
                 }
             };
-            completed(progress);
+            resolve(progress);
         });
+    });
 };
 
 export interface IProgressDialog {
@@ -116,91 +127,88 @@ export interface IProgressDialog {
 /**
  * Shows an alert dialog box. 
  */
-export function alert(title: string, message: string, completed?: () => void) {
-    if (!$.isFunction(completed))
-        completed = () => { };
-    confirm(title, message, ConfirmButtons.Ok, completed);
+export function alert(title: string, message: string) {
+    return confirm(title, message, Buttons.Ok);
 };
 
 /**
  * Shows an prompt dialog box to enter a string value. 
  */
-export function prompt(title: string, message: string, defaultText: string, completed: (result: string) => void) {
-    var output = ko.observable(defaultText);
-    visto.dialog(package, "dialogs/Prompt", {
-        message: message,
-        output: output,
-        completed: completed,
-        title: title,
-        buttons: [
-            {
-                label: "OK",
-                click: dialog => {
-                    dialog.close();
-                    completed(output());
+export function prompt(title: string, message: string, defaultText: string) {
+    return Q.Promise<string>((resolve, reject) => {
+        var output = ko.observable(defaultText);
+        visto.showDialog(package, "dialogs/Prompt", {
+            message: message,
+            output: output,
+            title: title,
+            buttons: [
+                {
+                    label: "OK",
+                    click: dialog => {
+                        dialog.close();
+                        resolve(output());
+                    }
+                },
+                {
+                    label: "Cancel",
+                    click: dialog => {
+                        dialog.close();
+                        reject(null);
+                    }
                 }
-            },
-            {
-                label: "Cancel",
-                click: dialog => {
-                    dialog.close();
-                    completed(null);
-                }
-            }
-        ]
-    }, null, view => {
+            ]
+        }, view => {
             view.dialog.on('keyup', ev => {
                 if (ev.keyCode === $.ui.keyCode.ESCAPE) {
-                    view.dialog.dialog("close");
-                    completed(null);
+                    view.close();
+                    reject(null);
                 } else if (ev.keyCode === $.ui.keyCode.ENTER) {
-                    view.dialog.dialog("close");
-                    completed(output());
+                    view.close();
+                    resolve(output());
                 }
             });
         });
+    });
 };
 
 /**
  * Shows a dialog with a list picker. 
  */
-export function listPicker(header: string, label: string, items: any[], selectedItem: any, optionsText: string, completed: (result: any) => void) {
-    if ($.isFunction(selectedItem))
-        selectedItem = selectedItem();
-
-    selectedItem = ko.observable(selectedItem);
-
-    visto.dialog(package, "dialogs/ListPicker", {
-        title: header,
-        label: label,
-        selectedItem: selectedItem,
-        items: items,
-        optionsText: optionsText,
-        buttons: [
-            {
-                label: "OK",
-                click: dialog => {
-                    dialog.close();
-                    completed(selectedItem());
+export function listPicker<TItem>(header: string, label: string, items: any[], selectedItem: TItem, optionsText: string) {
+    return Q.Promise<TItem>((resolve, reject) => {
+        var observableSelectedItem = ko.observable<TItem>(selectedItem);
+        visto.showDialog(package, "dialogs/ListPicker", {
+            title: header,
+            label: label,
+            selectedItem: selectedItem,
+            items: items,
+            optionsText: optionsText,
+            buttons: [
+                {
+                    label: "OK",
+                    click: dialog => {
+                        dialog.close();
+                        resolve(observableSelectedItem());
+                    }
+                },
+                {
+                    label: "Cancel",
+                    click: dialog => {
+                        dialog.close();
+                        reject(null);
+                    }
                 }
-            },
-            {
-                label: "Cancel",
-                click: dialog => {
-                    dialog.close();
-                    completed(null);
-                }
-            }
-        ]
-    }, null, view => {
+            ]
+        }, view => {
             view.dialog.on('keyup', ev => {
                 if (ev.keyCode === $.ui.keyCode.ESCAPE) {
                     view.dialog.dialog("close");
-                    completed(null);
+                    reject(null);
                 } else if (ev.keyCode === $.ui.keyCode.ENTER) {
                     view.dialog.dialog("close");
-                    completed(selectedItem());
+                    resolve(observableSelectedItem());
                 }
             });
         });
+    });
 };

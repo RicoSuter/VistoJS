@@ -8,6 +8,7 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 define(["require", "exports", "libs/hashchange"], function (require, exports, __hashchange) {
+    /// <reference path="q.d.ts" />
     /// <reference path="knockout.d.ts" />
     /// <reference path="jquery.d.ts" />
     /// <reference path="jqueryui.d.ts" />
@@ -39,7 +40,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var openedDialogs = 0;
     var defaultCommands = {
         navigateBack: function () {
-            navigateBack();
+            return navigateBack();
         }
     };
     // internationalization variables
@@ -50,7 +51,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // local variables
     var currentNavigationPath = "";
     var currentContext = null;
-    var initialBody = $("body").find("div");
+    var defaultFrame = null;
+    var initialLoadingElement = null;
     // ----------------------------
     // Initializer
     // ----------------------------
@@ -59,6 +61,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function initialize(options) {
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
+        defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
+        initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
             $(document).bind("keypress", function (ev) {
@@ -66,7 +70,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     ev.preventDefault();
             });
         }
-        restorePages(options.defaultView);
+        restorePages(defaultFrame, options.defaultView);
     }
     exports.initialize = initialize;
     // ----------------------------
@@ -120,8 +124,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * Gets the package name where the given module is located.
      */
-    function getPackageNameForModule(packageModule) {
-        var modulePath = "/" + packageModule.id;
+    function getPackageNameForModule(module) {
+        var modulePath = "/" + module.id;
         var index = modulePath.lastIndexOf("/views/");
         if (index === -1)
             index = modulePath.lastIndexOf("/viewModels/");
@@ -133,8 +137,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * Gets the full view name for the view from the given module and path.
      */
-    function getViewName(packageModule, viewPath) {
-        return getPackageNameForModule(packageModule) + ":" + viewPath;
+    function getViewName(module, viewPath) {
+        return getPackageNameForModule(module) + ":" + viewPath;
     }
     exports.getViewName = getViewName;
     /**
@@ -145,6 +149,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         if (languageStrings[lang] === undefined)
             languageStrings[lang] = ([]);
         if (languageStrings[lang][packageName] === undefined) {
+            // TODO avoid multiple simultaneous loadings
             var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
             if (languageLoadings[url] === undefined) {
                 languageLoadings[url] = [completed];
@@ -177,48 +182,46 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * Loads a translated string.
      */
-    function getString(key, path, completed) {
-        path = getPackageName(path);
+    function getString(key, packageName, completed) {
+        packageName = getPackageName(packageName);
         var lang = exports.language();
         if (languageStrings[lang] === undefined)
             languageStrings[lang] = ([]);
-        if (languageStrings[lang][path] === undefined) {
-            loadLanguageFile(path, function () {
-                getStringForLanguage(lang, path, key, completed);
+        if (languageStrings[lang][packageName] === undefined) {
+            loadLanguageFile(packageName, function () {
+                getStringForLanguage(lang, packageName, key, completed);
             });
             if (previousLanguage !== null)
-                return getStringForLanguage(previousLanguage, path, key);
+                return getStringForLanguage(previousLanguage, packageName, key);
             return "";
         }
         else
-            return getStringForLanguage(lang, path, key, completed);
+            return getStringForLanguage(lang, packageName, key, completed);
     }
-    exports.getString = getString;
     ;
     /**
      * Loads a translated string as observable object which updates when the language changes.
      */
-    function getStringAsObservable(key, path) {
+    function getObservableString(key, packageName) {
         var observable = ko.observable();
-        observable(getString(key, path, function (value) {
+        observable(getString(key, packageName, function (value) {
             observable(value);
         }));
         return observable;
     }
-    exports.getStringAsObservable = getStringAsObservable;
+    exports.getObservableString = getObservableString;
     ;
     /**
      * Loads a translated string for a given language.
      */
-    function getStringForLanguage(lang, path, key, completed) {
-        var value = languageStrings[lang][path][key];
+    function getStringForLanguage(lang, packageName, key, completed) {
+        var value = languageStrings[lang][packageName][key];
         if (value === undefined)
-            value = path + ":" + key;
+            value = packageName + ":" + key;
         if (completed !== undefined)
             completed(value);
         return value;
     }
-    exports.getStringForLanguage = getStringForLanguage;
     ;
     /**
      * Sets the language of the application.
@@ -305,42 +308,113 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * Restores the page stack on the body element as frame.
      */
-    function restorePages(fullViewName, params, completed) {
-        $("body").restorePages(fullViewName, params, completed);
+    function restorePages(frame, fullViewName, parameters) {
+        return Q.Promise(function (resolve, reject) {
+            var urlSegments = decodeURIComponent(window.location.hash).split("/");
+            if (urlSegments.length > 1) {
+                exports.isPageRestore = true;
+                showLoading(false);
+                var currentSegmentIndex = 1;
+                var navigateToNextSegment = function (view) {
+                    var segment = urlSegments[currentSegmentIndex];
+                    if (segment != null) {
+                        var segmentParts = segment.split(":");
+                        var supportsPageRestore = segmentParts.length === 3;
+                        if (supportsPageRestore) {
+                            currentSegmentIndex++;
+                            var fullViewName = segmentParts[0] + ":" + segmentParts[1];
+                            var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
+                            navigateTo(frame, fullViewName, { restoreQuery: restoreQuery }).then(function (view) {
+                                navigateToNextSegment(view);
+                            });
+                        }
+                        else
+                            finishPageRestore(frame, view, resolve);
+                    }
+                    else
+                        finishPageRestore(frame, view, resolve);
+                };
+                navigateToNextSegment(null);
+            }
+            else {
+                navigateTo(frame, fullViewName, parameters).then(function (view) { return resolve(view); }).fail(reject);
+            }
+        });
     }
-    exports.restorePages = restorePages;
     ;
-    function navigateTo(a, b, c, d) {
+    exports.isPageRestore = false;
+    function finishPageRestore(frame, view, completed) {
+        hideLoading();
+        exports.isPageRestore = false;
+        var page = getCurrentPageDescription(frame);
+        page.element.removeAttr("style");
+        completed(view);
+    }
+    function navigateTo(a, b, c) {
         if (typeof a === "string")
-            $("body").navigateTo(a, b, c);
+            return navigateToCore(defaultFrame, a, b);
+        else if (a.uri !== undefined)
+            return navigateToCore(defaultFrame, getViewName(a, b), c);
         else
-            $("body").navigateTo(getViewName(a, b), c, d);
+            return navigateToCore(a, b, c);
     }
     exports.navigateTo = navigateTo;
-    /**
-     * Gets the current page.
-     */
-    function currentPage() {
-        return $("body").currentPage();
+    function navigateToCore(frame, fullViewName, parameters) {
+        if (isNavigating)
+            throw "Already navigating";
+        isNavigating = true;
+        // append new invisible page to DOM
+        var pageContainer = $(document.createElement("div"));
+        pageContainer.css("visibility", "hidden");
+        pageContainer.css("position", "absolute");
+        frame.append(pageContainer);
+        // load currently visible page
+        var currentPage = getCurrentPageDescription($(frame));
+        showLoading(currentPage !== null);
+        if (currentPage !== null && currentPage !== undefined) {
+            return currentPage.view.onNavigatingFrom("forward").then(function (navigate) { return tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate); }).then(function (page) {
+                hideLoading();
+                return page;
+            });
+        }
+        else {
+            return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then(function (page) {
+                hideLoading();
+                return page;
+            });
+        }
     }
-    exports.currentPage = currentPage;
-    ;
-    var backNavigationCompleted = null;
+    /**
+     * Navigates back to the home page (first page in stack).
+     */
+    function navigateHome() {
+        if (navigationCount <= 1) {
+            return Q(null);
+        }
+        else {
+            return navigateBack().then(function () {
+                return navigateHome();
+            });
+        }
+    }
+    exports.navigateHome = navigateHome;
     /**
      * Navigates to the previous page.
      */
-    function navigateBack(completed) {
-        if (isNavigating) {
-            if ($.isFunction(completed))
-                completed(false);
-        }
-        else {
-            backNavigationCompleted = $.isFunction(completed) ? completed : null;
-            history.go(-1);
-        }
+    function navigateBack() {
+        return Q.Promise(function (resolve, reject) {
+            if (isNavigating)
+                reject("Already navigating");
+            else {
+                backNavigationResolve = resolve;
+                backNavigationReject = reject;
+                history.go(-1);
+            }
+        });
     }
     exports.navigateBack = navigateBack;
-    ;
+    var backNavigationResolve = null;
+    var backNavigationReject = null;
     function tryNavigateBack(navigate, currentPage, pageStack) {
         if (navigate) {
             navigationHistory.pop();
@@ -354,34 +428,18 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             log("Navigated back to " + previousPage.view.viewClass + ", page stack size: " + pageStack.length);
             previousPage.view.onNavigatedTo("back");
             currentPage.view.onNavigatedFrom("back");
-        }
-        else
-            window.location = "#" + currentPage.hash;
-        isNavigating = false;
-        if ($.isFunction(backNavigationCompleted))
-            backNavigationCompleted(navigate);
-        backNavigationCompleted = null;
-    }
-    ;
-    /**
-     * Navigates back to the home page (first page in stack).
-     */
-    function navigateHome(completed) {
-        if (navigationCount <= 1) {
-            if ($.isFunction(completed))
-                completed(true);
+            if ($.isFunction(backNavigationResolve))
+                backNavigationResolve();
         }
         else {
-            navigateBack(function (successful) {
-                if (successful)
-                    navigateHome(completed);
-                else if ($.isFunction(completed))
-                    completed(false);
-            });
+            window.location = "#" + currentPage.hash;
+            if ($.isFunction(backNavigationReject))
+                backNavigationReject("Cannot navigate back.");
         }
+        isNavigating = false;
+        backNavigationResolve = null;
+        backNavigationReject = null;
     }
-    exports.navigateHome = navigateHome;
-    ;
     // Register callback when user manually navigates back (back key)
     $(window).hashchange(function () {
         if (isNavigating)
@@ -401,7 +459,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         if (openedDialogs > 0)
                             tryNavigateBack(false, currentPage, pageStack);
                         else {
-                            currentPage.view.onNavigatingFrom("back", function (navigate) {
+                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
                                 tryNavigateBack(navigate, currentPage, pageStack);
                             });
                         }
@@ -410,29 +468,32 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         }
     });
-    function dialog(a, b, c, d, e) {
+    function showDialog(a, b, c, d) {
         if (typeof a === "string")
-            showDialog(a, b, c, d);
+            return showDialogCore(a, b, c);
         else
-            showDialog(getViewName(a, b), c, d, e);
+            return showDialogCore(getViewName(a, b), c, d);
     }
-    exports.dialog = dialog;
-    function showDialog(fullViewName, parameters, onClosed, completed) {
-        var dialog = $("<div />");
-        $('body').append(dialog);
-        parameters[isDialogParameter] = true;
-        showLoading();
-        dialog.view(fullViewName, parameters, function (view) {
-            hideLoading();
-            openedDialogs++;
-            createDialog(dialog, view, parameters, onClosed);
-            view.dialog = dialog;
-            if ($.isFunction(completed))
-                completed(view);
+    exports.showDialog = showDialog;
+    function showDialogCore(fullViewName, parameters, onLoaded) {
+        return Q.Promise(function (resolve, reject) {
+            var dialog = $("<div />");
+            $('body').append(dialog);
+            parameters[isDialogParameter] = true;
+            showLoading();
+            createView(dialog, fullViewName, parameters).then(function (view) {
+                hideLoading();
+                openedDialogs++;
+                showNativeDialog(dialog, view, parameters, function () {
+                    resolve(null);
+                });
+                view.dialog = dialog;
+                if ($.isFunction(onLoaded))
+                    onLoaded(view);
+            }).fail(reject);
         });
     }
-    ;
-    function createDialog(dialog, view, parameters, onClosed) {
+    function showNativeDialog(dialog, view, parameters, onClosed) {
         // Fix: Remove focus from element of the underlying on page (used in IE to avoid click events on enter press)
         var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
         if (focusable != null) {
@@ -462,7 +523,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             dialog.remove();
         });
     }
-    exports.createDialog = createDialog;
+    exports.showNativeDialog = showNativeDialog;
     // ----------------------------
     // KnockoutJS extensions
     // ----------------------------
@@ -480,8 +541,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (currentContext !== null)
                 rootView = currentContext.rootView;
             var value = ko.utils.unwrapObservable(valueAccessor());
-            var loader = new ViewFactory();
-            loader.create($(element), value.name, value, function (view) {
+            var factory = new ViewFactory();
+            factory.create($(element), value.name, value, function (view) {
                 ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
                     view.__destroyView();
                 });
@@ -491,97 +552,24 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
     };
     // ----------------------------
-    // JQuery extensions
+    // Paging
     // ----------------------------
-    // Inserts a view inside an element (JQuery)
-    $.fn.view = function (fullViewName, parameters, completed) {
-        var loader = new ViewFactory();
-        loader.create(this, fullViewName, parameters, completed);
-        return this;
-    };
-    var isRestoringPages = false;
-    // Restores the page stack using the current query hash 
-    $.fn.restorePages = function (fullViewName, parameters, completed) {
-        var frame = $(this);
-        var urlSegments = decodeURIComponent(window.location.hash).split("/");
-        if (urlSegments.length > 1) {
-            isRestoringPages = true;
-            showLoading(false);
-            var currentSegmentIndex = 1;
-            var navigateTo = function (view) {
-                var segment = urlSegments[currentSegmentIndex];
-                if (segment != null) {
-                    var segmentParts = segment.split(":");
-                    var supportsPageRestore = segmentParts.length === 3;
-                    if (supportsPageRestore) {
-                        currentSegmentIndex++;
-                        var fullViewName = segmentParts[0] + ":" + segmentParts[1];
-                        var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                        frame.navigateTo(fullViewName, { restoreQuery: restoreQuery }, function (view) {
-                            navigateTo(view);
-                        });
-                    }
-                    else
-                        finishPageRestore(frame, view, completed);
-                }
-                else
-                    finishPageRestore(frame, view, completed);
-            };
-            navigateTo(null);
-        }
-        else
-            frame.navigateTo(fullViewName, parameters, completed);
-    };
-    function finishPageRestore(frame, view, completed) {
-        hideLoading();
-        isRestoringPages = false;
-        var page = getCurrentPage(frame);
-        page.element.removeAttr("style");
-        if (completed != undefined)
-            completed(view);
+    /**
+     * Gets the current page from the given frame or the default frame.
+     */
+    function getCurrentPage(frame) {
+        var description = getCurrentPageDescription(frame);
+        if (description !== null && description !== undefined)
+            return description.view;
+        return null;
     }
-    // Gets the current page (JQuery)
-    $.fn.currentPage = function () {
-        var pageStack = getPageStack($(this));
-        if (pageStack === null || pageStack === undefined)
-            return null;
-        return pageStack[pageStack.length - 1].view;
-    };
-    // Navigates to a page (JQuery)
-    $.fn.navigateTo = function (fullViewName, parameters, completed) {
-        var frame = $(this);
-        if (isNavigating) {
-            if ($.isFunction(completed))
-                completed(null);
-            return frame;
-        }
-        isNavigating = true;
-        // append new invisible page to DOM
-        var pageContainer = $(document.createElement("div"));
-        pageContainer.css("visibility", "hidden");
-        pageContainer.css("position", "absolute");
-        frame.append(pageContainer);
-        // load currently visible page
-        var currentPage = getCurrentPage($(frame));
-        showLoading(currentPage !== null);
-        if (currentPage !== null && currentPage !== undefined) {
-            currentPage.view.onNavigatingFrom("forward", function (navigate) {
-                tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate, function (view) {
-                    if (completed !== undefined)
-                        completed(view);
-                    hideLoading();
-                });
-            });
-        }
-        else {
-            tryNavigateForward(fullViewName, parameters, frame, pageContainer, true, function (view) {
-                if (completed !== undefined)
-                    completed(view);
-                hideLoading();
-            });
-        }
-        return frame;
-    };
+    exports.getCurrentPage = getCurrentPage;
+    function getCurrentPageDescription(frame) {
+        var pageStack = getPageStack(frame);
+        if (pageStack.length > 0)
+            return pageStack[pageStack.length - 1];
+        return null;
+    }
     function getPageStack(element) {
         var pageStack = element.data(pageStackAttribute);
         if (pageStack === null || pageStack === undefined) {
@@ -590,29 +578,24 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
         return pageStack;
     }
-    function getCurrentPage(element) {
-        var pageStack = getPageStack(element);
-        if (pageStack.length > 0)
-            return pageStack[pageStack.length - 1];
-        return null;
-    }
-    function tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate, completed) {
+    function tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate) {
         if (navigate) {
             if (parameters === undefined || parameters == null)
                 parameters = {};
             parameters[isPageParameter] = true;
-            pageContainer.view(fullViewName, parameters, function (view, viewModel, restoreQuery) {
+            return createView(pageContainer, fullViewName, parameters).then(function (view) {
+                var restoreQuery = view.parameters.getRestoreQuery();
                 currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
                 window.location = "#" + currentNavigationPath;
                 navigationHistory.push(frame);
                 // current page
-                var currentPage = getCurrentPage(frame);
+                var currentPage = getCurrentPageDescription(frame);
                 if (currentPage !== null && currentPage !== undefined) {
                     currentPage.element.css("visibility", "hidden");
                     currentPage.element.css("position", "absolute");
                 }
                 // show next page by removing hiding css styles
-                if (!isRestoringPages)
+                if (!exports.isPageRestore)
                     pageContainer.removeAttr("style");
                 var pageStack = getPageStack(frame);
                 pageStack.push({
@@ -625,11 +608,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (currentPage !== null && currentPage !== undefined)
                     currentPage.view.onNavigatedFrom("forward");
                 isNavigating = false;
-                completed(view);
+                return view;
             });
         }
         else
-            completed(null);
+            return Q(null);
     }
     ;
     // ----------------------------
@@ -648,9 +631,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     ;
     // Shows the loading screen
     function showLoading(delayed) {
-        if (initialBody !== null) {
-            initialBody.remove();
-            initialBody = null;
+        if (initialLoadingElement !== null) {
+            initialLoadingElement.remove();
+            initialLoadingElement = null;
         }
         if (loadingCount === 0) {
             if (delayed == undefined || delayed) {
@@ -693,11 +676,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // View model
     // ----------------------------
     var ViewModel = (function () {
-        // ReSharper restore InconsistentNaming
         function ViewModel(view, parameters) {
             this.defaultCommands = defaultCommands;
-            this.__restoreQuery = null;
-            this.__view = view;
+            this.view = view;
             this.parameters = parameters;
         }
         /**
@@ -706,19 +687,19 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Page restore only works for a page if all previous pages in the page stack support page restore.
          */
         ViewModel.prototype.enablePageRestore = function (restoreQuery) {
-            this.__restoreQuery = restoreQuery === undefined ? "" : restoreQuery;
+            this.parameters.setRestoreQuery(restoreQuery === undefined ? "" : restoreQuery);
         };
         /**
          * Subscribes to the given subscribable and stores the subscription automatic clean up.
          */
         ViewModel.prototype.subscribe = function (subscribable, callback) {
-            this.__view.subscribe(subscribable, callback);
+            this.view.subscribe(subscribable, callback);
         };
         /**
          * Loads a translated string.
          */
         ViewModel.prototype.getString = function (key) {
-            return this.__view.getString(key);
+            return this.view.getString(key);
         };
         /**
          * [Virtual] Initializes the view before it is added to the DOM.
@@ -882,8 +863,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * [Virtual] Called when navigating to this page.
          * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
          */
-        Page.prototype.onNavigatingFrom = function (type, callback) {
-            callback(true);
+        Page.prototype.onNavigatingFrom = function (type) {
+            return Q.Promise(function (resolve) { return resolve(true); });
         };
         return Page;
     })(View);
@@ -963,11 +944,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             return this.parameters[key];
         };
-        Parameters.prototype.isPageRestore = function () {
-            return this.getRestoreQuery() !== undefined;
-        };
         Parameters.prototype.getRestoreQuery = function () {
             return this.originalParameters["restoreQuery"];
+        };
+        Parameters.prototype.setRestoreQuery = function (restoreQuery) {
+            this.originalParameters["restoreQuery"] = restoreQuery;
         };
         Parameters.prototype.getObservableWithConversion = function (key, valueConverter, defaultValue) {
             if (this.parameters[key] === undefined) {
@@ -1015,6 +996,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // View factory
     // ----------------------------
+    function createView(element, fullViewName, parameters) {
+        return Q.Promise(function (resolve) {
+            var factory = new ViewFactory();
+            factory.create(element, fullViewName, parameters, function (view) {
+                resolve(view);
+            });
+        });
+    }
+    exports.createView = createView;
+    ;
     var ViewFactory = (function () {
         function ViewFactory() {
         }
@@ -1113,9 +1104,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);
-            var restoreQuery = this.parameters.isPageRestore() ? this.parameters.getRestoreQuery() : this.viewModel.__restoreQuery;
             if (this.isRootView)
-                this.context.restoreQuery = restoreQuery;
+                this.context.restoreQuery = this.parameters.getRestoreQuery();
             var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
             if (lazySubviewLoading) {
                 this.__setHtml();
@@ -1136,7 +1126,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.context.loaded();
             }
             if ($.isFunction(this.completed))
-                this.completed(this.view, this.viewModel, restoreQuery);
+                this.completed(this.view);
         };
         ViewFactory.prototype.instantiateView = function () {
             var view;

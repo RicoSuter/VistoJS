@@ -12,14 +12,14 @@ define(["require", "exports", "libs/visto", "SampleService"], function (require,
             this.item = ko.observable();
         }
         DetailsPageModel.prototype.initialize = function (parameters) {
-            if (!this.parameters.isPageRestore()) {
+            if (!visto.isPageRestore) {
                 this.item(parameters.getObject("item", null));
                 this.enablePageRestore(this.item().id.toString());
             }
         };
         DetailsPageModel.prototype.onLoading = function (callback) {
             var _this = this;
-            if (this.parameters.isPageRestore()) {
+            if (visto.isPageRestore) {
                 var id = Number(this.parameters.getRestoreQuery());
                 svc.getItems(function (items) {
                     for (var i = 0, item; (item = items[i]) !== undefined; i++) {

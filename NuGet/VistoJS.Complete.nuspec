@@ -12,7 +12,7 @@
         <description>Installs the Visto JavaScript Framework and some base files. </description>
         <releaseNotes />
         <dependencies>
-            <dependency id="VistoJS" version="1.2.0.0" />
+            <dependency id="VistoJS" version="2.0.0.0" />
         </dependencies>
     </metadata>
     <files>

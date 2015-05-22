@@ -81,6 +81,7 @@
     <Content Include="Scripts\app\views\tabs\Tab1.html" />
     <Content Include="Scripts\app\views\tabs\Tab2.html" />
     <Content Include="Scripts\app\views\WebViewPage.html" />
+    <Content Include="Scripts\libs\q.min.js" />
     <Content Include="Scripts\libs\visto.js">
       <DependentUpon>visto.ts</DependentUpon>
     </Content>
@@ -165,6 +166,7 @@
     <Content Include="Scripts\common\views\TabControl.html" />
     <TypeScriptCompile Include="Scripts\common\views\WebView.ts" />
     <Content Include="Scripts\libs\visto.modules.d.ts" />
+    <TypeScriptCompile Include="Scripts\libs\q.d.ts" />
     <TypeScriptCompile Include="Scripts\libs\visto.ts" />
     <TypeScriptCompile Include="Scripts\SampleService.ts" />
     <Content Include="Scripts\common\views\WebView.js">

@@ -28,7 +28,7 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
             common.alert("Not implemented", this.getString("notImplementedMessage"));
         };
         MainPageModel.prototype.showDialog = function () {
-            visto.dialog(package, "SampleDialog", {
+            visto.showDialog(package, "SampleDialog", {
                 title: "Sample dialog",
                 buttons: [
                     { label: "OK", click: function (dialog) {

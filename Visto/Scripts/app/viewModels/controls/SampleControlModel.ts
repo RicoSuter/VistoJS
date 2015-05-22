@@ -11,9 +11,8 @@ export class SampleControlModel extends visto.ViewModel {
 	}
 
     changeText() {
-        common.prompt("Change text", "Please change the text: ", this.selectedText(), (newText) => {
-            if (newText != null)
-                this.selectedText(newText);
-		});
+        common.prompt("Change text", "Please change the text: ", this.selectedText()).then((newText) => {
+            this.selectedText(newText);
+        });
     }
 }

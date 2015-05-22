@@ -50,7 +50,8 @@ The "common" package provides some reusable controls/views; the package is not r
     
 ## Installation
 
-1. Create a new web project with TypeScript support
+1. Create a new, empty ASP.NET web project with TypeScript support
+2. Edit project properties, go to the "TypeScript Build" section and set the "Module system" to "AMD" 
 2. Install the NuGet package "VistoJS.Complete"
 
 ## Final notes

@@ -28,9 +28,8 @@ define(["require", "exports", "libs/visto", "common/main", "SampleService", "mod
         };
         ListPageModel.prototype.addItem = function () {
             var _this = this;
-            common.prompt("Add Item", "Please enter the item name: ", "", function (title) {
-                if (title !== "")
-                    _this.items.push({ id: 1, title: title });
+            common.prompt("Add Item", "Please enter the item name: ", "").then(function (title) {
+                _this.items.push({ id: 1, title: title });
             });
         };
         ListPageModel.prototype.deleteItem = function (item) {
