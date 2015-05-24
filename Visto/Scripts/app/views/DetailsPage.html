@@ -1,19 +1,20 @@
 ﻿<div>
     <vs-page-header />
 
-	<div class="page_menu">
-		<ul class='menu'>
-			<li><a href="#" data-bind="click: defaultCommands.navigateBack">Back</a></li>
-		</ul>
-	</div>
 
-	<div class="page_content">
-        <div class="box box_content" data-bind="if: item() != null">
-            Details for item: <br />
-            Title '<span data-bind="text: item().title" />' <br />
-            ID <span data-bind="text: item().id" />
+    <div class="container">
+        <h1>DetailsPage</h1>
+        <div data-bind="if: item() != null" class="well">
+            <div class="form-group">
+                <label>ID</label>
+                <div data-bind="text: item().id"></div>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <div data-bind="text: item().title"></div>
+            </div>
         </div>
-	</div>
+    </div>
 
     <vs-page-footer />
 </div>

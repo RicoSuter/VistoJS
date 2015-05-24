@@ -1,17 +1,16 @@
 ﻿<div>
     <vs-page-header />
 
-    <div class="page_menu">
-        <ul class='menu'>
-            <li><a href="#" data-bind="click: defaultCommands.navigateBack">Back</a></li>
-        </ul>
-    </div>
-
-    <div class="page_content">
-        <div class="box box_content">
-            Web view:
-            <div style="background: #DDD; padding: 5px">
-                <vs-web-view package="common" url="Content/Static/a.html" />
+    <div class="container">
+        <h1>WebViewPage</h1>
+        <p>
+            This page shows the <code>WebView</code> in action: A view used to embed another website
+            mostly used with areas implemented using traditional ASP.NET MVC.
+        </p>
+        <div class="panel panel-default">
+            <div class="panel-heading">WebView (common)</div>
+            <div class="panel-body">
+                <vs-web-view package="common" url="Content/Static/a.html"/>
             </div>
         </div>
     </div>

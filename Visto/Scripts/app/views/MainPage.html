@@ -1,61 +1,62 @@
 <div>
     <vs-page-header />
 
-    <div class="page_menu">
-        <ul class='menu'>
-            <li class="tab active"><a href="#">Home</a></li>
-            <li data-bind="click: showNotImplemented"><a href="#">Not implemented</a></li>
-            <li data-bind="click: showDialog"><a href="#">Show dialog</a></li>
-        </ul>
-    </div>
-
-    <div class="page_content">
-        <div class="box box_content">
-            <p>
-                This is the Visto JavaScript Library sample application.
-            </p>
-            <p>
-                The look and feel of this sample application is only for demonstration purposes and can completely be changed. <br />
-                Edit the CSS file in the "css" directory and replace the images in the "images" directory. <br />
-                Only files from the "libs" and "common" directory are needed for the Visto JavaScript Library.
-            </p>
-
-            <h2>Navigation & paging</h2>
-            <ul>
-                <li>
-                    <a href="#" data-bind="click: navigateToTabPage">Navigate to tab page</a>: A sample of a tabbed page
-                </li>
-                <li>
-                    <a href="#" data-bind="click: navigateToListPage">Navigate to list page</a>: A sample of list and details page
-                </li>
-                <li>
-                    <a href="#" data-bind="click: navigateToWebViewPage">Navigate to web view page</a>: A sample of page with a web view
-                </li>
-            </ul>
-            (The navigation frame is the HTML's body element)
-
-            <h2>Internationalization</h2>
-            <div data-translate="translatedText" style="color: green" />
-            <p>
-                <vs-language-selector package="common" test="test" />
-            </p>
-            <p>
-                The translated strings can be found in the "languages" directory of each package. <br />
-            </p>
-
-            <h2>Bindings</h2>
-            <p>
-                Demonstration of a two-way binding into a sub view (SampleControl). <br />
-                The text in the input box is bound to the text of the SampleControl below. <br />
-
-                <input type="text" data-bind="value: selectedText, valueUpdate: 'afterkeydown'" />
-            </p>
-
-            <h2>Composite views</h2>
-            <div class="inputcontent">
-                <vs-sample-control path="controls" selected-text="{selectedText}"/>
-            </div>
+    <div class="container">
+        <h1>
+            Visto JavaScript Library <small>Sample Application</small>
+        </h1>
+        <p>
+            This sample application shows the capabilities of the Visto JavaScript Framework.
+        </p>
+        <div class="alert alert-info">
+            The look and feel of this sample application is only for demonstration purposes and can completely be changed.
         </div>
+
+        <h2>Navigation & paging</h2>
+        <ul>
+            <li>
+                <a href="#" data-bind="click: navigateToTabPage">Navigate to tab page</a>: A sample of a tabbed page
+            </li>
+            <li>
+                <a href="#" data-bind="click: navigateToListPage">Navigate to list page</a>: A sample of list and details page
+            </li>
+            <li>
+                <a href="#" data-bind="click: navigateToWebViewPage">Navigate to web view page</a>: A sample of page with a web view
+            </li>
+        </ul>
+
+
+        <h2>Bindings</h2>
+        <p>
+            The text of the following textbox is bound to the <code>selectedText</code> property of the <code>SampleControl</code> view.
+        </p>
+        <div class="form-group">
+            <label>Text</label>
+            <input data-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control"/>
+        </div>
+        <p>
+            The <code>SampleControl</code> takes the bound variable and binds it to its own input controls: 
+        </p>
+        <div class="inputcontent">
+            <vs-sample-control path="controls" selected-text="{selectedText}"/>
+        </div>
+
+        <h2>Internationalization</h2>
+        <p>
+            The following text is translated using the <code>data-translate</code> attribute:
+            <div data-translate="translatedText" class="alert alert-success"></div>
+        </p>
+        <p>
+            The current langauge can be changed using the <code>LanguageSelector</code> control:
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    LanguageSelector (common)
+                </div>
+                <div class="panel-body">
+                    <vs-language-selector package="common" test="test" />
+                </div>
+            </div>
+        </p>
     </div>
 
     <vs-page-footer />

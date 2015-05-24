@@ -105,7 +105,12 @@ h2 {
     margin: 0px;
     padding: 4px 8px 4px 8px;
     height: 40px;
+    border: 1px solid #AAA;
     background-color: white;
+}
+
+.page_menu .menu li {
+    border: none; 
 }
 
 .menu a {
