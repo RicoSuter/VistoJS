@@ -9,7 +9,7 @@
     right: 0;
 }
 
-.loadingImage {
+.loading_image {
     border: 0;
     margin-top: 150px;
 }
@@ -37,36 +37,18 @@ h2 {
     font-size: 14pt;
 }
 
-.page_wrapper {
-    width: 100%;
-    height: 100%;
-    margin: auto;
-    position: relative;
-}
-
 .page_header {
     height: 36px;
     padding: 18px 8px 8px 12px;
     font-size: 20px;
     color: white;
-    border-bottom: 4px solid white;
-    background-color: #094ab2;
+    background-color: #395B8E;
 }
 
 .page_menu {
     background-color: #86a3d2;
     padding: 8px;
     margin-bottom: 8px;
-    border-bottom: 1px solid #AAA;
-}
-
-.page_content {
-    top: 110px;
-    bottom: 40px;
-    padding-top: 8px;
-    position: absolute;
-    width: 100%;
-    overflow: auto;
 }
 
 .page_footer {
@@ -75,9 +57,23 @@ h2 {
     position: absolute;
     width: 100%;
     bottom: 0;
-    color: #fff;
-    border-top: 4px solid #AAA;
-    background-color: #094ab2;
+    background-color: #86a3d2;
+}
+
+.page_content {
+    top: 102px;
+    bottom: 36px;
+    padding-top: 8px;
+    position: absolute;
+    width: 100%;
+    overflow: auto;
+}
+
+.page_wrapper {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    position: relative;
 }
 
 /* Menu */
@@ -104,26 +100,25 @@ h2 {
     vertical-align: middle;
 }
 
-    .menu li {
-        display: inline;
-        margin: 0px;
-        padding: 4px 8px 4px 8px;
-        height: 40px;
-        border: 1px solid #AAA;
-        background-color: white;
-    }
+.menu li {
+    display: inline;
+    margin: 0px;
+    padding: 4px 8px 4px 8px;
+    height: 40px;
+    background-color: white;
+}
 
-    .menu a {
-        margin: 8px;
-        padding: 0;
-        text-decoration: none;
-        color: black;
-    }
+.menu a {
+    margin: 8px;
+    padding: 0;
+    text-decoration: none;
+    color: black;
+}
 
-    .menu li:hover {
-        color: white;
-        background-color: grey;
-    }
+.menu li:hover {
+    color: white;
+    background-color: grey;
+}
 
 /* Forms */
 .inputlabel {
@@ -146,39 +141,39 @@ h2 {
     border: none;
 }
 
-    .list td,
-    .list th {
-        margin: 0px;
-        padding: 6px;
-        text-align: left;
-    }
+.list td,
+.list th {
+    margin: 0px;
+    padding: 6px;
+    text-align: left;
+}
 
-    .list tr:hover {
-        background-color: #EEE;
-    }
+.list tr:hover {
+    background-color: #EEE;
+}
 
-    .list th,
-    .box_header,
-    .block_header,
-    .box_accordion h3 {
-        background-color: #CCC;
-        margin: 0px;
-        padding: 6px;
-        font-size: 1em;
-        font-weight: bold;
-        color: black;
-        border-bottom: 1px solid #AAA;
-    }
+.list th,
+.box_header,
+.block_header,
+.box_accordion h3 {
+    background-color: #CCC;
+    margin: 0px;
+    padding: 6px;
+    font-size: 1em;
+    font-weight: bold;
+    color: black;
+    border-bottom: 1px solid #AAA;
+}
 
-        .box_accordion h3 a {
-            text-decoration: none;
-            color: black;
-        }
+.box_accordion h3 a {
+    text-decoration: none;
+    color: black;
+}
 
 .box,
 .box_accordion {
     border: 1px solid #AAA;
-    margin: 0px 8px 8px 8px;
+    margin: 2px 8px 8px 8px;
     background-color: white;
 }
 
