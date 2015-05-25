@@ -18,6 +18,10 @@
 
 /* Bootstrap customization */
 
+body {
+    padding-bottom: 70px;
+}
+
 .table > tbody > tr > td {
     vertical-align:middle;
 }
