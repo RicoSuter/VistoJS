@@ -10,20 +10,18 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
         function WebView() {
             _super.apply(this, arguments);
         }
-        WebView.prototype.onLoading = function (completed) {
+        WebView.prototype.onLoading = function () {
             var _this = this;
             this.url = this.parameters.getObservableString("url", "");
             this.subscribe(this.url, function (newUrl) { return _this.navigateToUrl(newUrl); });
             this.registerSubmitEvent();
-            $.ajax({
+            return Q($.ajax({
                 type: "GET",
                 url: this.url()
-            }).done(function (data) {
+            })).then(function (data) {
                 _this.initialHtml = data;
-                completed();
-            }).fail(function () {
+            }).catch(function () {
                 _this.initialHtml = "[URL: Not found]";
-                completed();
             });
         };
         WebView.prototype.onLoaded = function () {
@@ -67,12 +65,12 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             if (settings.url.indexOf("://") === -1)
                 settings.url = this.currentBaseUrl + "/" + settings.url;
             visto.showLoading();
-            $.ajax(settings).done(function (data) {
+            Q($.ajax(settings)).then(function (data) {
                 _this.setHtml(data, _this.getBaseUrl(settings.url));
                 visto.hideLoading();
-            }).fail(function (result, textStatus) {
+            }).catch(function (error) {
                 visto.hideLoading();
-                common.alert("HTTP request failed", textStatus + ": " + result.statusText);
+                common.alert("HTTP request failed", error.toString());
             });
         };
         WebView.prototype.setHtml = function (data, baseUrl) {

@@ -7,7 +7,8 @@ export class LanguageSelectorModel extends visto.ViewModel {
 	initialize() {
 		this.subscribe(this.language, () => {
 			visto.setLanguage(this.language(), this.supportedLanguages, true);
-		});
+        });
+
 		this.subscribe(visto.language, () => {
 			this.language(visto.language());
 		});

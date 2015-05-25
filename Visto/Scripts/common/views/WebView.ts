@@ -6,20 +6,18 @@ export class WebView extends visto.ViewBase {
     initialHtml: string;
     currentBaseUrl: string;
 
-    onLoading(completed: () => void) {
+    onLoading() {
         this.url = this.parameters.getObservableString("url", "");
         this.subscribe(this.url,(newUrl) => this.navigateToUrl(newUrl));
         this.registerSubmitEvent();
-        
-        $.ajax({
+
+        return Q($.ajax({
             type: "GET",
             url: this.url()
-        }).done((data: string) => {
+        })).then((data: string) => {
             this.initialHtml = data;
-            completed();
-        }).fail(() => {
+        }).catch(() => {
             this.initialHtml = "[URL: Not found]";
-            completed();
         });
     }
 
@@ -67,14 +65,12 @@ export class WebView extends visto.ViewBase {
             settings.url = this.currentBaseUrl + "/" + settings.url;
 
         visto.showLoading();
-        $.ajax(settings).done((data: string) => {
+        Q($.ajax(settings)).then((data: string) => {
             this.setHtml(data, this.getBaseUrl(settings.url));
             visto.hideLoading();
-        }).fail((result: any, textStatus: string) => {
+        }).catch((error: any) => {
             visto.hideLoading();
-            common.alert(
-                "HTTP request failed",
-                textStatus + ": " + result.statusText);
+            common.alert("HTTP request failed", error.toString());
         });
     }
 

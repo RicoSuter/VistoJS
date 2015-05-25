@@ -3,10 +3,10 @@ import vm = require("../viewModels/TabControlModel");
 
 export class TabControl extends visto.View<vm.TabControlModel> {
     initialize() {
-        this.viewModel.tabsChanged = () => { this.tabsChanged(); };
+        this.viewModel.tabsChanged = () => { this.onTabsChanged(); };
     }
 
-    tabsChanged() {
+    onTabsChanged() {
         var tabs = this.viewModel.tabs();
         for (var i = 0, item: vm.ITab; (item = tabs[i]) != undefined; i++) { // set view package
             if (item.view !== undefined && item.view.indexOf(":") === -1)

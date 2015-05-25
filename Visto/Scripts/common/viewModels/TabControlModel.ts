@@ -22,7 +22,7 @@ export class TabControlModel extends visto.ViewModel {
         this.selectedTab(this.tabs()[0].view);
 	}
     
-    setTab(tab: ITab) {
+    changeTab(tab: ITab) {
 		this.selectedTab(tab.view.toString());
 	}
 }

@@ -11,6 +11,8 @@ export class ListPickerModel extends visto.ViewModel {
 	optionsText: string; 
 	
     initialize(parameters: visto.Parameters) {
+        // TODO: Reimplement whole control
+
 		this.items = parameters.getObservableArray<any>("items");
 		this.selectedItem = parameters.getObservableObject<any>("selectedItem");
 

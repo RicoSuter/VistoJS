@@ -1,15 +1,26 @@
 import visto = require("libs/visto");
 import ns = require("../../viewModels/dialogs/PromptModel");
 
-export class Prompt extends visto.Dialog<ns.PromptModel>  { 
-	language = visto.language;
+export class Prompt extends visto.Dialog<ns.PromptModel>  {
+    language = visto.language;
 
-	onLoaded() {		
-		this.getElement("#input").keypress(e => {
-			if (e.which === 13) {
-				this.dialog.dialog("close");
-                this.parameters.getObservableString("completed")(this.viewModel.output()); // TODO: Implement setValue
-			}
-		});
-	}
+    initialize() {
+        this.viewModel.onOkClicked = () => { this.close(visto.DialogResult.Ok); };
+        this.viewModel.onCancelClicked = () => { this.close(visto.DialogResult.Cancel); };
+    }
+
+    onLoaded() {
+        var input = this.getElement("#input");
+        input.keypress(e => {
+            if (e.which === 13)
+                this.close(visto.DialogResult.Ok);
+        });
+    }
+
+    onShown() {
+        var input = this.getElement("#input");
+        input.select();
+        input.focus();
+        input.blur();
+    }
 }

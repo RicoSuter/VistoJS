@@ -1,5 +1,21 @@
-﻿<div>
-    <div class="inputlabel" data-bind="text: label"></div>
-	<select class="inputcontent" data-bind="options: items() !== null ? items() : null,
-		value: selectedItem, optionsText: optionsText, enable: enable"></select>
+﻿<div class="modal fade" data-keyboard="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-bind="text: title"></h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-bind="text: label"></label>
+                    <select class="inputcontent" data-bind="options: items() !== null ? items() : null, 
+                            value: selectedItem, optionsText: optionsText, enable: enable"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <!-- TODO: Implement buttons -->
+                <button type="button" class="btn btn-primary">OK</button>
+                <button type="button" class="btn btn-default">Cancel</button>
+            </div>
+        </div>
+    </div>
 </div>

@@ -3,67 +3,49 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      * Shows a confirm dialog box with with various buttons.
      */
     function confirm(title, message, buttons) {
-        return Q.Promise(function (resolve) {
-            var buttonCollection = [];
-            if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
-                buttonCollection.push({
-                    label: "Yes",
-                    click: function (dialog) {
-                        dialog.close();
-                        resolve(2 /* Yes */);
-                    }
-                });
-            }
-            if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
-                buttonCollection.push({
-                    label: "No",
-                    click: function (dialog) {
-                        dialog.close();
-                        resolve(3 /* No */);
-                    }
-                });
-            }
-            if (buttons === 2 /* OkCancel */ || buttons === 3 /* Ok */) {
-                buttonCollection.push({
-                    label: "OK",
-                    click: function (dialog) {
-                        dialog.close();
-                        resolve(0 /* Ok */);
-                    }
-                });
-            }
-            if (buttons === 0 /* YesNoCancel */ || buttons === 2 /* OkCancel */) {
-                buttonCollection.push({
-                    label: "Cancel",
-                    click: function (dialog) {
-                        dialog.close();
-                        resolve(1 /* Cancel */);
-                    }
-                });
-            }
-            visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
-                title: title,
-                message: message,
-                buttons: buttonCollection
-            }, function (view) {
-                view.dialog.on('keydown', function (ev) {
-                    if (ev.keyCode === $.ui.keyCode.ESCAPE && (buttons === 2 /* OkCancel */ || buttons === 0 /* YesNoCancel */)) {
-                        view.close();
-                        resolve(1 /* Cancel */);
-                    }
-                });
+        var buttonCollection = [];
+        if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
+            buttonCollection.push({
+                label: "Yes",
+                click: function (dialog) {
+                    dialog.close(2 /* Yes */);
+                }
             });
+        }
+        if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
+            buttonCollection.push({
+                label: "No",
+                click: function (dialog) {
+                    dialog.close(3 /* No */);
+                }
+            });
+        }
+        if (buttons === 2 /* OkCancel */ || buttons === 3 /* Ok */) {
+            buttonCollection.push({
+                label: "OK",
+                click: function (dialog) {
+                    dialog.close(0 /* Ok */);
+                }
+            });
+        }
+        if (buttons === 0 /* YesNoCancel */ || buttons === 2 /* OkCancel */) {
+            buttonCollection.push({
+                label: "Cancel",
+                click: function (dialog) {
+                    dialog.close(1 /* Cancel */);
+                }
+            });
+        }
+        return visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
+            title: title,
+            message: message,
+            buttons: buttonCollection
+        }).then(function (dialog) {
+            return dialog.result;
         });
     }
     exports.confirm = confirm;
     ;
-    (function (DialogResult) {
-        DialogResult[DialogResult["Ok"] = 0] = "Ok";
-        DialogResult[DialogResult["Cancel"] = 1] = "Cancel";
-        DialogResult[DialogResult["Yes"] = 2] = "Yes";
-        DialogResult[DialogResult["No"] = 3] = "No";
-    })(exports.DialogResult || (exports.DialogResult = {}));
-    var DialogResult = exports.DialogResult;
     (function (Buttons) {
         Buttons[Buttons["YesNoCancel"] = 0] = "YesNoCancel";
         Buttons[Buttons["YesNo"] = 1] = "YesNo";
@@ -96,7 +78,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
                         progress.update();
                     },
                     close: function () {
-                        view.dialog.dialog("close");
+                        view.close();
                     },
                     update: function () {
                         if (progress.maximum === null)
@@ -121,43 +103,19 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
     exports.alert = alert;
     ;
     /**
-     * Shows an prompt dialog box to enter a string value.
+     * Shows an prompt dialog box to enter a string value. The promise value will be null if the user pressed the cancel button.
      */
     function prompt(title, message, defaultText) {
-        return Q.Promise(function (resolve, reject) {
-            var output = ko.observable(defaultText);
-            visto.showDialog(package, "dialogs/Prompt", {
-                message: message,
-                output: output,
-                title: title,
-                buttons: [
-                    {
-                        label: "OK",
-                        click: function (dialog) {
-                            dialog.close();
-                            resolve(output());
-                        }
-                    },
-                    {
-                        label: "Cancel",
-                        click: function (dialog) {
-                            dialog.close();
-                            reject(null);
-                        }
-                    }
-                ]
-            }, function (view) {
-                view.dialog.on('keyup', function (ev) {
-                    if (ev.keyCode === $.ui.keyCode.ESCAPE) {
-                        view.close();
-                        reject(null);
-                    }
-                    else if (ev.keyCode === $.ui.keyCode.ENTER) {
-                        view.close();
-                        resolve(output());
-                    }
-                });
-            });
+        var output = ko.observable(defaultText);
+        return visto.showDialog(package, "dialogs/Prompt", {
+            message: message,
+            output: output,
+            title: title
+        }).then(function (dialog) {
+            if (dialog.result === 0 /* Ok */)
+                return output();
+            else
+                return null;
         });
     }
     exports.prompt = prompt;
@@ -166,42 +124,17 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      * Shows a dialog with a list picker.
      */
     function listPicker(header, label, items, selectedItem, optionsText) {
-        return Q.Promise(function (resolve, reject) {
-            var observableSelectedItem = ko.observable(selectedItem);
-            visto.showDialog(package, "dialogs/ListPicker", {
-                title: header,
-                label: label,
-                selectedItem: selectedItem,
-                items: items,
-                optionsText: optionsText,
-                buttons: [
-                    {
-                        label: "OK",
-                        click: function (dialog) {
-                            dialog.close();
-                            resolve(observableSelectedItem());
-                        }
-                    },
-                    {
-                        label: "Cancel",
-                        click: function (dialog) {
-                            dialog.close();
-                            reject(null);
-                        }
-                    }
-                ]
-            }, function (view) {
-                view.dialog.on('keyup', function (ev) {
-                    if (ev.keyCode === $.ui.keyCode.ESCAPE) {
-                        view.dialog.dialog("close");
-                        reject(null);
-                    }
-                    else if (ev.keyCode === $.ui.keyCode.ENTER) {
-                        view.dialog.dialog("close");
-                        resolve(observableSelectedItem());
-                    }
-                });
-            });
+        return visto.showDialog(package, "dialogs/ListPicker", {
+            title: header,
+            label: label,
+            items: items,
+            selectedItem: selectedItem,
+            optionsText: optionsText
+        }).then(function (dialog) {
+            if (dialog.result === 0 /* Ok */)
+                return dialog.viewModel.selectedItem();
+            else
+                return null;
         });
     }
     exports.listPicker = listPicker;

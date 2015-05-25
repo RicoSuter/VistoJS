@@ -13,10 +13,10 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         TabControl.prototype.initialize = function () {
             var _this = this;
             this.viewModel.tabsChanged = function () {
-                _this.tabsChanged();
+                _this.onTabsChanged();
             };
         };
-        TabControl.prototype.tabsChanged = function () {
+        TabControl.prototype.onTabsChanged = function () {
             var tabs = this.viewModel.tabs();
             for (var i = 0, item; (item = tabs[i]) != undefined; i++) {
                 if (item.view !== undefined && item.view.indexOf(":") === -1)

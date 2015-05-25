@@ -11,14 +11,28 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             _super.apply(this, arguments);
             this.language = visto.language;
         }
+        Prompt.prototype.initialize = function () {
+            var _this = this;
+            this.viewModel.onOkClicked = function () {
+                _this.close(0 /* Ok */);
+            };
+            this.viewModel.onCancelClicked = function () {
+                _this.close(1 /* Cancel */);
+            };
+        };
         Prompt.prototype.onLoaded = function () {
             var _this = this;
-            this.getElement("#input").keypress(function (e) {
-                if (e.which === 13) {
-                    _this.dialog.dialog("close");
-                    _this.parameters.getObservableString("completed")(_this.viewModel.output()); // TODO: Implement setValue
-                }
+            var input = this.getElement("#input");
+            input.keypress(function (e) {
+                if (e.which === 13)
+                    _this.close(0 /* Ok */);
             });
+        };
+        Prompt.prototype.onShown = function () {
+            var input = this.getElement("#input");
+            input.select();
+            input.focus();
+            input.blur();
         };
         return Prompt;
     })(visto.Dialog);

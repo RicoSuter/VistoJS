@@ -5,7 +5,6 @@
 /// <reference path="q.d.ts" />
 /// <reference path="knockout.d.ts" />
 /// <reference path="jquery.d.ts" />
-/// <reference path="jqueryui.d.ts" />
 /// <reference path="visto.extensions.d.ts" />
 /// <reference path="visto.modules.d.ts" />
 
@@ -347,7 +346,7 @@ function restorePages(frame: JQuery, fullViewName: string, parameters?: {}) {
                         var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
                         navigateTo(frame, fullViewName, { restoreQuery: restoreQuery }).then((view: ViewBase) => {
                             navigateToNextSegment(view);
-                        });
+                        }).done();
                     } else
                         finishPageRestore(frame, view, resolve);
                 } else
@@ -392,6 +391,7 @@ export function navigateTo(a: any, b: any, c?: any): Q.Promise<PageBase> {
 function navigateToCore(frame: JQuery, fullViewName: string, parameters: {}): Q.Promise<PageBase> {
     if (isNavigating)
         throw "Already navigating";
+
     isNavigating = true;
 
     // append new invisible page to DOM
@@ -407,9 +407,9 @@ function navigateToCore(frame: JQuery, fullViewName: string, parameters: {}): Q.
         return currentPage.view.onNavigatingFrom("forward")
             .then<PageBase>((navigate) => tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate))
             .then((page) => {
-                hideLoading();
-                return page;
-            });
+            hideLoading();
+            return page;
+        });
     } else {
         return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then((page) => {
             hideLoading();
@@ -505,7 +505,7 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
                     else {
                         currentPage.view.onNavigatingFrom("back").then((navigate: boolean) => {
                             tryNavigateBack(navigate, currentPage, pageStack);
-                        });
+                        }).done();
                     }
                 }
             }
@@ -520,84 +520,83 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
 /**
  * Shows a modal dialog. The provided promise is resolved when the dialog has been closed. 
  */
-export function showDialog(fullViewName: string, parameters: IDialogOptions, onLoaded?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): Q.Promise<void>;
-export function showDialog(modulePackage: IModule, viewName: string, parameters: IDialogOptions, onLoaded?: (view: Dialog<ViewModel>, viewModel: ViewModel) => void): Q.Promise<void>;
-export function showDialog(a: any, b: any, c: any, d?: any): Q.Promise<void> {
+export function showDialog(fullViewName: string, parameters?: { [key: string]: any }, onLoaded?: (view: DialogBase) => void): Q.Promise<DialogBase>;
+export function showDialog(modulePackage: IModule, viewName: string, parameters?: { [key: string]: any }, onLoaded?: (view: DialogBase) => void): Q.Promise<DialogBase>;
+export function showDialog(a: any, b: any, c?: any, d?: any): Q.Promise<DialogBase> {
     if (typeof a === "string")
         return showDialogCore(a, b, c);
     else
         return showDialogCore(getViewName(a, b), c, d);
 }
 
-function showDialogCore(fullViewName: string, parameters: IDialogOptions, onLoaded?: (view: Dialog<ViewModel>) => void) {
-    return Q.Promise<any>((resolve, reject) => {
-        var dialog = $("<div />");
-        $('body').append(dialog);
-        (<any>parameters)[isDialogParameter] = true;
+function showDialogCore(fullViewName: string, parameters: { [key: string]: any }, onLoaded?: (view: DialogBase) => void) {
+    return Q.Promise<DialogBase>((resolve, reject) => {
+        var container = $("<div style=\"display:none\" />");
+        $("body").append(container);
+
+        if (parameters === undefined)
+            parameters = {};
+        parameters[isDialogParameter] = true;
 
         showLoading();
-        createView(dialog, fullViewName, <any>parameters).then((view: Dialog<ViewModel>) => {
+        createView(container, fullViewName, <any>parameters).then((view: DialogBase) => {
             hideLoading();
-
             openedDialogs++;
-            showNativeDialog(dialog, view, parameters, () => { resolve(null); });
 
-            view.dialog = dialog;
+            showNativeDialog(container, view, parameters,
+                () => { view.onShown(); },
+                () => {
+                    openedDialogs--;
+
+                    view.onClosed();
+                    view.__destroyView();
+                    container.remove();
+
+                    resolve(view);
+                });
+            container.removeAttr("style");
+
             if ($.isFunction(onLoaded))
                 onLoaded(view);
         }).fail(reject);
     });
 }
 
-export function showNativeDialog(dialog: JQuery, view: Dialog<ViewModel>, parameters: IDialogOptions, onClosed?: () => void) {
-    // Fix: Remove focus from element of the underlying on page (used in IE to avoid click events on enter press)
-    var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-    if (focusable != null) {
-        focusable.focus();
-        focusable.blur();
-    }
+export enum DialogResult {
+    Ok,
+    Cancel,
+    Yes,
+    No,
+}
 
-    (<any>parameters).closeOnEscape = false;
-    (<any>parameters).resizable = parameters.isResizable !== undefined && parameters.isResizable;
-    (<any>parameters).draggable = parameters.isDraggable === undefined || parameters.isDraggable;
-    (<any>parameters).dialogClass = "box" + (parameters.showCloseButton !== undefined && parameters.showCloseButton ? "" : " no-close");
+export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, parameters: { [key: string]: any }, onShown: () => void, onClosed: () => void) {
+    var dialog = <any>$(container.children()[0]);
 
-    (<any>parameters).modal = true;
-    (<any>parameters).zIndex = 99999;
-
-    var buttons: { [key: string]: any } = { };
-    $.each(parameters.buttons,(index, item) => {
-        buttons[item.label] = () => {
-            item.click(view);
-        };
-    });
-    (<any>parameters).buttons = buttons;
-
-    dialog.dialog(parameters);
-    dialog.bind('dialogclose',() => {
-        view.__destroyView();
-        dialog.dialog("destroy");
-        openedDialogs--;
-
-        if ($.isFunction(onClosed))
+    if (dialog.modal !== undefined) {
+        // Bootstrap dialog
+        dialog.modal({});
+        dialog.on("shown.bs.modal", () => { onShown(); });
+        dialog.on("hidden.bs.modal", () => { onClosed(); });
+    } else {
+        // JQuery UI dialog: 
+        dialog.bind('dialogclose',() => {
+            dialog.dialog("destroy");
             onClosed();
-
-        dialog.remove();
-    });
+        });
+        onShown();
+    }
 }
 
-export interface IDialogOptions {
-    title: string;
+export function closeNativeDialog(container: JQuery) {
+    var dialog = <any>$(container.children()[0]);
 
-    isResizable?: boolean;
-    isDraggable?: boolean;
-    showCloseButton?: boolean;
-    buttons?: IDialogButton[];
-}
-
-export interface IDialogButton {
-    label: string;
-    click: (dialog: Dialog<ViewModel>) => void;
+    if (dialog.modal !== undefined) {
+        // Bootstrap dialog
+        dialog.modal("hide");
+    } else {
+        // JQuery UI dialog
+        dialog.dialog("close");
+    }
 }
 
 // ----------------------------
@@ -642,7 +641,7 @@ export function getCurrentPage(frame?: JQuery): PageBase {
     var description = getCurrentPageDescription(frame);
     if (description !== null && description !== undefined)
         return description.view;
-    return null; 
+    return null;
 }
 
 function getCurrentPageDescription(frame: JQuery): IPage {
@@ -718,11 +717,12 @@ var loadingElement: JQuery = null;
 
 // Creates the loading screen element
 export function createLoadingElement() {
-    var element = $(document.createElement("div"));
-    element.addClass("ui-widget-overlay ui-front");
-    element.html("<div style='text-align: center; color: white'>" +
-        "<img src='Content/Images/loading.gif' style='border: 0; margin-top: 150px' /></div>");
-    return element;
+    return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" /></div>");
+    //var element = $(document.createElement("div"));
+    //element.addClass("ui-widget-overlay ui-front");
+    //element.html("<div style='text-align: center; color: white'>" +
+    //    "<img src='Content/Images/loading.gif' style='border: 0; margin-top: 150px' /></div>");
+    //return element;
 };
 
 // Shows the loading screen
@@ -743,14 +743,12 @@ export function showLoading(delayed?: boolean) {
     }
 
     loadingCount++;
-    log("show: " + loadingCount);
 };
 
 function appendLoadingElement() {
     if (loadingElement === null) {
         loadingElement = createLoadingElement();
         $("body").append(loadingElement);
-        log("appended");
     }
 }
 
@@ -758,14 +756,11 @@ function appendLoadingElement() {
 export function hideLoading() {
     loadingCount--;
     if (loadingCount === 0) {
-        log("hidden1");
         if (loadingElement !== null) {
             loadingElement.remove();
             loadingElement = null;
-            log("hidden2");
         }
     }
-    log("hide: " + loadingCount);
 };
 
 // ----------------------------
@@ -777,7 +772,7 @@ export class ViewModel {
     defaultCommands = defaultCommands;
 
     private view: ViewBase;
-    
+
     constructor(view: ViewBase, parameters: Parameters) {
         this.view = view;
         this.parameters = parameters;
@@ -908,8 +903,8 @@ export class ViewBase {
      * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
      * The callback() must be called when the work has been performed.
      */
-    onLoading(callback: () => void) {
-        callback();
+    onLoading(): Q.Promise<void> {
+        return Q<void>(null);
     }
 
     /**
@@ -945,7 +940,7 @@ export class ViewBase {
             (<View<ViewModel>>this).viewModel.destroy();
             this.destroy();
 
-            $.each(this.disposables,(index: number, item: IDisposable) => {
+            $.each(this.disposables, (index: number, item: IDisposable) => {
                 item.dispose();
             });
 
@@ -994,7 +989,7 @@ export class Page<TViewModel extends ViewModel> extends View<TViewModel> {
      * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
      */
     onNavigatingFrom(type: string): Q.Promise<boolean> {
-        return Q.Promise<boolean>(resolve => resolve(true)); 
+        return Q(true);
     }
 }
 
@@ -1007,11 +1002,24 @@ export class PageBase extends Page<ViewModel> {
 // ----------------------------
 
 export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
-    dialog: JQuery;
+    result: DialogResult;
 
-    close() {
-        this.dialog.dialog("close");
+    close(result?: DialogResult) {
+        this.result = result; 
+        closeNativeDialog(this.element);
     }
+
+    onShown() {
+
+    }
+
+    onClosed() {
+        
+    }
+}
+
+export class DialogBase extends Dialog<ViewModel> {
+
 }
 
 // ----------------------------
@@ -1029,19 +1037,19 @@ export class Parameters {
     }
 
     getObservableString(key: string, defaultValue?: string): KnockoutObservable<string> {
-        return this.getObservableWithConversion(key, (value: any) => value.toString(), defaultValue);
+        return this.getObservableWithConversion(key,(value: any) => value.toString(), defaultValue);
     }
 
     getObservableNumber(key: string, defaultValue?: number): KnockoutObservable<number> {
-        return this.getObservableWithConversion(key, (value: any) => Number(value), defaultValue);
+        return this.getObservableWithConversion(key,(value: any) => Number(value), defaultValue);
     }
 
     getObservableBoolean(key: string, defaultValue?: boolean): KnockoutObservable<boolean> {
-        return this.getObservableWithConversion(key, (value: any) => Boolean(value), defaultValue);
+        return this.getObservableWithConversion(key,(value: any) => Boolean(value), defaultValue);
     }
 
     getObservableObject<T>(key: string, defaultValue?: T) {
-        return this.getObservableWithConversion(key, (value: any) => value, defaultValue);
+        return this.getObservableWithConversion(key,(value: any) => value, defaultValue);
     }
 
     getString(key: string, defaultValue?: string) {
@@ -1060,8 +1068,9 @@ export class Parameters {
         return this.getObservableObject(key, defaultValue)();
     }
 
-    hasValue(key: string) {
-        return this.originalParameters[key] !== undefined;
+    setValue<T>(key: string, value: T) {
+        var observable = this.getObservableObject<T>(key, value);
+        observable(value);
     }
 
     getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
@@ -1075,7 +1084,7 @@ export class Parameters {
             else if (defaultValue !== undefined)
                 this.parameters[key] = ko.observableArray(defaultValue);
             else
-                this.parameters[key] = ko.observableArray(null);
+                throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
         }
         return this.parameters[key];
     }
@@ -1099,7 +1108,7 @@ export class Parameters {
             else if (defaultValue !== undefined)
                 this.parameters[key] = ko.observable(defaultValue);
             else
-                this.parameters[key] = ko.observable(null);
+                throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
         }
         return this.parameters[key];
     }
@@ -1136,7 +1145,7 @@ export class Parameters {
 export function createView(element: JQuery, fullViewName: string, parameters: { [key: string]: any }) {
     return Q.Promise<ViewBase>((resolve) => {
         var factory = new ViewFactory();
-        factory.create(element, fullViewName, parameters, (view) => {
+        factory.create(element, fullViewName, parameters,(view) => {
             resolve(view);
         });
     });
@@ -1312,9 +1321,9 @@ class ViewFactory {
         if (hasView)
             view = <ViewBase>(new this.viewModule[this.viewLocator.className]());
         else {
-            if (this.parameters.getBoolean(isPageParameter))
+            if (this.parameters.getBoolean(isPageParameter, false))
                 view = new Page();
-            else if (this.parameters.getBoolean(isDialogParameter))
+            else if (this.parameters.getBoolean(isDialogParameter, false))
                 view = new Dialog();
             else
                 view = new View();
@@ -1423,11 +1432,11 @@ class ViewContext {
         if (this.loadedViewCount === this.viewCount) {
             this.loadedViewCount = 0;
             $.each(this.factories,(index: number, context: ViewFactory) => {
-                context.view.onLoading(() => {
+                context.view.onLoading().then(() => {
                     this.loadedViewCount++;
                     if (this.loadedViewCount === this.viewCount) {
                         this.loadedViewCount = 0;
-                        $.each(this.factories,(index: number, context: ViewFactory) => {
+                        $.each(this.factories, (index: number, context: ViewFactory) => {
                             context.viewModel.onLoading(() => {
                                 this.loadedViewCount++;
                                 if (this.loadedViewCount === this.viewCount) {
@@ -1449,7 +1458,7 @@ class ViewContext {
                             });
                         });
                     }
-                });
+                }).done();
             });
         }
     }

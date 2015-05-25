@@ -11,6 +11,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             _super.apply(this, arguments);
         }
         ListPickerModel.prototype.initialize = function (parameters) {
+            // TODO: Reimplement whole control
             this.items = parameters.getObservableArray("items");
             this.selectedItem = parameters.getObservableObject("selectedItem");
             this.enable = parameters.getObservableBoolean("enable", true);

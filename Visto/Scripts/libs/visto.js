@@ -11,7 +11,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /// <reference path="q.d.ts" />
     /// <reference path="knockout.d.ts" />
     /// <reference path="jquery.d.ts" />
-    /// <reference path="jqueryui.d.ts" />
     /// <reference path="visto.extensions.d.ts" />
     /// <reference path="visto.modules.d.ts" />
     exports.__hashchange = __hashchange;
@@ -326,7 +325,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                             var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
                             navigateTo(frame, fullViewName, { restoreQuery: restoreQuery }).then(function (view) {
                                 navigateToNextSegment(view);
-                            });
+                            }).done();
                         }
                         else
                             finishPageRestore(frame, view, resolve);
@@ -461,7 +460,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         else {
                             currentPage.view.onNavigatingFrom("back").then(function (navigate) {
                                 tryNavigateBack(navigate, currentPage, pageStack);
-                            });
+                            }).done();
                         }
                     }
                 }
@@ -477,53 +476,71 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.showDialog = showDialog;
     function showDialogCore(fullViewName, parameters, onLoaded) {
         return Q.Promise(function (resolve, reject) {
-            var dialog = $("<div />");
-            $('body').append(dialog);
+            var container = $("<div style=\"display:none\" />");
+            $("body").append(container);
+            if (parameters === undefined)
+                parameters = {};
             parameters[isDialogParameter] = true;
             showLoading();
-            createView(dialog, fullViewName, parameters).then(function (view) {
+            createView(container, fullViewName, parameters).then(function (view) {
                 hideLoading();
                 openedDialogs++;
-                showNativeDialog(dialog, view, parameters, function () {
-                    resolve(null);
+                showNativeDialog(container, view, parameters, function () {
+                    view.onShown();
+                }, function () {
+                    openedDialogs--;
+                    view.onClosed();
+                    view.__destroyView();
+                    container.remove();
+                    resolve(view);
                 });
-                view.dialog = dialog;
+                container.removeAttr("style");
                 if ($.isFunction(onLoaded))
                     onLoaded(view);
             }).fail(reject);
         });
     }
-    function showNativeDialog(dialog, view, parameters, onClosed) {
-        // Fix: Remove focus from element of the underlying on page (used in IE to avoid click events on enter press)
-        var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-        if (focusable != null) {
-            focusable.focus();
-            focusable.blur();
-        }
-        parameters.closeOnEscape = false;
-        parameters.resizable = parameters.isResizable !== undefined && parameters.isResizable;
-        parameters.draggable = parameters.isDraggable === undefined || parameters.isDraggable;
-        parameters.dialogClass = "box" + (parameters.showCloseButton !== undefined && parameters.showCloseButton ? "" : " no-close");
-        parameters.modal = true;
-        parameters.zIndex = 99999;
-        var buttons = {};
-        $.each(parameters.buttons, function (index, item) {
-            buttons[item.label] = function () {
-                item.click(view);
-            };
-        });
-        parameters.buttons = buttons;
-        dialog.dialog(parameters);
-        dialog.bind('dialogclose', function () {
-            view.__destroyView();
-            dialog.dialog("destroy");
-            openedDialogs--;
-            if ($.isFunction(onClosed))
+    (function (DialogResult) {
+        DialogResult[DialogResult["Ok"] = 0] = "Ok";
+        DialogResult[DialogResult["Cancel"] = 1] = "Cancel";
+        DialogResult[DialogResult["Yes"] = 2] = "Yes";
+        DialogResult[DialogResult["No"] = 3] = "No";
+    })(exports.DialogResult || (exports.DialogResult = {}));
+    var DialogResult = exports.DialogResult;
+    function showNativeDialog(container, view, parameters, onShown, onClosed) {
+        var dialog = $(container.children()[0]);
+        if (dialog.modal !== undefined) {
+            // Bootstrap dialog
+            dialog.modal({});
+            dialog.on("shown.bs.modal", function () {
+                onShown();
+            });
+            dialog.on("hidden.bs.modal", function () {
                 onClosed();
-            dialog.remove();
-        });
+            });
+        }
+        else {
+            // JQuery UI dialog: 
+            dialog.bind('dialogclose', function () {
+                dialog.dialog("destroy");
+                onClosed();
+            });
+            onShown();
+        }
     }
     exports.showNativeDialog = showNativeDialog;
+    function closeNativeDialog(container) {
+        var dialog = $(container.children()[0]);
+        if (dialog.modal !== undefined) {
+            // Bootstrap dialog
+            dialog.modal("hide");
+        }
+        else {
+            // JQuery UI dialog
+            dialog.dialog("close");
+        }
+    }
+    exports.closeNativeDialog = closeNativeDialog;
     // ----------------------------
     // KnockoutJS extensions
     // ----------------------------
@@ -622,10 +639,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var loadingElement = null;
     // Creates the loading screen element
     function createLoadingElement() {
-        var element = $(document.createElement("div"));
-        element.addClass("ui-widget-overlay ui-front");
-        element.html("<div style='text-align: center; color: white'>" + "<img src='Content/Images/loading.gif' style='border: 0; margin-top: 150px' /></div>");
-        return element;
+        return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" /></div>");
+        //var element = $(document.createElement("div"));
+        //element.addClass("ui-widget-overlay ui-front");
+        //element.html("<div style='text-align: center; color: white'>" +
+        //    "<img src='Content/Images/loading.gif' style='border: 0; margin-top: 150px' /></div>");
+        //return element;
     }
     exports.createLoadingElement = createLoadingElement;
     ;
@@ -646,7 +665,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 appendLoadingElement();
         }
         loadingCount++;
-        log("show: " + loadingCount);
     }
     exports.showLoading = showLoading;
     ;
@@ -654,21 +672,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         if (loadingElement === null) {
             loadingElement = createLoadingElement();
             $("body").append(loadingElement);
-            log("appended");
         }
     }
     // Hides the loading screen
     function hideLoading() {
         loadingCount--;
         if (loadingCount === 0) {
-            log("hidden1");
             if (loadingElement !== null) {
                 loadingElement.remove();
                 loadingElement = null;
-                log("hidden2");
             }
         }
-        log("hide: " + loadingCount);
     }
     exports.hideLoading = hideLoading;
     ;
@@ -786,8 +800,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * [Virtual] Called before the view is added to the DOM with the ability to perform async work.
          * The callback() must be called when the work has been performed.
          */
-        ViewBase.prototype.onLoading = function (callback) {
-            callback();
+        ViewBase.prototype.onLoading = function () {
+            return Q(null);
         };
         /**
          * [Virtual] Called when the view has been added to the DOM.
@@ -864,7 +878,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
          */
         Page.prototype.onNavigatingFrom = function (type) {
-            return Q.Promise(function (resolve) { return resolve(true); });
+            return Q(true);
         };
         return Page;
     })(View);
@@ -885,12 +899,25 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         function Dialog() {
             _super.apply(this, arguments);
         }
-        Dialog.prototype.close = function () {
-            this.dialog.dialog("close");
+        Dialog.prototype.close = function (result) {
+            this.result = result;
+            closeNativeDialog(this.element);
+        };
+        Dialog.prototype.onShown = function () {
+        };
+        Dialog.prototype.onClosed = function () {
         };
         return Dialog;
     })(View);
     exports.Dialog = Dialog;
+    var DialogBase = (function (_super) {
+        __extends(DialogBase, _super);
+        function DialogBase() {
+            _super.apply(this, arguments);
+        }
+        return DialogBase;
+    })(Dialog);
+    exports.DialogBase = DialogBase;
     // ----------------------------
     // Parameters
     // ----------------------------
@@ -926,8 +953,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         Parameters.prototype.getObject = function (key, defaultValue) {
             return this.getObservableObject(key, defaultValue)();
         };
-        Parameters.prototype.hasValue = function (key) {
-            return this.originalParameters[key] !== undefined;
+        Parameters.prototype.setValue = function (key, value) {
+            var observable = this.getObservableObject(key, value);
+            observable(value);
         };
         Parameters.prototype.getObservableArray = function (key, defaultValue) {
             if (this.parameters[key] === undefined) {
@@ -940,7 +968,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else if (defaultValue !== undefined)
                     this.parameters[key] = ko.observableArray(defaultValue);
                 else
-                    this.parameters[key] = ko.observableArray(null);
+                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
             }
             return this.parameters[key];
         };
@@ -961,7 +989,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else if (defaultValue !== undefined)
                     this.parameters[key] = ko.observable(defaultValue);
                 else
-                    this.parameters[key] = ko.observable(null);
+                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
             }
             return this.parameters[key];
         };
@@ -1134,9 +1162,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (hasView)
                 view = (new this.viewModule[this.viewLocator.className]());
             else {
-                if (this.parameters.getBoolean(isPageParameter))
+                if (this.parameters.getBoolean(isPageParameter, false))
                     view = new Page();
-                else if (this.parameters.getBoolean(isDialogParameter))
+                else if (this.parameters.getBoolean(isDialogParameter, false))
                     view = new Dialog();
                 else
                     view = new View();
@@ -1221,7 +1249,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (this.loadedViewCount === this.viewCount) {
                 this.loadedViewCount = 0;
                 $.each(this.factories, function (index, context) {
-                    context.view.onLoading(function () {
+                    context.view.onLoading().then(function () {
                         _this.loadedViewCount++;
                         if (_this.loadedViewCount === _this.viewCount) {
                             _this.loadedViewCount = 0;
@@ -1244,7 +1272,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                                 });
                             });
                         }
-                    });
+                    }).done();
                 });
             }
         };

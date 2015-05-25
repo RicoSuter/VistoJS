@@ -1,4 +1,20 @@
-<div>
-	<div data-bind="text: message" style="margin-top: 4px"></div>
-	<input data-bind="value: output, valueUpdate: 'afterkeydown'" style="width: 98%; margin-top: 8px" id="vId_input" /><br />
+<div class="modal fade" data-keyboard="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" data-bind="text: title"></h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-bind="text: message"></label>
+                    <input data-bind="value: output, valueUpdate: 'afterkeydown'" id="vId_input" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-bind="click: onOkClicked" class="btn btn-primary">OK</button>
+                <button type="button" data-bind="click: onCancelClicked" class="btn btn-default">Cancel</button>
+            </div>
+        </div>
+    </div>
 </div>

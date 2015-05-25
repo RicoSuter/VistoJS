@@ -1,18 +1,15 @@
-﻿<div>
-    <div class="page_menu">
-        <ul class="menu">
-            <li data-bind="visible: showBackButton, click: defaultCommands.navigateBack"><a href="#" data-translate="labelNavigateBack"></a></li>
+﻿<div role="tabpanel">
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" role="tablist">
+        <!-- ko foreach: tabs -->
+        <li role="presentation" data-bind="css: { active: $parent.selectedTab() == $data.view }, click: $parent.changeTab.bind($parent, $data)">
+            <a role="tab" data-toggle="tab" href="#" data-bind="text: $data.title"></a>
+        </li>
+        <!-- /ko -->
+    </ul>
 
-            <!-- ko foreach: tabs -->
-            <li class="tab" data-bind="css: { active: $parent.selectedTab() == $data.view }, click: $parent.setTab.bind($parent, $data)"><a href="#" data-bind="text: $data.title"></a></li>
-            <!-- /ko -->
-        </ul>
-    </div>
-    <div class="page_content">
-        <div class="box" data-bind="foreach: tabs">
-            <!-- ko if: $data.view != undefined -->
-            <div class="box_content" data-bind="visible: $parent.selectedTab() == $data.view, view: { name: $data.view }"></div>
-            <!-- /ko -->
-        </div>
+    <!-- Content -->
+    <div class="tab-content" data-bind="foreach: tabs">
+        <div class="tab-pane" data-bind="css: { active: $parent.selectedTab() == $data.view }, view: { name: $data.view }"></div>
     </div>
 </div>

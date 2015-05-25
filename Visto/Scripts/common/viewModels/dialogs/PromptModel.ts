@@ -1,12 +1,16 @@
 import visto = require("libs/visto");
-import ns = require("../../views/dialogs/Prompt");
 
 export class PromptModel extends visto.ViewModel { 
-    message: KnockoutObservable<string>;
+    title: string;
+    message: string;
     output: KnockoutObservable<string>;
 
+    onOkClicked: () => void; 
+    onCancelClicked: () => void; 
+
 	initialize(parameters: visto.Parameters) {
-        this.message = parameters.getObservableString("message");
+        this.title = parameters.getString("title");
+        this.message = parameters.getString("message");
         this.output = parameters.getObservableString("output", "");
-	}
+    }
 }

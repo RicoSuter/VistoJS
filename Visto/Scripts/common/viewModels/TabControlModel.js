@@ -18,7 +18,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.subscribe(this.tabs, this.tabsChanged);
             this.selectedTab(this.tabs()[0].view);
         };
-        TabControlModel.prototype.setTab = function (tab) {
+        TabControlModel.prototype.changeTab = function (tab) {
             this.selectedTab(tab.view.toString());
         };
         return TabControlModel;

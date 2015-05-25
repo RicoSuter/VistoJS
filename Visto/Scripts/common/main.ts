@@ -1,72 +1,60 @@
 import visto = require("libs/visto");
 import package = require("module");
+import listPickerModel = require("viewModels/dialogs/ListPickerModel"); 
 
 /**
  * Shows a confirm dialog box with with various buttons.
  */
 export function confirm(title: string, message: string, buttons: Buttons) {
-    return Q.Promise<DialogResult>((resolve) => {
-        var buttonCollection: visto.IDialogButton[] = [];
-        if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
-            buttonCollection.push({
-                label: "Yes",
-                click: dialog => {
-                    dialog.close();
-                    resolve(DialogResult.Yes);
-                }
-            });
-        }
-
-        if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
-            buttonCollection.push({
-                label: "No",
-                click: dialog => {
-                    dialog.close();
-                    resolve(DialogResult.No);
-                }
-            });
-        }
-
-        if (buttons === Buttons.OkCancel || buttons === Buttons.Ok) {
-            buttonCollection.push({
-                label: "OK",
-                click: dialog => {
-                    dialog.close();
-                    resolve(DialogResult.Ok);
-                }
-            });
-        }
-
-        if (buttons === Buttons.YesNoCancel || buttons === Buttons.OkCancel) {
-            buttonCollection.push({
-                label: "Cancel",
-                click: dialog => {
-                    dialog.close();
-                    resolve(DialogResult.Cancel);
-                }
-            });
-        }
-
-        visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
-            title: title,
-            message: message,
-            buttons: buttonCollection
-        }, view => {
-            view.dialog.on('keydown', ev => {
-                if (ev.keyCode === $.ui.keyCode.ESCAPE && (buttons === Buttons.OkCancel || buttons === Buttons.YesNoCancel)) {
-                    view.close();
-                    resolve(DialogResult.Cancel);
-                }
-            });
+    var buttonCollection: IDialogButton[] = [];
+    if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
+        buttonCollection.push({
+            label: "Yes",
+            click: dialog => {
+                dialog.close(visto.DialogResult.Yes);
+            }
         });
+    }
+
+    if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
+        buttonCollection.push({
+            label: "No",
+            click: dialog => {
+                dialog.close(visto.DialogResult.No);
+            }
+        });
+    }
+
+    if (buttons === Buttons.OkCancel || buttons === Buttons.Ok) {
+        buttonCollection.push({
+            label: "OK",
+            click: dialog => {
+                dialog.close(visto.DialogResult.Ok);
+            }
+        });
+    }
+
+    if (buttons === Buttons.YesNoCancel || buttons === Buttons.OkCancel) {
+        buttonCollection.push({
+            label: "Cancel",
+            click: dialog => {
+                dialog.close(visto.DialogResult.Cancel);
+            }
+        });
+    }
+
+    return visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
+        title: title,
+        message: message,
+        buttons: buttonCollection
+    }).then(dialog => {
+        return dialog.result;
     });
 };
 
-export enum DialogResult {
-    Ok, 
-    Cancel, 
-    Yes, 
-    No, 
+export interface IDialogButton {
+    label: string;
+    click: (dialog: visto.DialogBase) => void;
 }
 
 export enum Buttons {
@@ -101,7 +89,7 @@ export function progressDialog(title: string) {
                     progress.update();
                 },
                 close: () => {
-                    view.dialog.dialog("close");
+                    view.close();
                 },
                 update: () => {
                     if (progress.maximum === null)
@@ -132,42 +120,19 @@ export function alert(title: string, message: string) {
 };
 
 /**
- * Shows an prompt dialog box to enter a string value. 
+ * Shows an prompt dialog box to enter a string value. The promise value will be null if the user pressed the cancel button. 
  */
 export function prompt(title: string, message: string, defaultText: string) {
-    return Q.Promise<string>((resolve, reject) => {
-        var output = ko.observable(defaultText);
-        visto.showDialog(package, "dialogs/Prompt", {
-            message: message,
-            output: output,
-            title: title,
-            buttons: [
-                {
-                    label: "OK",
-                    click: dialog => {
-                        dialog.close();
-                        resolve(output());
-                    }
-                },
-                {
-                    label: "Cancel",
-                    click: dialog => {
-                        dialog.close();
-                        reject(null);
-                    }
-                }
-            ]
-        }, view => {
-            view.dialog.on('keyup', ev => {
-                if (ev.keyCode === $.ui.keyCode.ESCAPE) {
-                    view.close();
-                    reject(null);
-                } else if (ev.keyCode === $.ui.keyCode.ENTER) {
-                    view.close();
-                    resolve(output());
-                }
-            });
-        });
+    var output = ko.observable(defaultText);
+    return visto.showDialog(package, "dialogs/Prompt", {
+        message: message,
+        output: output,
+        title: title
+    }).then((dialog) => {
+        if (dialog.result === visto.DialogResult.Ok)
+            return output();
+        else
+            return <string>null;
     });
 };
 
@@ -175,40 +140,16 @@ export function prompt(title: string, message: string, defaultText: string) {
  * Shows a dialog with a list picker. 
  */
 export function listPicker<TItem>(header: string, label: string, items: any[], selectedItem: TItem, optionsText: string) {
-    return Q.Promise<TItem>((resolve, reject) => {
-        var observableSelectedItem = ko.observable<TItem>(selectedItem);
-        visto.showDialog(package, "dialogs/ListPicker", {
-            title: header,
-            label: label,
-            selectedItem: selectedItem,
-            items: items,
-            optionsText: optionsText,
-            buttons: [
-                {
-                    label: "OK",
-                    click: dialog => {
-                        dialog.close();
-                        resolve(observableSelectedItem());
-                    }
-                },
-                {
-                    label: "Cancel",
-                    click: dialog => {
-                        dialog.close();
-                        reject(null);
-                    }
-                }
-            ]
-        }, view => {
-            view.dialog.on('keyup', ev => {
-                if (ev.keyCode === $.ui.keyCode.ESCAPE) {
-                    view.dialog.dialog("close");
-                    reject(null);
-                } else if (ev.keyCode === $.ui.keyCode.ENTER) {
-                    view.dialog.dialog("close");
-                    resolve(observableSelectedItem());
-                }
-            });
-        });
+    return visto.showDialog(package, "dialogs/ListPicker", {
+        title: header,
+        label: label,
+        items: items,
+        selectedItem: selectedItem,
+        optionsText: optionsText
+    }).then((dialog: visto.Dialog<listPickerModel.ListPickerModel>) => {
+        if (dialog.result === visto.DialogResult.Ok)
+            return <TItem>dialog.viewModel.selectedItem();
+        else
+            return <TItem>null;
     });
 };

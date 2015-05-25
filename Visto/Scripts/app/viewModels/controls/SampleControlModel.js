@@ -18,7 +18,8 @@ define(["require", "exports", "libs/visto", "common/main"], function (require, e
         SampleControlModel.prototype.changeText = function () {
             var _this = this;
             common.prompt("Change text", "Please change the text: ", this.selectedText()).then(function (newText) {
-                _this.selectedText(newText);
+                if (newText !== null)
+                    _this.selectedText(newText);
             });
         };
         return SampleControlModel;

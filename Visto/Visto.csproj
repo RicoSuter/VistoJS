@@ -15,6 +15,7 @@
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <TypeScriptToolsVersion>1.4</TypeScriptToolsVersion>
+    <UseGlobalApplicationHostFile />
   </PropertyGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -135,8 +136,6 @@
     <Content Include="Scripts\common\views\LanguageSelector.html" />
     <Content Include="Scripts\app\views\controls\SampleControl.html" />
     <Content Include="Scripts\libs\jquery.browser.js" />
-    <Content Include="Scripts\libs\jqueryui.d.ts" />
-    <Content Include="Scripts\libs\jqueryui.js" />
     <Content Include="Scripts\libs\jquery.js" />
     <Content Include="Scripts\libs\visto.extensions.d.ts" />
     <Content Include="Scripts\libs\hashchange.js" />

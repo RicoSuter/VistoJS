@@ -15,6 +15,12 @@
         <h2>Navigation & paging</h2>
         <ul>
             <li>
+                <a href="#" data-bind="click: showNotImplemented">Show alert</a>: A sample of a tabbed page
+            </li>
+            <li>
+                <a href="#" data-bind="click: showDialog">Show custom dialog</a>: A sample of a tabbed page
+            </li>
+            <li>
                 <a href="#" data-bind="click: navigateToTabPage">Navigate to tab page</a>: A sample of a tabbed page
             </li>
             <li>
@@ -24,8 +30,7 @@
                 <a href="#" data-bind="click: navigateToWebViewPage">Navigate to web view page</a>: A sample of page with a web view
             </li>
         </ul>
-
-
+        
         <h2>Bindings</h2>
         <p>
             The text of the following textbox is bound to the <code>selectedText</code> property of the <code>SampleControl</code> view.
@@ -35,10 +40,15 @@
             <input data-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control"/>
         </div>
         <p>
-            The <code>SampleControl</code> takes the bound variable and binds it to its own input controls: 
+            The <code>SampleControl</code> takes the bound variable and binds it to its own input controls:
         </p>
-        <div class="inputcontent">
-            <vs-sample-control path="controls" selected-text="{selectedText}"/>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                SampleControl (app)
+            </div>
+            <div class="panel-body">
+                <vs-sample-control path="controls" selected-text="{selectedText}" />
+            </div>
         </div>
 
         <h2>Internationalization</h2>

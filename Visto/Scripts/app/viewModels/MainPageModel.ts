@@ -28,11 +28,6 @@ export class MainPageModel extends visto.ViewModel {
 	}
 
 	showDialog() {
-        visto.showDialog(package, "SampleDialog", <visto.IDialogOptions>{
-			title: "Sample dialog",
-            buttons: [
-                { label: "OK", click: (dialog) => { dialog.close(); } }
-            ]
-        });
+        visto.showDialog(package, "SampleDialog");
 	}
 };
