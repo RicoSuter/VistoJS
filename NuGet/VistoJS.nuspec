@@ -17,8 +17,6 @@
         <file src="..\Visto\Scripts\libs\jquery.browser.js" target="content\Scripts\libs\jquery.browser.js" />
         <file src="..\Visto\Scripts\libs\jquery.d.ts" target="content\Scripts\libs\jquery.d.ts" />
         <file src="..\Visto\Scripts\libs\jquery.js" target="content\Scripts\libs\jquery.js" />
-        <file src="..\Visto\Scripts\libs\jqueryui.d.ts" target="content\Scripts\libs\jqueryui.d.ts" />
-        <file src="..\Visto\Scripts\libs\jqueryui.js" target="content\Scripts\libs\jqueryui.js" />
         <file src="..\Visto\Scripts\libs\knockout.d.ts" target="content\Scripts\libs\knockout.d.ts" />
         <file src="..\Visto\Scripts\libs\knockout.js" target="content\Scripts\libs\knockout.js" />
         <file src="..\Visto\Scripts\libs\require.js" target="content\Scripts\libs\require.js" />

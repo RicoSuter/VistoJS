@@ -30,9 +30,8 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         };
         Prompt.prototype.onShown = function () {
             var input = this.getElement("#input");
-            input.select();
             input.focus();
-            input.blur();
+            input.select();
         };
         return Prompt;
     })(visto.Dialog);

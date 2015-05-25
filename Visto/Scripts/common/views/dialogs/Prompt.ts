@@ -19,8 +19,7 @@ export class Prompt extends visto.Dialog<ns.PromptModel>  {
 
     onShown() {
         var input = this.getElement("#input");
-        input.select();
         input.focus();
-        input.blur();
+        input.select();
     }
 }

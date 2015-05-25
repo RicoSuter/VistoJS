@@ -42,7 +42,8 @@ var isNavigating = false;
 var openedDialogs = 0;
 
 var defaultCommands = {
-    navigateBack() { return navigateBack(); }
+    navigateBack() { return navigateBack(); }, 
+    navigateHome() { return navigateHome(); }
 }
 
 // internationalization variables
@@ -717,7 +718,7 @@ var loadingElement: JQuery = null;
 
 // Creates the loading screen element
 export function createLoadingElement() {
-    return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" alt=\"Loading...\" /></div>");
+    return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
 };
 
 // Shows the loading screen

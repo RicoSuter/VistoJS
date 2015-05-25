@@ -68,9 +68,9 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             Q($.ajax(settings)).then(function (data) {
                 _this.setHtml(data, _this.getBaseUrl(settings.url));
                 visto.hideLoading();
-            }).catch(function (error) {
+            }).catch(function (exception) {
                 visto.hideLoading();
-                common.alert("HTTP request failed", error.toString());
+                common.alert("HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
             });
         };
         WebView.prototype.setHtml = function (data, baseUrl) {

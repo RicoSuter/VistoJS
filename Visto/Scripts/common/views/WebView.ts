@@ -68,9 +68,9 @@ export class WebView extends visto.ViewBase {
         Q($.ajax(settings)).then((data: string) => {
             this.setHtml(data, this.getBaseUrl(settings.url));
             visto.hideLoading();
-        }).catch((error: any) => {
+        }).catch((exception: any) => {
             visto.hideLoading();
-            common.alert("HTTP request failed", error.toString());
+            common.alert("HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
         });
     }
 
