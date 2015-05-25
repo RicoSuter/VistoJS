@@ -717,7 +717,7 @@ var loadingElement: JQuery = null;
 
 // Creates the loading screen element
 export function createLoadingElement() {
-    return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" /></div>");
+    return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" alt=\"Loading...\" /></div>");
 };
 
 // Shows the loading screen

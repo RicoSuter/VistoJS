@@ -639,7 +639,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var loadingElement = null;
     // Creates the loading screen element
     function createLoadingElement() {
-        return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" /></div>");
+        return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" alt=\"Loading...\" /></div>");
     }
     exports.createLoadingElement = createLoadingElement;
     ;
