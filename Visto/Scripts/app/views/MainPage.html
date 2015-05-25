@@ -1,71 +1,37 @@
 <div>
-    <vs-page-header />
+    <vs-page-header show-back-button="false" />
 
     <div class="container">
-        <h1>
-            Visto JavaScript Library <small>Sample Application</small>
-        </h1>
+        <h1>Visto JavaScript Library</h1>
+
         <p>
             This sample application shows the capabilities of the Visto JavaScript Framework.
+            <div class="alert alert-info">
+                The look and feel of this sample application is only for demonstration purposes and can completely be changed.
+            </div>
         </p>
-        <div class="alert alert-info">
-            The look and feel of this sample application is only for demonstration purposes and can completely be changed.
-        </div>
 
-        <h2>Navigation & paging</h2>
-        <ul>
-            <li>
-                <a href="#" data-bind="click: showNotImplemented">Show alert</a>: A sample of a tabbed page
-            </li>
-            <li>
-                <a href="#" data-bind="click: showDialog">Show custom dialog</a>: A sample of a tabbed page
-            </li>
-            <li>
-                <a href="#" data-bind="click: navigateToTabPage">Navigate to tab page</a>: A sample of a tabbed page
-            </li>
-            <li>
-                <a href="#" data-bind="click: navigateToListPage">Navigate to list page</a>: A sample of list and details page
-            </li>
-            <li>
-                <a href="#" data-bind="click: navigateToWebViewPage">Navigate to web view page</a>: A sample of page with a web view
-            </li>
-        </ul>
-        
-        <h2>Bindings</h2>
+        <h2>General</h2>
         <p>
-            The text of the following textbox is bound to the <code>selectedText</code> property of the <code>SampleControl</code> view.
+            <button class="btn btn-default" data-bind="click: navigateToBindings">Bindings</button>
+            <button class="btn btn-default" data-bind="click: navigateToInternationalization">Internationalization</button>
         </p>
-        <div class="form-group">
-            <label>Text</label>
-            <input data-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control"/>
-        </div>
-        <p>
-            The <code>SampleControl</code> takes the bound variable and binds it to its own input controls:
-        </p>
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                SampleControl (app)
-            </div>
-            <div class="panel-body">
-                <vs-sample-control path="controls" selected-text="{selectedText}" />
-            </div>
-        </div>
 
-        <h2>Internationalization</h2>
+        <h2>Paging</h2>
         <p>
-            The following text is translated using the <code>data-translate</code> attribute:
-            <div data-translate="translatedText" class="alert alert-success"></div>
+            <button class="btn btn-default" data-bind="click: navigateToListPage">Navigate to list page</button>
         </p>
+
+        <h2>Views</h2>
         <p>
-            The current langauge can be changed using the <code>LanguageSelector</code> control:
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    LanguageSelector (common)
-                </div>
-                <div class="panel-body">
-                    <vs-language-selector package="common" test="test" />
-                </div>
-            </div>
+            <button class="btn btn-default" data-bind="click: navigateToTabPage">Navigate to tab page</button>
+            <button class="btn btn-default" data-bind="click: navigateToWebViewPage">Navigate to web view page</button>
+        </p>
+
+        <h2>Dialogs</h2>
+        <p>
+            <button class="btn btn-default" data-bind="click: showAlert">Show not implemented alert</button>
+            <button class="btn btn-default" data-bind="click: showCustomDialog">Show custom dialog</button>
         </p>
     </div>
 

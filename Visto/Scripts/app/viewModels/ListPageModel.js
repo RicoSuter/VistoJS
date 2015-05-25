@@ -18,10 +18,10 @@ define(["require", "exports", "libs/visto", "common/main", "SampleService", "mod
         ListPageModel.prototype.onLoaded = function () {
             var _this = this;
             this.isLoading(true);
-            svc.getItems(function (items) {
+            svc.getItems().then(function (items) {
                 _this.items(items);
                 _this.isLoading(false);
-            });
+            }).done();
         };
         ListPageModel.prototype.showItem = function (item) {
             visto.navigateTo(package, "DetailsPage", { item: item });

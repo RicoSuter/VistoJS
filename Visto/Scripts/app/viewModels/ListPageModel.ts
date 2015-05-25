@@ -12,11 +12,11 @@ export class ListPageModel extends visto.ViewModel {
     }
     
 	onLoaded() {
-		this.isLoading(true);
-		svc.getItems(items => {
-			this.items(items);
-			this.isLoading(false);
-		});
+        this.isLoading(true);
+        svc.getItems().then(items => {
+            this.items(items);
+            this.isLoading(false);
+        }).done();
 	}
 
 	showItem(item: svc.ISampleItem) {

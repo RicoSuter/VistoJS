@@ -59,6 +59,7 @@
     <Content Include="Content\Images\loading.gif" />
     <Content Include="Content\site.css" />
     <Content Include="index.html" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\BindingsPageModel.ts" />
     <TypeScriptCompile Include="Scripts\common\views\TabControl.ts" />
     <TypeScriptCompile Include="Scripts\common\main.ts" />
     <TypeScriptCompile Include="Scripts\common\viewModels\LanguageSelectorModel.ts" />
@@ -75,8 +76,16 @@
     <Content Include="Scripts\app\viewModels\ListPageModel.js">
       <DependentUpon>ListPageModel.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\app\viewModels\MainPageModel - Copy.js">
+      <DependentUpon>BindingsPageModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\viewModels\MainPageModel - Copy.min.js">
+      <DependentUpon>BindingsPageModel.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\app\views\DetailsPage.html" />
+    <Content Include="Scripts\app\views\InternationalizationPage.html" />
     <Content Include="Scripts\app\views\ListPage.html" />
+    <Content Include="Scripts\app\views\BindingsPage.html" />
     <Content Include="Scripts\app\views\TabPage.html" />
     <Content Include="Scripts\app\views\SampleDialog.html" />
     <Content Include="Scripts\app\views\tabs\Tab1.html" />
@@ -177,6 +186,9 @@
     <Content Include="Content\Static\a.html" />
     <Content Include="Content\Static\b.html" />
     <Content Include="web.config" />
+    <Content Include="Scripts\app\viewModels\MainPageModel - Copy.js.map">
+      <DependentUpon>BindingsPageModel.ts</DependentUpon>
+    </Content>
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>

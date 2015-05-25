@@ -17,20 +17,19 @@ define(["require", "exports", "libs/visto", "SampleService"], function (require,
                 this.enablePageRestore(this.item().id.toString());
             }
         };
-        DetailsPageModel.prototype.onLoading = function (callback) {
+        DetailsPageModel.prototype.onLoading = function () {
             var _this = this;
             if (visto.isPageRestore) {
                 var id = Number(this.parameters.getRestoreQuery());
-                svc.getItems(function (items) {
+                return svc.getItems().then(function (items) {
                     for (var i = 0, item; (item = items[i]) !== undefined; i++) {
                         if (item.id === id)
                             _this.item(item);
                     }
-                    callback();
                 });
             }
             else
-                callback();
+                return Q(null);
         };
         return DetailsPageModel;
     })(visto.ViewModel);

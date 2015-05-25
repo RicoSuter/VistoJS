@@ -718,11 +718,6 @@ var loadingElement: JQuery = null;
 // Creates the loading screen element
 export function createLoadingElement() {
     return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" /></div>");
-    //var element = $(document.createElement("div"));
-    //element.addClass("ui-widget-overlay ui-front");
-    //element.html("<div style='text-align: center; color: white'>" +
-    //    "<img src='Content/Images/loading.gif' style='border: 0; margin-top: 150px' /></div>");
-    //return element;
 };
 
 // Shows the loading screen
@@ -819,8 +814,8 @@ export class ViewModel {
      * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
      * The callback() must be called when the work has been performed.
      */
-    onLoading(callback: () => void) {
-        callback();
+    onLoading() {
+        return Q<void>(null);
     }
 
     /**
@@ -923,9 +918,6 @@ export class ViewBase {
 
     // ReSharper disable InconsistentNaming
 
-    /**
-     * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects. 
-     */
     __destroyView() {
         $.each(this.subViews,(index: number, view: ViewBase) => {
             view.__destroyView();
@@ -1045,7 +1037,7 @@ export class Parameters {
     }
 
     getObservableBoolean(key: string, defaultValue?: boolean): KnockoutObservable<boolean> {
-        return this.getObservableWithConversion(key,(value: any) => Boolean(value), defaultValue);
+        return this.getObservableWithConversion(key,(value: any) => value.toString().toLowerCase() === "true", defaultValue);
     }
 
     getObservableObject<T>(key: string, defaultValue?: T) {
@@ -1359,7 +1351,7 @@ class ViewFactory {
     }
 
     /**
-     * Processes the custom tags in the given HTML data string.
+     * Process custom tags in the given HTML data string.
      */
     private processCustomTags(data: string) {
         return data.replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g,(match: string, tag: string, attributes: string, close: string) => {
@@ -1437,7 +1429,7 @@ class ViewContext {
                     if (this.loadedViewCount === this.viewCount) {
                         this.loadedViewCount = 0;
                         $.each(this.factories, (index: number, context: ViewFactory) => {
-                            context.viewModel.onLoading(() => {
+                            context.viewModel.onLoading().then(() => {
                                 this.loadedViewCount++;
                                 if (this.loadedViewCount === this.viewCount) {
                                     $.each(this.factories.reverse(),(index: number, factory: ViewFactory) => {
@@ -1455,7 +1447,7 @@ class ViewContext {
                                         initializer();
                                     });
                                 }
-                            });
+                            }).done();
                         });
                     }
                 }).done();

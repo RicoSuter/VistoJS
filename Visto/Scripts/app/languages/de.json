@@ -1,4 +1,6 @@
 {
-	"translatedText" : "Dies ist ein mehrsprachiger String!", 
+    "translatedText": "Dies ist ein mehrsprachiger String!", 
+
+	"notImplementedTitle" : "Nicht implementiert",
 	"notImplementedMessage" : "Diese Funktionalitaet wurde noch nicht implementiert!" 
 }

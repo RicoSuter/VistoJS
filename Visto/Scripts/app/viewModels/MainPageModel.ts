@@ -3,11 +3,16 @@ import common = require("common/main");
 import package = require("module");
 
 export class MainPageModel extends visto.ViewModel {
-	selectedText: KnockoutObservable<string>;
-
-	initialize() {
+    initialize() {
         this.enablePageRestore();
-		this.selectedText = ko.observable("sample");
+    }
+
+    navigateToBindings() {
+        visto.navigateTo(package, "BindingsPage");
+    }
+
+    navigateToInternationalization() {
+        visto.navigateTo(package, "InternationalizationPage");
     }
 
     navigateToTabPage() {
@@ -22,12 +27,11 @@ export class MainPageModel extends visto.ViewModel {
         visto.navigateTo(package, "WebViewPage");
     }
 
-	showNotImplemented() {
-		// sample of translation in code: 
-		common.alert("Not implemented", this.getString("notImplementedMessage"));
+	showAlert() {
+        common.alert(this.getString("notImplementedTitle"), this.getString("notImplementedMessage"));
 	}
 
-	showDialog() {
+	showCustomDialog() {
         visto.showDialog(package, "SampleDialog");
 	}
 };

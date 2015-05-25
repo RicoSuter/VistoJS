@@ -1,14 +1,16 @@
 <div>
-    <div class="container">
-        <ol class="breadcrumb">
-            <li>
-                <button data-bind="click: defaultCommands.navigateBack" class="btn btn-primary">
-                    <span class="glyphicon glyphicon-chevron-left"></span>
-                </button>
-            </li>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Library</a></li>
-            <li class="active">Data</li>
-        </ol>
-    </div>
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <ul class="nav navbar-nav">
+                <li>
+                    <p class="navbar-btn">
+                        <a data-bind="click: defaultCommands.navigateBack, css: { disabled: parameters.getBoolean('showBackButton', true) === false }" href="#" class="btn btn-default">
+                            <span class="glyphicon glyphicon-chevron-left"></span>
+                        </a>
+                    </p>
+                </li>
+                <li><a href="https://github.com/VistoJS/Core">VistoJS</a></li>
+            </ul>
+        </div>
+    </nav>
 </div>

@@ -1,4 +1,6 @@
 {
 	"translatedText" : "This is a translated string!", 
+
+	"notImplementedTitle" : "Not implemented",
 	"notImplementedMessage" : "This functionality has not been implemented yet!" 
 }

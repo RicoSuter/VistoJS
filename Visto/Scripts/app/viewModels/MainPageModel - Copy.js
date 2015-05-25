@@ -12,6 +12,7 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
         }
         MainPageModel.prototype.initialize = function () {
             this.enablePageRestore();
+            this.selectedText = ko.observable("sample");
         };
         MainPageModel.prototype.navigateToBindings = function () {
             visto.navigateTo(package, "BindingsPage");
@@ -28,10 +29,10 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
         MainPageModel.prototype.navigateToWebViewPage = function () {
             visto.navigateTo(package, "WebViewPage");
         };
-        MainPageModel.prototype.showAlert = function () {
+        MainPageModel.prototype.showNotImplemented = function () {
             common.alert(this.getString("notImplementedTitle"), this.getString("notImplementedMessage"));
         };
-        MainPageModel.prototype.showCustomDialog = function () {
+        MainPageModel.prototype.showDialog = function () {
             visto.showDialog(package, "SampleDialog");
         };
         return MainPageModel;

@@ -11,17 +11,16 @@ export class DetailsPageModel extends visto.ViewModel {
         }
     }
 
-    onLoading(callback: () => void) {
+    onLoading() {
         if (visto.isPageRestore) {
             var id = Number(this.parameters.getRestoreQuery());
-            svc.getItems(items => {
+            return svc.getItems().then(items => {
                 for (var i = 0, item: any; (item = items[i]) !== undefined; i++) {
                     if (item.id === id)
                         this.item(item);
                 }
-                callback();
             });
         } else
-            callback();
+            return Q<void>(null);
     }
 };

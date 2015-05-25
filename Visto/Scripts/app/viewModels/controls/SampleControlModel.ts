@@ -6,7 +6,7 @@ export class SampleControlModel extends visto.ViewModel {
     transformedText: KnockoutComputed<string>;
 
 	initialize() {
-        this.selectedText = this.parameters.getObservableString("selectedText", "n/a");
+        this.selectedText = this.parameters.getObservableString("selectedText", "");
         this.transformedText = ko.computed<string>(() => this.selectedText().toUpperCase());
 	}
 

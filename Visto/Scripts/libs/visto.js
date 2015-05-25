@@ -640,11 +640,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Creates the loading screen element
     function createLoadingElement() {
         return $("<div class=\"loading\"><img src=\"Content/Images/loading.gif\" class=\"loading-image\" /></div>");
-        //var element = $(document.createElement("div"));
-        //element.addClass("ui-widget-overlay ui-front");
-        //element.html("<div style='text-align: center; color: white'>" +
-        //    "<img src='Content/Images/loading.gif' style='border: 0; margin-top: 150px' /></div>");
-        //return element;
     }
     exports.createLoadingElement = createLoadingElement;
     ;
@@ -731,8 +726,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * [Virtual] Called before the view is added to the DOM with the ability to perform async work.
          * The callback() must be called when the work has been performed.
          */
-        ViewModel.prototype.onLoading = function (callback) {
-            callback();
+        ViewModel.prototype.onLoading = function () {
+            return Q(null);
         };
         /**
          * [Virtual] Called to clean up resources when the view has been removed from the DOM.
@@ -816,9 +811,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // must be empty
         };
         // ReSharper disable InconsistentNaming
-        /**
-         * Destroys a view by removing it from the view list, calling the needed event handlers and disposing depending objects.
-         */
         ViewBase.prototype.__destroyView = function () {
             $.each(this.subViews, function (index, view) {
                 view.__destroyView();
@@ -936,7 +928,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return this.getObservableWithConversion(key, function (value) { return Number(value); }, defaultValue);
         };
         Parameters.prototype.getObservableBoolean = function (key, defaultValue) {
-            return this.getObservableWithConversion(key, function (value) { return Boolean(value); }, defaultValue);
+            return this.getObservableWithConversion(key, function (value) { return value.toString().toLowerCase() === "true"; }, defaultValue);
         };
         Parameters.prototype.getObservableObject = function (key, defaultValue) {
             return this.getObservableWithConversion(key, function (value) { return value; }, defaultValue);
@@ -1190,7 +1182,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return viewModel;
         };
         /**
-         * Processes the custom tags in the given HTML data string.
+         * Process custom tags in the given HTML data string.
          */
         ViewFactory.prototype.processCustomTags = function (data) {
             return data.replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
@@ -1254,7 +1246,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         if (_this.loadedViewCount === _this.viewCount) {
                             _this.loadedViewCount = 0;
                             $.each(_this.factories, function (index, context) {
-                                context.viewModel.onLoading(function () {
+                                context.viewModel.onLoading().then(function () {
                                     _this.loadedViewCount++;
                                     if (_this.loadedViewCount === _this.viewCount) {
                                         $.each(_this.factories.reverse(), function (index, factory) {
@@ -1269,7 +1261,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                                             initializer();
                                         });
                                     }
-                                });
+                                }).done();
                             });
                         }
                     }).done();
