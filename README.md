@@ -1,14 +1,12 @@
 # Visto JavaScript Framework (VistoJS)
 
-The Visto JavaScript Framework (VistoJS) integrates [KnockoutJS](http://knockoutjs.com), [JQuery](http://jquery.com),  [RequireJS](http://www.requirejs.org), [Q promises](https://github.com/kriskowal/q) and [TypeScript](http://www.typescriptlang.org) to provide a clean MVVM programming model known from .NET XAML to implement single-page applications: Implement views with a "code-behind" class and bindings to view models, declaratively load subviews in HTML and navigate between pages. 
-
-The main advantages of the library is that it allows you to develop component-based and implement reusable views which are composed of predefined programming blocks (views with "code-behind" and HTML and view models). These views can be reused as sub views, in dialogs or as pages. The programming API and paradigm is very similar to the one found in Windows Phone XAML or Windows 8 Store Apps programming (MVVM pattern, view "code-behind", paging/navigation).
+The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework to implement single-page Web applications. The framework integrates [KnockoutJS](http://knockoutjs.com), [JQuery](http://jquery.com),  [RequireJS](http://www.requirejs.org), [Q promises](https://github.com/kriskowal/q) and [TypeScript](http://www.typescriptlang.org) to provide a clean, convention-based MVVM programming model inspired by .NET/XAML: Implement views with bindings to view models and "code-behind" classes, declaratively load sub views in HTML with custom tags or navigate between pages in a stack-based frame. 
 
 [Introduction to the Visto JavaScript Framework](https://github.com/VistoJS/Core/wiki/Introduction)
 
-[Documentation Wiki](https://github.com/VistoJS/Core/wiki)
+[Framework and API Documentation](https://github.com/VistoJS/Core/wiki)
 
-[Live demo application](https://rawgit.com/VistoJS/Core/master/Visto/index.html)
+[Demo application based on the latest source code](https://rawgit.com/VistoJS/Core/master/Visto/index.html)
 
 ## Features
 
