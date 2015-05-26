@@ -28,6 +28,8 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
 
 ## Dependencies and used technologies
 
+The framework depends on the following 3rd party ilbraries: 
+
 - [KnockoutJS](http://knockoutjs.com): Bindings between HTML and JavaScript view models (needed for MVVM support) 
 - [JQuery](http://jquery.com): DOM and HTML manipulations
 - JQuery.Hashchange: Detect user back navigation 
