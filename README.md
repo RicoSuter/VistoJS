@@ -33,8 +33,8 @@ The main advantages of the library is that it allows you to develop component-ba
 - [KnockoutJS](http://knockoutjs.com): Provides bindings to HTML and JavaScript (needed for MVVM support) 
 - [JQuery](http://jquery.com): DOM and HTML manipulations
 - [RequireJS](http://www.requirejs.org): Used for module (AMD) loading and dependency management 
+- [Q](https://github.com/kriskowal/q): Provides the promises support 
 - Hashchange to detect user back navigation 
-- (optional) [JQuery UI](http://jqueryui.com) for  dialogs
 
 The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with vanilla JavaScript. 
 
