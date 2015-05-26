@@ -1,6 +1,6 @@
 # Visto JavaScript Framework (VistoJS)
 
-The Visto JavaScript Framework (VistoJS) integrates [KnockoutJS](http://knockoutjs.com), [JQuery](http://jquery.com),  [RequireJS](http://www.requirejs.org), [Q promises](https://github.com/kriskowal/q) and [TypeScript](http://www.typescriptlang.org) to provide a clean MVVM programming model known from .NET XAML to implement single-page applications: It is possible to implement views with a "code-behind" class and bindings to view models, declaratively load subviews in HTML and navigate between pages. 
+The Visto JavaScript Framework (VistoJS) integrates [KnockoutJS](http://knockoutjs.com), [JQuery](http://jquery.com),  [RequireJS](http://www.requirejs.org), [Q promises](https://github.com/kriskowal/q) and [TypeScript](http://www.typescriptlang.org) to provide a clean MVVM programming model known from .NET XAML to implement single-page applications: Implement views with a "code-behind" class and bindings to view models, declaratively load subviews in HTML and navigate between pages. 
 
 The main advantages of the library is that it allows you to develop component-based and implement reusable views which are composed of predefined programming blocks (view, view model and HTML). These views can be reused as sub views, in dialogs or as page instances. The programming API and paradigm is very similar to the one found in Windows Phone XAML or Windows 8 Store Apps programming (MVVM pattern, view "code-behind", paging/navigation).
 
