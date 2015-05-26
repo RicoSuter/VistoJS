@@ -6,6 +6,8 @@ The main advantages of this library is that it allows you to develop component-b
 
 [Introduction to the Visto JavaScript Framework](https://github.com/VistoJS/Core/wiki/Introduction)
 
+[Documentation Wiki](https://github.com/VistoJS/Core/wiki)
+
 [Live demo application](https://rawgit.com/VistoJS/Core/master/Visto/index.html)
 
 ## Features
