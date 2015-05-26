@@ -42,7 +42,7 @@ The Visto JavaScript Library is designed to be used with [TypeScript](http://www
 
 To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open `Visto/index.html` to execute the sample project in your browser. Open the Visual Studio solution `Visto.sln` to start developing on the sample application (TypeScript must be installed). 
 
-The "common" package provides some reusable controls/views; the package is not required to use the Visto JavaScript Library. 
+The "common" package provides some reusable controls and views. The package is not required to use the Visto JavaScript Library. 
 
 **Important:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (`Documents\IISExpress\config\...`) configuration: 
 
