@@ -34,7 +34,7 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
 - [RequireJS](http://www.requirejs.org): Module (AMD) loading and dependency management 
 - [Q](https://github.com/kriskowal/q): Promises/A+ support 
 
-The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with vanilla JavaScript. 
+The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with [vanilla JavaScript](http://vanilla-js.com/). 
 
 ## First steps
 
