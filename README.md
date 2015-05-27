@@ -36,7 +36,7 @@ The framework depends on the following 3rd party ilbraries:
 - [RequireJS](http://www.requirejs.org): Module (AMD) loading and dependency management 
 - [Q](https://github.com/kriskowal/q): Promises/A+ support 
 
-The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with [vanilla JavaScript](http://vanilla-js.com/). 
+The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with plain JavaScript. 
 
 ## First steps
 
