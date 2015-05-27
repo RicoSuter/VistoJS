@@ -486,7 +486,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             parameters[isDialogParameter] = true;
             showLoadingScreen();
             createView(container, fullViewName, parameters).then(function (view) {
-                hideLoadingScreen();
                 openedDialogs++;
                 // Remove focus from element of the underlying page to avoid click events on enter press
                 var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
@@ -504,6 +503,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     resolve(view);
                 });
                 container.removeAttr("style");
+                hideLoadingScreen();
                 if ($.isFunction(onLoaded))
                     onLoaded(view);
             }).fail(reject);
@@ -651,15 +651,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Loading screen
     // ----------------------------
     var loadingCount = 0;
-    var loadingElement = null;
+    var currentLoadingScreenElement = null;
     /**
-     * [Replaceable] Creates the loading screen element
+     * Gets or sets the loading screen element HTML
      */
-    function createLoadingElement() {
-        return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
-    }
-    exports.createLoadingElement = createLoadingElement;
-    ;
+    exports.loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>";
     /**
      * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
      */
@@ -683,9 +679,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.showLoadingScreen = showLoadingScreen;
     ;
     function appendLoadingElement() {
-        if (loadingElement === null) {
-            loadingElement = createLoadingElement();
-            $("body").append(loadingElement);
+        if (currentLoadingScreenElement === null) {
+            currentLoadingScreenElement = $(exports.loadingScreenElement);
+            $("body").append(currentLoadingScreenElement);
         }
     }
     /**
@@ -694,9 +690,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     function hideLoadingScreen() {
         loadingCount--;
         if (loadingCount === 0) {
-            if (loadingElement !== null) {
-                loadingElement.remove();
-                loadingElement = null;
+            if (currentLoadingScreenElement !== null) {
+                currentLoadingScreenElement.remove();
+                currentLoadingScreenElement = null;
             }
         }
     }

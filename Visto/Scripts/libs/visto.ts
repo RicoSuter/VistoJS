@@ -541,7 +541,6 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
 
         showLoadingScreen();
         createView(container, fullViewName, <any>parameters).then((view: DialogBase) => {
-            hideLoadingScreen();
             openedDialogs++;
 
             // Remove focus from element of the underlying page to avoid click events on enter press
@@ -564,6 +563,7 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
                 });
             container.removeAttr("style");
 
+            hideLoadingScreen();
             if ($.isFunction(onLoaded))
                 onLoaded(view);
         }).fail(reject);
@@ -727,14 +727,12 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
 // ----------------------------
 
 var loadingCount = 0;
-var loadingElement: JQuery = null;
+var currentLoadingScreenElement: JQuery = null;
 
 /**
- * [Replaceable] Creates the loading screen element
+ * Gets or sets the loading screen element HTML
  */
-export function createLoadingElement() {
-    return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
-};
+export var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>"; 
 
 /**
  * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call. 
@@ -759,9 +757,9 @@ export function showLoadingScreen(delayed?: boolean) {
 };
 
 function appendLoadingElement() {
-    if (loadingElement === null) {
-        loadingElement = createLoadingElement();
-        $("body").append(loadingElement);
+    if (currentLoadingScreenElement === null) {
+        currentLoadingScreenElement = $(loadingScreenElement); 
+        $("body").append(currentLoadingScreenElement);
     }
 }
 
@@ -771,9 +769,9 @@ function appendLoadingElement() {
 export function hideLoadingScreen() {
     loadingCount--;
     if (loadingCount === 0) {
-        if (loadingElement !== null) {
-            loadingElement.remove();
-            loadingElement = null;
+        if (currentLoadingScreenElement !== null) {
+            currentLoadingScreenElement.remove();
+            currentLoadingScreenElement = null;
         }
     }
 };
