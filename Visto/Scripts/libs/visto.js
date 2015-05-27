@@ -774,18 +774,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return getString(key, this.viewPackage);
         };
         /**
-         * Finds an element inside this view.
+         * Finds elements inside this view with a selector.
          */
-        ViewBase.prototype.getElement = function (selector) {
-            if (selector[0] === "#")
-                return this.element.find(selector[0] + this.viewId + "_" + selector.substring(1)); // TODO: How to reference?
+        ViewBase.prototype.findElements = function (selector) {
             return this.element.find(selector);
         };
         /**
-         * Finds an element by ID inside this view.
+         * Gets an element by ID (defined using the "vs-id" attribute) inside this view.
          */
-        ViewBase.prototype.getElementById = function (id) {
-            return this.getElement("#" + id); // TODO: How to reference?
+        ViewBase.prototype.getViewElement = function (id) {
+            return this.findElements("#" + this.viewId + "_" + id);
         };
         // event methods
         /**
@@ -1115,7 +1113,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         ViewFactory.prototype.htmlLoaded = function (htmlData) {
             this.viewId = "view_" + ++viewCount;
-            htmlData = "<!-- ko stopBinding -->" + htmlData.replace(/vId/g, this.viewId) + "<!-- /ko -->";
+            htmlData = "<!-- ko stopBinding -->" + htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + "<!-- /ko -->";
             var container = $(document.createElement("div"));
             container.html(htmlData);
             this.rootElement = container.children()[0];
@@ -1188,7 +1186,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Process custom tags in the given HTML data string.
          */
         ViewFactory.prototype.processCustomTags = function (data) {
-            return data.replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
+            return data.replace(/vs-translate="/g, "data-translate=\"").replace(/vs-bind="/g, "data-bind=\"").replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
                 var path = "";
                 var pkg = "";
                 var bindings = "";

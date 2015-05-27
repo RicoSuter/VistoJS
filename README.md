@@ -22,7 +22,7 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
     - The resulting application is component based
     - Application areas can be grouped in packages
 - Support for **declarative UI internationalization**
-    - Declaratively translate your UI with the `data-translate` attribute which automatically updates the UI when the language changes
+    - Declaratively translate your UI with the `vs-translate` attribute which automatically updates the UI when the language changes
     - "Language bindings" can also be programmatically used in code
 - Visto.js file size is 30kb minimized (54kb debug)
 

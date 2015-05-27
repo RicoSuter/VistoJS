@@ -1,11 +1,11 @@
 <div>
     <div class="form-group">
         <label>Text</label>
-        <input data-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control" />
+        <input vs-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control" />
     </div>
     <div class="form-group">
         <label>Value</label>
-        <div data-bind="text: transformedText"></div>
+        <div vs-bind="text: transformedText"></div>
     </div>
-    <button data-bind="click: changeText" class="btn btn-default">Show change prompt</button>
+    <button vs-bind="click: changeText" class="btn btn-default">Show change prompt</button>
 </div>

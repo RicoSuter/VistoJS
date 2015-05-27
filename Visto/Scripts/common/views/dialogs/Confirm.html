@@ -2,14 +2,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" data-bind="text: title"></h4>
+                <h4 class="modal-title" vs-bind="text: title"></h4>
             </div>
             <div class="modal-body">
-                <div data-bind="text: message"></div>
+                <div vs-bind="text: message"></div>
             </div>
             <div class="modal-footer">
                 <!-- ko foreach: buttons -->
-                <button type="button" data-bind="text: $data.label, click: $data.click.bind(null, $parent.view)" class="btn btn-default"></button>
+                <button type="button" vs-bind="text: $data.label, click: $data.click.bind(null, $parent.view)" class="btn btn-default"></button>
                 <!-- /ko -->
             </div>
         </div>

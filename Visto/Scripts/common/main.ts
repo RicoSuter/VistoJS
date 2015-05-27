@@ -93,9 +93,9 @@ export function progressDialog(title: string) {
                 },
                 update: () => {
                     if (progress.maximum === null)
-                        view.getElement("#body").html("...");
+                        view.getViewElement("body").html("...");
                     else
-                        view.getElement("#body").html(progress.value + " / " + progress.maximum);
+                        view.getViewElement("body").html(progress.value + " / " + progress.maximum);
                 }
             };
             resolve(progress);

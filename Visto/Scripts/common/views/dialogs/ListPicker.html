@@ -2,12 +2,12 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" data-bind="text: title"></h4>
+                <h4 class="modal-title" vs-bind="text: title"></h4>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label data-bind="text: label"></label>
-                    <select class="inputcontent" data-bind="options: items() !== null ? items() : null, 
+                    <label vs-bind="text: label"></label>
+                    <select class="inputcontent" vs-bind="options: items() !== null ? items() : null, 
                             value: selectedItem, optionsText: optionsText, enable: enable"></select>
                 </div>
             </div>

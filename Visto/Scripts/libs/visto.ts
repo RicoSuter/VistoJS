@@ -42,7 +42,7 @@ var isNavigating = false;
 var openedDialogs = 0;
 
 var defaultCommands = {
-    navigateBack() { return navigateBack(); }, 
+    navigateBack() { return navigateBack(); },
     navigateHome() { return navigateHome(); }
 }
 
@@ -871,19 +871,17 @@ export class ViewBase {
     }
 
     /**
-     * Finds an element inside this view. 
+     * Finds elements inside this view with a selector. 
      */
-    getElement(selector: string) {
-        if (selector[0] === "#")
-            return this.element.find(selector[0] + this.viewId + "_" + selector.substring(1)); // TODO: How to reference?
+    findElements(selector: string) {
         return this.element.find(selector);
     }
 
     /**
-     * Finds an element by ID inside this view. 
+     * Gets an element by ID (defined using the "vs-id" attribute) inside this view. 
      */
-    getElementById(id: string) {
-        return this.getElement("#" + id); // TODO: How to reference?
+    getViewElement(id: string) {
+        return this.findElements("#" + this.viewId + "_" + id); 
     }
 
     // event methods
@@ -998,7 +996,7 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
     result: DialogResult;
 
     close(result?: DialogResult) {
-        this.result = result; 
+        this.result = result;
         closeNativeDialog(this.element);
     }
 
@@ -1007,7 +1005,7 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
     }
 
     onClosed() {
-        
+
     }
 }
 
@@ -1258,7 +1256,7 @@ class ViewFactory {
 
         htmlData =
         "<!-- ko stopBinding -->" +
-        htmlData.replace(/vId/g, this.viewId) +
+        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + 
         "<!-- /ko -->";
 
         var container = $(document.createElement("div"));
@@ -1355,35 +1353,38 @@ class ViewFactory {
      * Process custom tags in the given HTML data string.
      */
     private processCustomTags(data: string) {
-        return data.replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g,(match: string, tag: string, attributes: string, close: string) => {
-            var path = "";
-            var pkg = "";
-            var bindings = "";
+        return data
+            .replace(/vs-translate="/g, "data-translate=\"")
+            .replace(/vs-bind="/g, "data-bind=\"")
+            .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, (match: string, tag: string, attributes: string, close: string) => {
+                var path = "";
+                var pkg = "";
+                var bindings = "";
 
-            attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
-                name = convertDashedToCamelCase(name.trim());
-                if (name === "path")
-                    path = value;
-                else if (name === "package")
-                    pkg = value;
-                else if (startsWith(value, "{") && endsWith(value, "}")) {
-                    value = value.substr(1, value.length - 2);
-                    if (value.indexOf("(") > -1)
-                        value = "ko.computed(function () { return " + value + "; })";
-                    bindings += name + ": " + value + ", ";
-                }
-                else
-                    bindings += name + ": '" + value + "', ";
-                return match;
+                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
+                    name = convertDashedToCamelCase(name.trim());
+                    if (name === "path")
+                        path = value;
+                    else if (name === "package")
+                        pkg = value;
+                    else if (startsWith(value, "{") && endsWith(value, "}")) {
+                        value = value.substr(1, value.length - 2);
+                        if (value.indexOf("(") > -1)
+                            value = "ko.computed(function () { return " + value + "; })";
+                        bindings += name + ": " + value + ", ";
+                    }
+                    else
+                        bindings += name + ": '" + value + "', ";
+                    return match;
+                });
+
+                var view = convertDashedToCamelCase(tag);
+                view = view[0].toUpperCase() + view.substr(1);
+                view = path === "" ? view : path + "/" + view;
+
+                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+                return '<div data-bind="view: { ' + bindings + ' }" ' + close;
             });
-
-            var view = convertDashedToCamelCase(tag);
-            view = view[0].toUpperCase() + view.substr(1);
-            view = path === "" ? view : path + "/" + view;
-
-            bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-            return '<div data-bind="view: { ' + bindings + ' }" ' + close;
-        });
     }
 
     // ReSharper disable InconsistentNaming

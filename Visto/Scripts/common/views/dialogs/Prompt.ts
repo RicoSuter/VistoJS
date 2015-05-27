@@ -10,7 +10,7 @@ export class Prompt extends visto.Dialog<ns.PromptModel>  {
     }
 
     onLoaded() {
-        var input = this.getElement("#input");
+        var input = this.getViewElement("input");
         input.keypress(e => {
             if (e.which === 13)
                 this.close(visto.DialogResult.Ok);
@@ -18,7 +18,7 @@ export class Prompt extends visto.Dialog<ns.PromptModel>  {
     }
 
     onShown() {
-        var input = this.getElement("#input");
+        var input = this.getViewElement("input");
         input.focus();
         input.select();
     }

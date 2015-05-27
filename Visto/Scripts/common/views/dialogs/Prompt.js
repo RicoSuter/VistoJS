@@ -22,14 +22,14 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         };
         Prompt.prototype.onLoaded = function () {
             var _this = this;
-            var input = this.getElement("#input");
+            var input = this.getViewElement("input");
             input.keypress(function (e) {
                 if (e.which === 13)
                     _this.close(0 /* Ok */);
             });
         };
         Prompt.prototype.onShown = function () {
-            var input = this.getElement("#input");
+            var input = this.getViewElement("input");
             input.focus();
             input.select();
         };

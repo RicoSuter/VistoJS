@@ -3,17 +3,17 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" data-bind="text: title"></h4>
+                <h4 class="modal-title" vs-bind="text: title"></h4>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label data-bind="text: message"></label>
-                    <input data-bind="value: output, valueUpdate: 'afterkeydown'" id="vId_input" class="form-control" />
+                    <label vs-bind="text: message"></label>
+                    <input vs-bind="value: output, valueUpdate: 'afterkeydown'" vs-id="input" class="form-control" />
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-bind="click: onOkClicked" class="btn btn-primary">OK</button>
-                <button type="button" data-bind="click: onCancelClicked" class="btn btn-default">Cancel</button>
+                <button type="button" vs-bind="click: onOkClicked" class="btn btn-primary">OK</button>
+                <button type="button" vs-bind="click: onCancelClicked" class="btn btn-default">Cancel</button>
             </div>
         </div>
     </div>
