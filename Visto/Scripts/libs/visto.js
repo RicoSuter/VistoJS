@@ -65,6 +65,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
         defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
         initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+        loadingScreenElement = options.loadingScreenElement === undefined ? loadingScreenElement : options.loadingScreenElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
             $(document).bind("keypress", function (ev) {
@@ -652,10 +653,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     var loadingCount = 0;
     var currentLoadingScreenElement = null;
-    /**
-     * Gets or sets the loading screen element HTML
-     */
-    exports.loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>";
+    var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>";
     /**
      * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
      */
@@ -680,7 +678,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     ;
     function appendLoadingElement() {
         if (currentLoadingScreenElement === null) {
-            currentLoadingScreenElement = $(exports.loadingScreenElement);
+            currentLoadingScreenElement = $(loadingScreenElement);
             $("body").append(currentLoadingScreenElement);
         }
     }

@@ -69,6 +69,7 @@ export function initialize(options: IVistoOptions) {
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
     defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
     initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+    loadingScreenElement = options.loadingScreenElement === undefined ? loadingScreenElement : options.loadingScreenElement;
 
     setUserLanguage(options.supportedLanguages);
 
@@ -92,6 +93,7 @@ export interface IVistoOptions {
     registerEnterKeyFix: boolean;
     defaultFrame: JQuery;
     initialLoadingElement: JQuery;
+    loadingScreenElement: string; 
 }
 
 // ----------------------------
@@ -728,11 +730,7 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
 
 var loadingCount = 0;
 var currentLoadingScreenElement: JQuery = null;
-
-/**
- * Gets or sets the loading screen element HTML
- */
-export var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>"; 
+var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>"; 
 
 /**
  * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call. 
