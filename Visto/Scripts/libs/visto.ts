@@ -56,7 +56,7 @@ var languageStrings: { [language: string]: { [path: string]: { [key: string]: st
 var currentNavigationPath = "";
 var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
-var initialLoadingElement: JQuery = null;
+var initialLoadingScreenElement: JQuery = null;
 
 // ----------------------------
 // Initializer
@@ -68,7 +68,7 @@ var initialLoadingElement: JQuery = null;
 export function initialize(options: IVistoOptions) {
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
     defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
-    initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+    initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
     loadingScreenElement = options.loadingScreenElement === undefined ? loadingScreenElement : options.loadingScreenElement;
 
     setUserLanguage(options.supportedLanguages);
@@ -92,7 +92,7 @@ export interface IVistoOptions {
     supportedLanguages: string[];
     registerEnterKeyFix: boolean;
     defaultFrame: JQuery;
-    initialLoadingElement: JQuery;
+    initialLoadingScreenElement: JQuery;
     loadingScreenElement: string; 
 }
 
@@ -736,9 +736,9 @@ var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Ima
  * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call. 
  */
 export function showLoadingScreen(delayed?: boolean) {
-    if (initialLoadingElement !== null) {
-        initialLoadingElement.remove();
-        initialLoadingElement = null;
+    if (initialLoadingScreenElement !== null) {
+        initialLoadingScreenElement.remove();
+        initialLoadingScreenElement = null;
     }
 
     if (loadingCount === 0) {

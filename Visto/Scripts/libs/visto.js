@@ -54,7 +54,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var currentNavigationPath = "";
     var currentContext = null;
     var defaultFrame = null;
-    var initialLoadingElement = null;
+    var initialLoadingScreenElement = null;
     // ----------------------------
     // Initializer
     // ----------------------------
@@ -64,7 +64,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     function initialize(options) {
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
         defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
-        initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+        initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
         loadingScreenElement = options.loadingScreenElement === undefined ? loadingScreenElement : options.loadingScreenElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
@@ -658,9 +658,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
      */
     function showLoadingScreen(delayed) {
-        if (initialLoadingElement !== null) {
-            initialLoadingElement.remove();
-            initialLoadingElement = null;
+        if (initialLoadingScreenElement !== null) {
+            initialLoadingScreenElement.remove();
+            initialLoadingScreenElement = null;
         }
         if (loadingCount === 0) {
             if (delayed == undefined || delayed) {
