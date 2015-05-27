@@ -315,7 +315,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var urlSegments = decodeURIComponent(window.location.hash).split("/");
             if (urlSegments.length > 1) {
                 exports.isPageRestore = true;
-                showLoading(false);
+                showLoadingScreen(false);
                 var currentSegmentIndex = 1;
                 var navigateToNextSegment = function (view) {
                     var segment = urlSegments[currentSegmentIndex];
@@ -346,7 +346,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     ;
     exports.isPageRestore = false;
     function finishPageRestore(frame, view, completed) {
-        hideLoading();
+        hideLoadingScreen();
         exports.isPageRestore = false;
         var page = getCurrentPageDescription(frame);
         page.element.removeAttr("style");
@@ -372,16 +372,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         frame.append(pageContainer);
         // load currently visible page
         var currentPage = getCurrentPageDescription($(frame));
-        showLoading(currentPage !== null);
+        showLoadingScreen(currentPage !== null);
         if (currentPage !== null && currentPage !== undefined) {
             return currentPage.view.onNavigatingFrom("forward").then(function (navigate) { return tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate); }).then(function (page) {
-                hideLoading();
+                hideLoadingScreen();
                 return page;
             });
         }
         else {
             return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then(function (page) {
-                hideLoading();
+                hideLoadingScreen();
                 return page;
             });
         }
@@ -484,9 +484,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (parameters === undefined)
                 parameters = {};
             parameters[isDialogParameter] = true;
-            showLoading();
+            showLoadingScreen();
             createView(container, fullViewName, parameters).then(function (view) {
-                hideLoading();
+                hideLoadingScreen();
                 openedDialogs++;
                 showNativeDialog(container, view, parameters, function () {
                     view.onShown();
@@ -510,6 +510,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         DialogResult[DialogResult["No"] = 3] = "No";
     })(exports.DialogResult || (exports.DialogResult = {}));
     var DialogResult = exports.DialogResult;
+    /**
+     * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs).
+     */
     function showNativeDialog(container, view, parameters, onShown, onClosed) {
         var dialog = $(container.children()[0]);
         if (dialog.modal !== undefined) {
@@ -532,6 +535,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
     }
     exports.showNativeDialog = showNativeDialog;
+    /**
+     * [Replaceable] Closes the native dialog (supports Bootstrap and jQuery UI dialogs).
+     */
     function closeNativeDialog(container) {
         var dialog = $(container.children()[0]);
         if (dialog.modal !== undefined) {
@@ -640,14 +646,18 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     var loadingCount = 0;
     var loadingElement = null;
-    // Creates the loading screen element
+    /**
+     * [Replaceable] Creates the loading screen element
+     */
     function createLoadingElement() {
         return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
     }
     exports.createLoadingElement = createLoadingElement;
     ;
-    // Shows the loading screen
-    function showLoading(delayed) {
+    /**
+     * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
+     */
+    function showLoadingScreen(delayed) {
         if (initialLoadingElement !== null) {
             initialLoadingElement.remove();
             initialLoadingElement = null;
@@ -664,7 +674,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
         loadingCount++;
     }
-    exports.showLoading = showLoading;
+    exports.showLoadingScreen = showLoadingScreen;
     ;
     function appendLoadingElement() {
         if (loadingElement === null) {
@@ -672,8 +682,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             $("body").append(loadingElement);
         }
     }
-    // Hides the loading screen
-    function hideLoading() {
+    /**
+     * Hides the loading screen.
+     */
+    function hideLoadingScreen() {
         loadingCount--;
         if (loadingCount === 0) {
             if (loadingElement !== null) {
@@ -682,7 +694,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         }
     }
-    exports.hideLoading = hideLoading;
+    exports.hideLoadingScreen = hideLoadingScreen;
     ;
     // ----------------------------
     // View model

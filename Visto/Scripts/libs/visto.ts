@@ -333,7 +333,7 @@ function restorePages(frame: JQuery, fullViewName: string, parameters?: {}) {
         if (urlSegments.length > 1) {
 
             isPageRestore = true;
-            showLoading(false);
+            showLoadingScreen(false);
             var currentSegmentIndex = 1;
 
             var navigateToNextSegment = (view: ViewBase) => {
@@ -365,7 +365,7 @@ function restorePages(frame: JQuery, fullViewName: string, parameters?: {}) {
 export var isPageRestore = false;
 
 function finishPageRestore(frame: JQuery, view: ViewBase, completed: (view: ViewBase) => void) {
-    hideLoading();
+    hideLoadingScreen();
     isPageRestore = false;
 
     var page = getCurrentPageDescription(frame);
@@ -403,17 +403,17 @@ function navigateToCore(frame: JQuery, fullViewName: string, parameters: {}): Q.
 
     // load currently visible page
     var currentPage = getCurrentPageDescription($(frame));
-    showLoading(currentPage !== null);
+    showLoadingScreen(currentPage !== null);
     if (currentPage !== null && currentPage !== undefined) {
         return currentPage.view.onNavigatingFrom("forward")
             .then<PageBase>((navigate) => tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate))
             .then((page) => {
-            hideLoading();
+            hideLoadingScreen();
             return page;
         });
     } else {
         return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then((page) => {
-            hideLoading();
+            hideLoadingScreen();
             return page;
         });
     }
@@ -539,9 +539,9 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
             parameters = {};
         parameters[isDialogParameter] = true;
 
-        showLoading();
+        showLoadingScreen();
         createView(container, fullViewName, <any>parameters).then((view: DialogBase) => {
-            hideLoading();
+            hideLoadingScreen();
             openedDialogs++;
 
             showNativeDialog(container, view, parameters,
@@ -570,6 +570,9 @@ export enum DialogResult {
     No,
 }
 
+/**
+ * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs). 
+ */
 export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, parameters: { [key: string]: any }, onShown: () => void, onClosed: () => void) {
     var dialog = <any>$(container.children()[0]);
 
@@ -588,6 +591,9 @@ export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, par
     }
 }
 
+/**
+ * [Replaceable] Closes the native dialog (supports Bootstrap and jQuery UI dialogs). 
+ */
 export function closeNativeDialog(container: JQuery) {
     var dialog = <any>$(container.children()[0]);
 
@@ -716,13 +722,17 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
 var loadingCount = 0;
 var loadingElement: JQuery = null;
 
-// Creates the loading screen element
+/**
+ * [Replaceable] Creates the loading screen element
+ */
 export function createLoadingElement() {
     return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
 };
 
-// Shows the loading screen
-export function showLoading(delayed?: boolean) {
+/**
+ * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call. 
+ */
+export function showLoadingScreen(delayed?: boolean) {
     if (initialLoadingElement !== null) {
         initialLoadingElement.remove();
         initialLoadingElement = null;
@@ -748,8 +758,10 @@ function appendLoadingElement() {
     }
 }
 
-// Hides the loading screen
-export function hideLoading() {
+/**
+ * Hides the loading screen. 
+ */
+export function hideLoadingScreen() {
     loadingCount--;
     if (loadingCount === 0) {
         if (loadingElement !== null) {

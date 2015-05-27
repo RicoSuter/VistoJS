@@ -64,12 +64,12 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             var _this = this;
             if (settings.url.indexOf("://") === -1)
                 settings.url = this.currentBaseUrl + "/" + settings.url;
-            visto.showLoading();
+            visto.showLoadingScreen();
             Q($.ajax(settings)).then(function (data) {
                 _this.setHtml(data, _this.getBaseUrl(settings.url));
-                visto.hideLoading();
+                visto.hideLoadingScreen();
             }).catch(function (exception) {
-                visto.hideLoading();
+                visto.hideLoadingScreen();
                 common.alert("HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
             });
         };
