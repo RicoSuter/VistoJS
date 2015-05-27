@@ -544,6 +544,13 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
             hideLoadingScreen();
             openedDialogs++;
 
+            // Remove focus from element of the underlying page to avoid click events on enter press
+            var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+            if (focusable != null) {
+                focusable.focus();
+                focusable.blur();
+            }
+
             showNativeDialog(container, view, parameters,
                 () => { view.onShown(); },
                 () => {
