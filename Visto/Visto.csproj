@@ -60,6 +60,7 @@
     <Content Include="Content\site.css" />
     <Content Include="index.html" />
     <TypeScriptCompile Include="Scripts\app\viewModels\BindingsPageModel.ts" />
+    <TypeScriptCompile Include="Scripts\app\views\MainView.ts" />
     <TypeScriptCompile Include="Scripts\common\views\TabControl.ts" />
     <TypeScriptCompile Include="Scripts\common\main.ts" />
     <TypeScriptCompile Include="Scripts\common\viewModels\LanguageSelectorModel.ts" />
@@ -72,6 +73,9 @@
     </Content>
     <Content Include="Scripts\app\viewModels\DetailsPageModel.js">
       <DependentUpon>DetailsPageModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\app\viewModels\HomePageModel.js">
+      <DependentUpon>HomePageModel.ts</DependentUpon>
     </Content>
     <Content Include="Scripts\app\viewModels\ListPageModel.js">
       <DependentUpon>ListPageModel.ts</DependentUpon>
@@ -86,6 +90,7 @@
     <Content Include="Scripts\app\views\InternationalizationPage.html" />
     <Content Include="Scripts\app\views\ListPage.html" />
     <Content Include="Scripts\app\views\BindingsPage.html" />
+    <Content Include="Scripts\app\views\MainView.html" />
     <Content Include="Scripts\app\views\TabPage.html" />
     <Content Include="Scripts\app\views\SampleDialog.html" />
     <Content Include="Scripts\app\views\tabs\Tab1.html" />
@@ -153,16 +158,8 @@
     <Content Include="Scripts\libs\knockout.js" />
     <TypeScriptCompile Include="Scripts\app.ts" />
     <Content Include="Scripts\libs\require.js" />
-    <TypeScriptCompile Include="Scripts\app\viewModels\MainPageModel.ts" />
-    <Content Include="Scripts\app\viewModels\MainPageModel.js">
-      <DependentUpon>MainPageModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\app\viewModels\MainPageModel.min.js">
-      <DependentUpon>MainPageModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\app\views\MainPage.html" />
-    <Content Include="Scripts\app\views\PageFooter.html" />
-    <Content Include="Scripts\app\views\PageHeader.html" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\HomePageModel.ts" />
+    <Content Include="Scripts\app\views\HomePage.html" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Scripts\app\languages\de.json" />
@@ -195,11 +192,6 @@
     <None Include="web.Release.config">
       <DependentUpon>web.config</DependentUpon>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Scripts\app\viewModels\MainPageModel.js.map">
-      <DependentUpon>MainPageModel.ts</DependentUpon>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Scripts\common\viewModels\LanguageSelectorModel.js.map">

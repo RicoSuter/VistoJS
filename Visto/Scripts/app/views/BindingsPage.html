@@ -1,29 +1,23 @@
-<div>
-    <vs-page-header />
+<div class="container">
+    <h1>BindingsPage</h1>
+    <p>
+        The text of the following textbox is bound to the <code>selectedText</code> property of the <code>SampleControl</code> view.
+    </p>
 
-    <div class="container">
-        <h1>BindingsPage</h1>
-        <p>
-            The text of the following textbox is bound to the <code>selectedText</code> property of the <code>SampleControl</code> view.
-        </p>
+    <div class="form-group">
+        <label>Text</label>
+        <input vs-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control" />
+    </div>
+    <p>
+        The <code>SampleControl</code> takes the bound variable and binds it to its own input controls:
+    </p>
 
-        <div class="form-group">
-            <label>Text</label>
-            <input vs-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control"/>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            SampleControl (app)
         </div>
-        <p>
-            The <code>SampleControl</code> takes the bound variable and binds it to its own input controls:
-        </p>
-
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                SampleControl (app)
-            </div>
-            <div class="panel-body">
-                <vs-sample-control path="controls" selected-text="{selectedText}" />
-            </div>
+        <div class="panel-body">
+            <vs-sample-control path="controls" selected-text="{selectedText}" />
         </div>
     </div>
-
-    <vs-page-footer />
 </div>

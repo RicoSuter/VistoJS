@@ -28,11 +28,12 @@ var isDialogParameter = "__isDialog";
 // Declarations
 // ----------------------------
 
-// public
+// Public
 export var loadingScreenDelay = 300;
 export var isLogging = true;
+export var canNavigateBack = ko.observable(false);
 
-// variables
+// Variables
 var views: { [a: string]: ViewBase } = {};
 var viewCount = 0;
 var navigationCount = 0;
@@ -41,22 +42,24 @@ var loadedViews: { [key: string]: ILoadingView } = <any>([]);
 var isNavigating = false;
 var openedDialogs = 0;
 
-var defaultCommands = {
-    navigateBack() { return navigateBack(); },
-    navigateHome() { return navigateHome(); }
-}
-
-// internationalization variables
+// Internationalization variables
 export var language = ko.observable(null);
-export var supportedLanguages: string[] = [];
+export var supportedLanguages: string[] = <Array<any>>[];
 var previousLanguage: string = null;
 var languageStrings: { [language: string]: { [path: string]: { [key: string]: string } } } = <any>([]); 
 
-// local variables
+// Local variables
 var currentNavigationPath = "";
 var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
 var initialLoadingElement: JQuery = null;
+
+// Globals for bindings
+var globals = {
+    navigateBack() { return navigateBack(); },
+    navigateHome() { return navigateHome(); },
+    canNavigateBack: canNavigateBack
+}
 
 // ----------------------------
 // Initializer
@@ -67,7 +70,6 @@ var initialLoadingElement: JQuery = null;
  */
 export function initialize(options: IVistoOptions) {
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-    defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
     initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
 
     setUserLanguage(options.supportedLanguages);
@@ -79,18 +81,19 @@ export function initialize(options: IVistoOptions) {
         });
     }
 
-    restorePages(defaultFrame, options.defaultView);
+    createView($("body").append("<div></div>"), options.startView, options.startParameters);
 }
 
 /**
  * Interface containing the initialization options. 
  */
 export interface IVistoOptions {
-    defaultView: string;
+    startView: string;
+    startParameters: { [key: string]: any };
+
     defaultPackage: string;
     supportedLanguages: string[];
     registerEnterKeyFix: boolean;
-    defaultFrame: JQuery;
     initialLoadingElement: JQuery;
 }
 
@@ -327,7 +330,20 @@ export function addInitializer(completed: () => void) {
 /**
  * Restores the page stack on the body element as frame. 
  */
-function restorePages(frame: JQuery, fullViewName: string, parameters?: {}) {
+export function initializeDefaultFrame(frame: JQuery, viewName: string, parameters?: {}): Q.Promise<ViewBase>;
+export function initializeDefaultFrame(frame: JQuery, package: IModule, viewName: string, parameters?: {}): Q.Promise<ViewBase>;
+export function initializeDefaultFrame(frame: JQuery, a: any, b?: any, c?: any): Q.Promise<ViewBase> {
+    if (typeof a === "string")
+        return initializeDefaultFrameCore(frame, a, b);
+    else
+        return initializeDefaultFrameCore(frame, getViewName(a, b), c);
+}
+
+function initializeDefaultFrameCore(frame: JQuery, fullViewName: string, parameters?: {}) {
+    if (defaultFrame !== null)
+        throw new Error("The default frame is already initialized.");
+    defaultFrame = frame;
+
     return Q.Promise<ViewBase>((resolve, reject) => {
         var urlSegments = decodeURIComponent(window.location.hash).split("/");
         if (urlSegments.length > 1) {
@@ -460,6 +476,8 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
 
         pageStack.pop();
 
+        globals.canNavigateBack(pageStack.length > 1);
+
         currentPage.element.remove();
         previousPage.element.css("visibility", "visible");
         previousPage.element.css("position", "");
@@ -579,8 +597,8 @@ export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, par
     if (dialog.modal !== undefined) {
         // Bootstrap dialog
         dialog.modal({});
-        dialog.on("shown.bs.modal", () => { onShown(); });
-        dialog.on("hidden.bs.modal", () => { onClosed(); });
+        dialog.on("shown.bs.modal",() => { onShown(); });
+        dialog.on("hidden.bs.modal",() => { onClosed(); });
     } else {
         // JQuery UI dialog: 
         dialog.bind('dialogclose',() => {
@@ -701,6 +719,7 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
                 element: pageContainer
             });
 
+            globals.canNavigateBack(pageStack.length > 1);
             log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
 
             view.onNavigatedTo("forward");
@@ -777,7 +796,7 @@ export function hideLoadingScreen() {
 
 export class ViewModel {
     parameters: Parameters;
-    defaultCommands = defaultCommands;
+    globals = globals;
 
     private view: ViewBase;
 
@@ -854,8 +873,8 @@ export class ViewBase {
     parentView: ViewBase = null;
 
     private isDestroyed = false;
-    private subViews: ViewBase[] = [];
-    private disposables: IDisposable[] = [];
+    private subViews: ViewBase[] = <Array<any>>[];
+    private disposables: IDisposable[] = <Array<any>>[];
 
     /**
      * Enables page restoring for the current page. 
@@ -893,7 +912,7 @@ export class ViewBase {
      * Gets an element by ID (defined using the "vs-id" attribute) inside this view. 
      */
     getViewElement(id: string) {
-        return this.findElements("#" + this.viewId + "_" + id); 
+        return this.findElements("#" + this.viewId + "_" + id);
     }
 
     // event methods
@@ -943,7 +962,7 @@ export class ViewBase {
             (<View<ViewModel>>this).viewModel.destroy();
             this.destroy();
 
-            $.each(this.disposables, (index: number, item: IDisposable) => {
+            $.each(this.disposables,(index: number, item: IDisposable) => {
                 item.dispose();
             });
 
@@ -1268,7 +1287,7 @@ class ViewFactory {
 
         htmlData =
         "<!-- ko stopBinding -->" +
-        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + 
+        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") +
         "<!-- /ko -->";
 
         var container = $(document.createElement("div"));
@@ -1368,35 +1387,35 @@ class ViewFactory {
         return data
             .replace(/vs-translate="/g, "data-translate=\"")
             .replace(/vs-bind="/g, "data-bind=\"")
-            .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, (match: string, tag: string, attributes: string, close: string) => {
-                var path = "";
-                var pkg = "";
-                var bindings = "";
+            .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g,(match: string, tag: string, attributes: string, close: string) => {
+            var path = "";
+            var pkg = "";
+            var bindings = "";
 
-                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
-                    name = convertDashedToCamelCase(name.trim());
-                    if (name === "path")
-                        path = value;
-                    else if (name === "package")
-                        pkg = value;
-                    else if (startsWith(value, "{") && endsWith(value, "}")) {
-                        value = value.substr(1, value.length - 2);
-                        if (value.indexOf("(") > -1)
-                            value = "ko.computed(function () { return " + value + "; })";
-                        bindings += name + ": " + value + ", ";
-                    }
-                    else
-                        bindings += name + ": '" + value + "', ";
-                    return match;
-                });
-
-                var view = convertDashedToCamelCase(tag);
-                view = view[0].toUpperCase() + view.substr(1);
-                view = path === "" ? view : path + "/" + view;
-
-                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-                return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+            attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
+                name = convertDashedToCamelCase(name.trim());
+                if (name === "path")
+                    path = value;
+                else if (name === "package")
+                    pkg = value;
+                else if (startsWith(value, "{") && endsWith(value, "}")) {
+                    value = value.substr(1, value.length - 2);
+                    if (value.indexOf("(") > -1)
+                        value = "ko.computed(function () { return " + value + "; })";
+                    bindings += name + ": " + value + ", ";
+                }
+                else
+                    bindings += name + ": '" + value + "', ";
+                return match;
             });
+
+            var view = convertDashedToCamelCase(tag);
+            view = view[0].toUpperCase() + view.substr(1);
+            view = path === "" ? view : path + "/" + view;
+
+            bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+            return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+        });
     }
 
     // ReSharper disable InconsistentNaming
@@ -1414,8 +1433,8 @@ class ViewFactory {
 }
 
 class ViewContext {
-    factories: ViewFactory[] = [];
-    initializers: (() => void)[] = [];
+    factories: ViewFactory[] = <Array<any>>[];
+    initializers: (() => void)[] = <Array<any>>[];
 
     rootPackage = defaultPackage;
     rootView: ViewBase = null;
@@ -1442,7 +1461,7 @@ class ViewContext {
                     this.loadedViewCount++;
                     if (this.loadedViewCount === this.viewCount) {
                         this.loadedViewCount = 0;
-                        $.each(this.factories, (index: number, context: ViewFactory) => {
+                        $.each(this.factories,(index: number, context: ViewFactory) => {
                             context.viewModel.onLoading().then(() => {
                                 this.loadedViewCount++;
                                 if (this.loadedViewCount === this.viewCount) {

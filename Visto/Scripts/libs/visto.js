@@ -26,10 +26,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // Declarations
     // ----------------------------
-    // public
+    // Public
     exports.loadingScreenDelay = 300;
     exports.isLogging = true;
-    // variables
+    exports.canNavigateBack = ko.observable(false);
+    // Variables
     var views = {};
     var viewCount = 0;
     var navigationCount = 0;
@@ -37,24 +38,26 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var loadedViews = ([]);
     var isNavigating = false;
     var openedDialogs = 0;
-    var defaultCommands = {
+    // Internationalization variables
+    exports.language = ko.observable(null);
+    exports.supportedLanguages = [];
+    var previousLanguage = null;
+    var languageStrings = ([]);
+    // Local variables
+    var currentNavigationPath = "";
+    var currentContext = null;
+    var defaultFrame = null;
+    var initialLoadingElement = null;
+    // Globals for bindings
+    var globals = {
         navigateBack: function () {
             return navigateBack();
         },
         navigateHome: function () {
             return navigateHome();
-        }
+        },
+        canNavigateBack: exports.canNavigateBack
     };
-    // internationalization variables
-    exports.language = ko.observable(null);
-    exports.supportedLanguages = [];
-    var previousLanguage = null;
-    var languageStrings = ([]);
-    // local variables
-    var currentNavigationPath = "";
-    var currentContext = null;
-    var defaultFrame = null;
-    var initialLoadingElement = null;
     // ----------------------------
     // Initializer
     // ----------------------------
@@ -63,7 +66,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function initialize(options) {
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-        defaultFrame = options.defaultFrame === undefined ? $("body") : options.defaultFrame;
         initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
@@ -72,7 +74,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     ev.preventDefault();
             });
         }
-        restorePages(defaultFrame, options.defaultView);
+        createView($("body").append("<div></div>"), options.startView, options.startParameters);
     }
     exports.initialize = initialize;
     // ----------------------------
@@ -304,13 +306,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     }
     exports.addInitializer = addInitializer;
     ;
-    // ----------------------------
-    // Page stack handling
-    // ----------------------------
-    /**
-     * Restores the page stack on the body element as frame.
-     */
-    function restorePages(frame, fullViewName, parameters) {
+    function initializeDefaultFrame(frame, a, b, c) {
+        if (typeof a === "string")
+            return initializeDefaultFrameCore(frame, a, b);
+        else
+            return initializeDefaultFrameCore(frame, getViewName(a, b), c);
+    }
+    exports.initializeDefaultFrame = initializeDefaultFrame;
+    function initializeDefaultFrameCore(frame, fullViewName, parameters) {
+        if (defaultFrame !== null)
+            throw new Error("The default frame is already initialized.");
+        defaultFrame = frame;
         return Q.Promise(function (resolve, reject) {
             var urlSegments = decodeURIComponent(window.location.hash).split("/");
             if (urlSegments.length > 1) {
@@ -424,6 +430,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var previousPage = pageStack[pageStack.length - 2];
             currentPage.view.__destroyView();
             pageStack.pop();
+            globals.canNavigateBack(pageStack.length > 1);
             currentPage.element.remove();
             previousPage.element.css("visibility", "visible");
             previousPage.element.css("position", "");
@@ -629,6 +636,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     hash: ++navigationCount,
                     element: pageContainer
                 });
+                globals.canNavigateBack(pageStack.length > 1);
                 log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
                 view.onNavigatedTo("forward");
                 if (currentPage !== null && currentPage !== undefined)
@@ -701,7 +709,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     var ViewModel = (function () {
         function ViewModel(view, parameters) {
-            this.defaultCommands = defaultCommands;
+            this.globals = globals;
             this.view = view;
             this.parameters = parameters;
         }

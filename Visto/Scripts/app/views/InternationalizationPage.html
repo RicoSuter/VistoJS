@@ -1,24 +1,18 @@
-﻿<div>
-    <vs-page-header />
-
-    <div class="container">
-        <h1>InternationalizationPage</h1>
-        <p>
-            The following text is translated using the <code>data-translate</code> attribute:
-            <div vs-translate="translatedText" class="alert alert-success"></div>
-        </p>
-        <p>
-            The current langauge can be changed using the <code>LanguageSelector</code> control:
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    LanguageSelector (common)
-                </div>
-                <div class="panel-body">
-                    <vs-language-selector package="common" test="test" />
-                </div>
+﻿<div class="container">
+    <h1>InternationalizationPage</h1>
+    <p>
+        The following text is translated using the <code>data-translate</code> attribute:
+        <div vs-translate="translatedText" class="alert alert-success"></div>
+    </p>
+    <p>
+        The current langauge can be changed using the <code>LanguageSelector</code> control:
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                LanguageSelector (common)
             </div>
-        </p>
-    </div>
-
-    <vs-page-footer />
+            <div class="panel-body">
+                <vs-language-selector package="common" test="test" />
+            </div>
+        </div>
+    </p>
 </div>

@@ -1,0 +1,28 @@
+﻿<div>
+    <!-- Header -->
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <button vs-bind="click: globals.navigateBack, css: { disabled: globals.canNavigateBack() === false }" 
+                    class="btn btn-default navbar-btn">
+                <span class="glyphicon glyphicon-chevron-left"></span>
+            </button>
+            <button vs-bind="click: globals.navigateHome, css: { disabled: globals.canNavigateBack() === false }" 
+                    class="btn btn-default navbar-btn">
+                Home
+            </button>
+            <a href="https://github.com/VistoJS/Core" class="btn btn-default navbar-btn">Visto JavaScript Framework Website</a>
+        </div>
+    </nav>
+
+    <!-- Frame -->
+    <div vs-id="frame"></div>
+
+    <!-- Footer -->
+    <nav class="navbar navbar-default navbar-fixed-bottom">
+        <div class="container">
+            <p>
+                <small>The source code of this application can be found on <a href="https://github.com/VistoJS/Core">GitHub</a>. </small>
+            </p>
+        </div>
+    </nav>
+</div>

@@ -2,7 +2,7 @@ import visto = require("libs/visto");
 import common = require("common/main");
 import package = require("module");
 
-export class MainPageModel extends visto.ViewModel {
+export class HomePageModel extends visto.ViewModel {
     initialize() {
         this.enablePageRestore();
     }

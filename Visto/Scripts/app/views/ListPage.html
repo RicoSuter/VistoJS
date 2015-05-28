@@ -1,36 +1,30 @@
-﻿<div>
-    <vs-page-header />
+﻿<div class="container">
+    <h1>ListPage</h1>
+    <p>
+        <button vs-bind="click: addItem" class="btn btn-default">Add item</button>
+    </p>
+    <table class="table table-striped table-hover">
+        <tr>
+            <th style="width: auto">Items</th>
+            <th style="width: 150px">&nbsp;</th>
+        </tr>
 
-    <div class="container">
-        <h1>ListPage</h1>
-        <p>
-            <button vs-bind="click: addItem" class="btn btn-default">Add item</button>
-        </p>
-        <table class="table table-striped table-hover">
-            <tr>
-                <th style="width: auto">Items</th>
-                <th style="width: 150px">&nbsp;</th>
-            </tr>
+        <!-- ko foreach: items -->
+        <tr>
+            <td>
+                <a vs-bind="click: $parent.showItem, text: title" href="#"></a>
+            </td>
+            <td style="text-align: right">
+                <button vs-bind="click: $root.deleteItem.bind($root, $data)" class="btn btn-default">Delete</button>
+            </td>
+        </tr>
+        <!-- /ko -->
 
-            <!-- ko foreach: items -->
-            <tr>
-                <td>
-                    <a vs-bind="click: $parent.showItem, text: title" href="#"></a>
-                </td>
-                <td style="text-align: right">
-                    <button vs-bind="click: $root.deleteItem.bind($root, $data)" class="btn btn-default">Delete</button>
-                </td>
-            </tr>
-            <!-- /ko -->
-
-            <tr vs-bind="visible: items().length == 0 && !isLoading()">
-                <td colspan="2">There are currently no items.</td>
-            </tr>
-            <tr vs-bind="visible: items().length == 0 && isLoading()">
-                <td colspan="2">Loading...</td>
-            </tr>
-        </table>
-    </div>
-
-    <vs-page-footer />
+        <tr vs-bind="visible: items().length == 0 && !isLoading()">
+            <td colspan="2">There are currently no items.</td>
+        </tr>
+        <tr vs-bind="visible: items().length == 0 && isLoading()">
+            <td colspan="2">Loading...</td>
+        </tr>
+    </table>
 </div>

@@ -1,6 +1,6 @@
 import visto = require("libs/visto");
 
 visto.initialize(<visto.IVistoOptions>{
-    defaultView: "MainPage",
+    startView: "MainView",
     supportedLanguages: ["en", "de"]
 });
