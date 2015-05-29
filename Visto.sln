@@ -7,6 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Visto", "Visto\Visto.csproj
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{29DB8B5C-81D0-40C1-812D-69479EF444EA}"
 	ProjectSection(SolutionItems) = preProject
+		NuGet\MainView.html = NuGet\MainView.html
 		NuGet\VistoJS.Complete.nuspec = NuGet\VistoJS.Complete.nuspec
 		NuGet\VistoJS.Complete_install.ps1 = NuGet\VistoJS.Complete_install.ps1
 		NuGet\VistoJS.nuspec = NuGet\VistoJS.nuspec

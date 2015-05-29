@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>VistoJS.Complete</id>
-        <version>2.0.0.0</version>
+        <version>2.0.1.0</version>
         <title>VistoJS.Complete</title>
         <authors>Rico Suter</authors>
         <owners>Rico Suter</owners>
@@ -21,6 +21,9 @@
         <file src="..\Visto\Content\Images\loading.gif" target="content\Content\Images\loading.gif" />
         <file src="..\Visto\Content\site.css" target="content\Content\site.css" />        
         <file src="..\Visto\Scripts\app.ts" target="content\Scripts\app.ts" />
+        
+        <file src="..\Visto\Scripts\app\views\MainView.ts" target="content\Scripts\app\views\MainView.ts" />
+        <file src="MainView.html" target="content\Scripts\app\views\MainView.html" />
 
         <file src="VistoJS.Complete_install.ps1" target="tools\install.ps1" />
     </files>
