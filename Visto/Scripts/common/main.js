@@ -8,7 +8,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             buttonCollection.push({
                 label: "Yes",
                 click: function (dialog) {
-                    dialog.close(2 /* Yes */);
+                    dialog.close(3 /* Yes */);
                 }
             });
         }
@@ -16,7 +16,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             buttonCollection.push({
                 label: "No",
                 click: function (dialog) {
-                    dialog.close(3 /* No */);
+                    dialog.close(4 /* No */);
                 }
             });
         }
@@ -24,7 +24,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             buttonCollection.push({
                 label: "OK",
                 click: function (dialog) {
-                    dialog.close(0 /* Ok */);
+                    dialog.close(1 /* Ok */);
                 }
             });
         }
@@ -32,7 +32,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             buttonCollection.push({
                 label: "Cancel",
                 click: function (dialog) {
-                    dialog.close(1 /* Cancel */);
+                    dialog.close(2 /* Cancel */);
                 }
             });
         }
@@ -112,7 +112,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             output: output,
             title: title
         }).then(function (dialog) {
-            if (dialog.result === 0 /* Ok */)
+            if (dialog.result === 1 /* Ok */)
                 return output();
             else
                 return null;
@@ -131,7 +131,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             selectedItem: selectedItem,
             optionsText: optionsText
         }).then(function (dialog) {
-            if (dialog.result === 0 /* Ok */)
+            if (dialog.result === 1 /* Ok */)
                 return dialog.viewModel.selectedItem();
             else
                 return null;

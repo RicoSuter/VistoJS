@@ -72,6 +72,9 @@
     <Content Include="Scripts\app.js">
       <DependentUpon>app.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\app\viewModels\BindingsPageModel.js">
+      <DependentUpon>BindingsPageModel.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\app\viewModels\DetailsPageModel.js">
       <DependentUpon>DetailsPageModel.ts</DependentUpon>
     </Content>
@@ -81,23 +84,26 @@
     <Content Include="Scripts\app\viewModels\ListPageModel.js">
       <DependentUpon>ListPageModel.ts</DependentUpon>
     </Content>
-    <Content Include="Scripts\app\viewModels\MainPageModel - Copy.js">
-      <DependentUpon>BindingsPageModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\app\viewModels\MainPageModel - Copy.min.js">
-      <DependentUpon>BindingsPageModel.ts</DependentUpon>
+    <Content Include="Scripts\app\viewModels\RecursivePageModel.js">
+      <DependentUpon>RecursivePageModel.ts</DependentUpon>
     </Content>
     <Content Include="Scripts\app\views\DetailsPage.html" />
     <Content Include="Scripts\app\views\InternationalizationPage.html" />
     <Content Include="Scripts\app\views\ListPage.html" />
     <Content Include="Scripts\app\views\BindingsPage.html" />
     <Content Include="Scripts\app\views\MainView.html" />
+    <Content Include="Scripts\app\views\MainView.js">
+      <DependentUpon>MainView.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\app\views\RecursivePage.html" />
     <Content Include="Scripts\app\views\TabPage.html" />
     <Content Include="Scripts\app\views\SampleDialog.html" />
     <Content Include="Scripts\app\views\tabs\Tab1.html" />
     <Content Include="Scripts\app\views\tabs\Tab2.html" />
     <Content Include="Scripts\app\views\WebViewPage.html" />
+    <Content Include="Scripts\common\views\TabControl.js">
+      <DependentUpon>TabControl.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\libs\q.min.js" />
     <Content Include="Scripts\libs\visto.js">
       <DependentUpon>visto.ts</DependentUpon>
@@ -108,9 +114,6 @@
     <Content Include="Scripts\common\viewModels\dialogs\ConfirmModel.js">
       <DependentUpon>ConfirmModel.ts</DependentUpon>
     </Content>
-    <Content Include="Scripts\common\viewModels\dialogs\ConfirmModel.min.js">
-      <DependentUpon>ConfirmModel.ts</DependentUpon>
-    </Content>
     <Content Include="Scripts\common\viewModels\dialogs\ListPickerModel.js">
       <DependentUpon>ListPickerModel.ts</DependentUpon>
     </Content>
@@ -118,21 +121,12 @@
     <Content Include="Scripts\common\viewModels\dialogs\PromptModel.js">
       <DependentUpon>PromptModel.ts</DependentUpon>
     </Content>
-    <Content Include="Scripts\common\viewModels\dialogs\PromptModel.min.js">
-      <DependentUpon>PromptModel.ts</DependentUpon>
-    </Content>
     <Content Include="Scripts\common\viewModels\LanguageSelectorModel.js">
-      <DependentUpon>LanguageSelectorModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\common\viewModels\LanguageSelectorModel.min.js">
       <DependentUpon>LanguageSelectorModel.ts</DependentUpon>
     </Content>
     <TypeScriptCompile Include="Scripts\common\views\dialogs\Prompt.ts" />
     <TypeScriptCompile Include="Scripts\app\viewModels\controls\SampleControlModel.ts" />
     <Content Include="Scripts\app\viewModels\controls\SampleControlModel.js">
-      <DependentUpon>SampleControlModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\app\viewModels\controls\SampleControlModel.min.js">
       <DependentUpon>SampleControlModel.ts</DependentUpon>
     </Content>
     <Content Include="Scripts\common\viewModels\TabControlModel.js">
@@ -142,9 +136,6 @@
     <Content Include="Scripts\common\views\dialogs\ListPicker.html" />
     <Content Include="Scripts\common\views\dialogs\ProgressDialog.html" />
     <Content Include="Scripts\common\views\dialogs\Prompt.js">
-      <DependentUpon>Prompt.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\common\views\dialogs\Prompt.min.js">
       <DependentUpon>Prompt.ts</DependentUpon>
     </Content>
     <Content Include="Scripts\common\views\dialogs\Confirm.html" />
@@ -184,37 +175,12 @@
     <Content Include="Content\Static\a.html" />
     <Content Include="Content\Static\b.html" />
     <Content Include="web.config" />
-    <Content Include="Scripts\app\viewModels\MainPageModel - Copy.js.map">
-      <DependentUpon>BindingsPageModel.ts</DependentUpon>
-    </Content>
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>
     <None Include="web.Release.config">
       <DependentUpon>web.config</DependentUpon>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Scripts\common\viewModels\LanguageSelectorModel.js.map">
-      <DependentUpon>LanguageSelectorModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\common\viewModels\dialogs\PromptModel.js.map">
-      <DependentUpon>PromptModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\common\views\dialogs\Prompt.js.map">
-      <DependentUpon>Prompt.ts</DependentUpon>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Scripts\app\viewModels\controls\SampleControlModel.js.map">
-      <DependentUpon>SampleControlModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\common\viewModels\dialogs\ConfirmModel.js.map">
-      <DependentUpon>ConfirmModel.ts</DependentUpon>
-    </Content>
-    <Content Include="Scripts\common\main.js.map">
-      <DependentUpon>main.ts</DependentUpon>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

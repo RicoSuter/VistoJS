@@ -14,10 +14,10 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         Prompt.prototype.initialize = function () {
             var _this = this;
             this.viewModel.onOkClicked = function () {
-                _this.close(0 /* Ok */);
+                _this.close(1 /* Ok */);
             };
             this.viewModel.onCancelClicked = function () {
-                _this.close(1 /* Cancel */);
+                _this.close(2 /* Cancel */);
             };
         };
         Prompt.prototype.onLoaded = function () {
@@ -25,7 +25,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             var input = this.getViewElement("input");
             input.keypress(function (e) {
                 if (e.which === 13)
-                    _this.close(0 /* Ok */);
+                    _this.close(1 /* Ok */);
             });
         };
         Prompt.prototype.onShown = function () {
