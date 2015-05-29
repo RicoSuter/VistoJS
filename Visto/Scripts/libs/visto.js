@@ -29,6 +29,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.loadingScreenDelay = 300;
     exports.isLogging = true;
     exports.canNavigateBack = ko.observable(false);
+    exports.pageStackSize = ko.observable(0);
     // Variables
     var views = {};
     var viewCount = 0;
@@ -55,7 +56,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         navigateHome: function () {
             return navigateHome();
         },
-        canNavigateBack: exports.canNavigateBack
+        canNavigateBack: exports.canNavigateBack,
+        pageStackSize: exports.pageStackSize
     };
     // ----------------------------
     // Initializer
@@ -430,6 +432,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             currentPage.view.__destroyView();
             pageStack.pop();
             globals.canNavigateBack(pageStack.length > 1);
+            globals.pageStackSize(pageStack.length);
             currentPage.element.remove();
             previousPage.element.css("visibility", "visible");
             previousPage.element.css("position", "");
@@ -642,6 +645,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     element: pageContainer
                 });
                 globals.canNavigateBack(pageStack.length > 1);
+                globals.pageStackSize(pageStack.length);
                 log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
                 view.onNavigatedTo("forward");
                 if (currentPage !== null && currentPage !== undefined)

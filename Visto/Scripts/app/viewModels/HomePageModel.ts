@@ -11,6 +11,10 @@ export class HomePageModel extends visto.ViewModel {
         visto.navigateTo(package, "BindingsPage");
     }
 
+    navigateToRecursivePage() {
+        visto.navigateTo(package, "RecursivePage");
+    }
+
     navigateToInternationalization() {
         visto.navigateTo(package, "InternationalizationPage");
     }

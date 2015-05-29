@@ -25,11 +25,12 @@ export class ListPageModel extends visto.ViewModel {
 
     addItem() {
         common.prompt("Add Item", "Please enter the item name: ", "").then(title => {
-            if (title !== null)
+            if (title !== null) {
                 this.items.push({
                     id: (Math.floor(Math.random() * 4294967296) + 1),
                     title: title
                 });
+            }
         });
     }
 

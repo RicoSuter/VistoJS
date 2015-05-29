@@ -31,6 +31,7 @@ var isDialogParameter = "__isDialog";
 export var loadingScreenDelay = 300;
 export var isLogging = true;
 export var canNavigateBack = ko.observable(false);
+export var pageStackSize = ko.observable(0);
 
 // Variables
 var views: { [a: string]: ViewBase } = {};
@@ -57,7 +58,8 @@ var initialLoadingScreenElement: JQuery = null;
 var globals = {
     navigateBack() { return navigateBack(); },
     navigateHome() { return navigateHome(); },
-    canNavigateBack: canNavigateBack
+    canNavigateBack: canNavigateBack,
+    pageStackSize: pageStackSize
 }
 
 // ----------------------------
@@ -478,6 +480,7 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
         pageStack.pop();
 
         globals.canNavigateBack(pageStack.length > 1);
+        globals.pageStackSize(pageStack.length);
 
         currentPage.element.remove();
         previousPage.element.css("visibility", "visible");
@@ -728,6 +731,8 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
             });
 
             globals.canNavigateBack(pageStack.length > 1);
+            globals.pageStackSize(pageStack.length);
+
             log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
 
             view.onNavigatedTo("forward");

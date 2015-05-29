@@ -16,6 +16,9 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
         HomePageModel.prototype.navigateToBindings = function () {
             visto.navigateTo(package, "BindingsPage");
         };
+        HomePageModel.prototype.navigateToRecursivePage = function () {
+            visto.navigateTo(package, "RecursivePage");
+        };
         HomePageModel.prototype.navigateToInternationalization = function () {
             visto.navigateTo(package, "InternationalizationPage");
         };
