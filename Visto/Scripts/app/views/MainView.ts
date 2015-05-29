@@ -2,8 +2,8 @@
 import package = require("module");
 
 export class MainView extends visto.ViewBase {
-    onLoaded() {
+    onLoading() {
         var frame = this.getViewElement("frame"); 
-        visto.initializeDefaultFrame(frame, package, "HomePage");
+        return visto.initializeDefaultFrame(frame, package, "HomePage");
     }
 } 

@@ -18,7 +18,7 @@ export import __hashchange = require("libs/hashchange");
 
 var viewIdAttribute = "visto-view-id";
 var pageStackAttribute = "page-stack";
-var lazySubviewLoadingOption = "lazySubviewLoading";
+var lazyViewLoadingOption = "lazyLoading";
 var defaultPackage = "app";
 var isPageParameter = "__isPage";
 var isDialogParameter = "__isDialog";
@@ -870,7 +870,10 @@ export class ViewBase {
     viewClass: string;
     viewPackage: string;
 
-    element: JQuery;
+    /**
+     * Gets the view element which originally was the custom tag (not available in ctor, initialize() and onLoading()). 
+     */
+    element: JQuery; 
     parameters: Parameters;
     parentView: ViewBase = null;
 
@@ -930,8 +933,8 @@ export class ViewBase {
      * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
      * The callback() must be called when the work has been performed.
      */
-    onLoading(): Q.Promise<void> {
-        return Q<void>(null);
+    onLoading<T>(): Q.Promise<T> {
+        return Q<T>(null);
     }
 
     /**
@@ -1177,6 +1180,7 @@ export function createView(element: JQuery, fullViewName: string, parameters: { 
 
 class ViewFactory {
     element: JQuery;
+    rootElement: JQuery;
     parameters: Parameters;
 
     viewId: string;
@@ -1191,8 +1195,6 @@ class ViewFactory {
 
     view: ViewBase;
     viewModel: ViewModel;
-
-    rootElement: HTMLElement;
 
     completed: (view: ViewBase) => void;
 
@@ -1215,7 +1217,7 @@ class ViewFactory {
         this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
         this.parameters = new Parameters(parameters, element);
 
-        var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
+        var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (!lazySubviewLoading)
             this.context.viewCount++;
 
@@ -1295,11 +1297,11 @@ class ViewFactory {
         var container = $(document.createElement("div"));
         container.html(htmlData);
 
-        this.rootElement = container.children()[0];
+        this.rootElement = $(container.children()[0]);
         this.element.attr(viewIdAttribute, this.viewId);
 
         if (language() !== null)
-            replaceLanguageStrings($(this.rootElement), this.viewLocator.package);
+            replaceLanguageStrings(this.rootElement, this.viewLocator.package);
 
         this.view = this.instantiateView();
         this.viewModel = this.instantiateViewModel(this.view);
@@ -1311,10 +1313,10 @@ class ViewFactory {
         if (this.isRootView)
             this.context.restoreQuery = this.parameters.getRestoreQuery();
 
-        var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
+        var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (lazySubviewLoading) {
             this.__setHtml();
-            ko.applyBindings(this.viewModel, this.rootElement);
+            ko.applyBindings(this.viewModel, this.rootElement.get(0));
             this.__raiseLoadedEvents();
         } else {
             this.context.factories.push(this);
@@ -1328,7 +1330,7 @@ class ViewFactory {
             this.context.parentPackage = this.viewLocator.package;
 
             currentContext = this.context;
-            ko.applyBindings(this.viewModel, this.rootElement);
+            ko.applyBindings(this.viewModel, this.rootElement.get(0));
             currentContext = null;
 
             this.context.loaded();
@@ -1353,7 +1355,7 @@ class ViewFactory {
                 view = new View();
         }
 
-        view.element = this.element;
+        view.element = this.rootElement;
         view.viewId = this.viewId;
 
         view.viewName = this.viewLocator.name;

@@ -10,9 +10,9 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
         function MainView() {
             _super.apply(this, arguments);
         }
-        MainView.prototype.onLoaded = function () {
+        MainView.prototype.onLoading = function () {
             var frame = this.getViewElement("frame");
-            visto.initializeDefaultFrame(frame, package, "HomePage");
+            return visto.initializeDefaultFrame(frame, package, "HomePage");
         };
         return MainView;
     })(visto.ViewBase);

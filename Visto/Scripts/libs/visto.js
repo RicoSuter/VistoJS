@@ -18,7 +18,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     var viewIdAttribute = "visto-view-id";
     var pageStackAttribute = "page-stack";
-    var lazySubviewLoadingOption = "lazySubviewLoading";
+    var lazyViewLoadingOption = "lazyLoading";
     var defaultPackage = "app";
     var isPageParameter = "__isPage";
     var isDialogParameter = "__isDialog";
@@ -1065,7 +1065,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
             this.parameters = new Parameters(parameters, element);
-            var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
+            var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (!lazySubviewLoading)
                 this.context.viewCount++;
             this.loadScriptsAndLanguageFile();
@@ -1134,10 +1134,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             htmlData = "<!-- ko stopBinding -->" + htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + "<!-- /ko -->";
             var container = $(document.createElement("div"));
             container.html(htmlData);
-            this.rootElement = container.children()[0];
+            this.rootElement = $(container.children()[0]);
             this.element.attr(viewIdAttribute, this.viewId);
             if (exports.language() !== null)
-                replaceLanguageStrings($(this.rootElement), this.viewLocator.package);
+                replaceLanguageStrings(this.rootElement, this.viewLocator.package);
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
             // initialize and retrieve restore query
@@ -1145,10 +1145,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.viewModel.initialize(this.parameters);
             if (this.isRootView)
                 this.context.restoreQuery = this.parameters.getRestoreQuery();
-            var lazySubviewLoading = this.parameters.getBoolean(lazySubviewLoadingOption, false);
+            var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (lazySubviewLoading) {
                 this.__setHtml();
-                ko.applyBindings(this.viewModel, this.rootElement);
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
                 this.__raiseLoadedEvents();
             }
             else {
@@ -1160,7 +1160,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.context.parentView = this.view;
                 this.context.parentPackage = this.viewLocator.package;
                 currentContext = this.context;
-                ko.applyBindings(this.viewModel, this.rootElement);
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
                 currentContext = null;
                 this.context.loaded();
             }
@@ -1180,7 +1180,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else
                     view = new View();
             }
-            view.element = this.element;
+            view.element = this.rootElement;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;
             view.viewClass = this.viewLocator.className;
