@@ -42,18 +42,24 @@ The Visto JavaScript Library is designed to be used with [TypeScript](http://www
 
 To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open `Visto/index.html` to execute the sample project in your browser. Open the Visual Studio solution `Visto.sln` to start developing on the sample application (TypeScript must be installed). 
 
-The "common" package provides some reusable controls and views. The package is not required to use the Visto JavaScript Library. 
+The ["common" package](https://github.com/VistoJS/Core/wiki/common-Package) provides some reusable controls and views. The package is not required to use the Visto JavaScript Library. Some methods and views in this package require the [Bootstrap](http://getbootstrap.com) UI framework.
 
-**Important:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (`Documents\IISExpress\config\...`) configuration: 
-
-    <mimeMap fileExtension=".json" mimeType="application/json" />
-    
 ## Installation
 
 1. Install [TypeScript 1.4 for Visual Studio 2013](https://visualstudiogallery.msdn.microsoft.com/2d42d8dc-e085-45eb-a30b-3f7d50d55304)
 2. Create a new, empty ASP.NET web project with TypeScript support
-3. Edit project properties, go to the "TypeScript Build" section and set the "Module system" to "AMD" 
-4. Install the NuGet package [VistoJS.Complete](http://www.nuget.org/packages/VistoJS.Complete/)
+3. Edit project properties, go to the "TypeScript Build" section and 
+    - Disable "Allow implicit 'any' types"
+    - Set the "Module system" to "AMD" 
+4. Install the NuGet package [VistoJS.Complete](http://www.nuget.org/packages/VistoJS.Complete/) or [VistoJS](http://www.nuget.org/packages/VistoJS/)
+5. Add the following configuration to your `Web.config` so that JSON files are correctly served: 
+
+        <system.webServer>
+            <staticContent>
+                <remove fileExtension=".json" />
+                <mimeMap fileExtension=".json" mimeType="application/json" />
+            </staticContent>
+        </system.webServer>
 
 ## Final notes
 
