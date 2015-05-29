@@ -56,6 +56,14 @@ The "common" package provides some reusable controls and views. The package is n
     - Disable "Allow implicit 'any' types"
     - Set the "Module system" to "AMD" 
 4. Install the NuGet package [VistoJS.Complete](http://www.nuget.org/packages/VistoJS.Complete/) or [VistoJS](http://www.nuget.org/packages/VistoJS/)
+5. Add the following configuration to your `Web.config` so that JSON files are correctly served: 
+
+        <system.webServer>
+            <staticContent>
+                <remove fileExtension=".json" />
+                <mimeMap fileExtension=".json" mimeType="application/json" />
+            </staticContent>
+        </system.webServer>
 
 ## Final notes
 
