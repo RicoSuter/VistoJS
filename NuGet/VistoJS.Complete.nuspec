@@ -22,10 +22,6 @@
         <file src="..\Visto\Content\site.css" target="content\Content\site.css" />        
         <file src="..\Visto\Scripts\app.ts" target="content\Scripts\app.ts" />
 
-        <!-- bootstrap -->
-        <file src="..\Visto\Scripts\libs\bootstrap.min.js" target="content\Scripts\libs\bootstrap.min.js" />
-        <file src="..\Visto\Content\bootstrap.min.css" target="content\Content\bootstrap.min.css" />
-
         <file src="VistoJS.Complete_install.ps1" target="tools\install.ps1" />
     </files>
 </package>
