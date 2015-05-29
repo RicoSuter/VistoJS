@@ -1,4 +1,7 @@
-<span>
-    <span vs-translate="labelLanguage"></span>
-	<select vs-bind="options: supportedLanguages, value: language" style="width: 50px"></select>
-</span>
+<div class="form-inline">
+    <div class="form-group">
+        <label vs-translate="labelLanguage"></label>
+        <select vs-bind="options: supportedLanguages, value: language"
+                class="form-control"></select>
+    </div>
+</div>
