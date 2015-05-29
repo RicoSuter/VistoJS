@@ -24,7 +24,7 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
     - The browser history is correctly handled and the page stack can be restored from an URL
 - More maintainable and understandable code by **enforcing structure and conventions**
     - The resulting application is component based
-    - Application areas can be grouped in packages
+    - Views can be grouped into [packages](https://github.com/VistoJS/Core/wiki/Package)
 - Support for [declarative UI internationalization](https://github.com/VistoJS/Core/wiki/Internationalization)
     - Declaratively translate your UI with the `vs-translate` attribute which automatically updates the UI when the language changes
     - "Language bindings" can also be programmatically used in code
