@@ -1,12 +1,14 @@
 # Visto JavaScript Framework (VistoJS)
 
-The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework to implement single-page Web applications. The framework integrates [KnockoutJS](http://knockoutjs.com), [JQuery](http://jquery.com),  [RequireJS](http://www.requirejs.org), [Q promises](https://github.com/kriskowal/q) and [TypeScript](http://www.typescriptlang.org) to provide a clean, convention-based MVVM programming model inspired by .NET/XAML: Implement views with bindings to view models and "code-behind" classes, declaratively load sub views in HTML with custom tags or navigate between pages in a stack-based frame. 
+The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework to implement single-page Web applications. The framework integrates [KnockoutJS](http://knockoutjs.com), [JQuery](http://jquery.com),  [RequireJS](http://www.requirejs.org), [Q promises](https://github.com/kriskowal/q) and [TypeScript](http://www.typescriptlang.org) to provide a clean, convention-based MVVM programming model inspired by .NET/XAML: Implement views with "code-behind" classes and bindings to view models, declaratively load sub views in HTML with custom tags or navigate between pages in a stack-based frame. 
 
 - [Introduction to the Visto JavaScript Framework](https://github.com/VistoJS/Core/wiki/Introduction)
 
 - [Framework and API documentation](https://github.com/VistoJS/Core/wiki)
 
-- [Demo application](https://rawgit.com/VistoJS/Core/master/Visto/index.html) (based on the latest source code)
+- [Demo application](https://rawgit.com/VistoJS/Core/master/Visto/index.html) (based on the [latest source code](https://github.com/VistoJS/Core/tree/master/Visto))
+
+(This project has originally been hosted on [CodePlex](http://visto.codeplex.com/))
 
 ## Features
 
