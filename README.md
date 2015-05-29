@@ -26,7 +26,7 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
     - "Language bindings" can also be programmatically used in code
 - Visto.js file size is 30kb minimized (54kb debug)
 
-## Dependencies and used technologies
+## Dependencies and used libraries
 
 The framework depends on the following 3rd party ilbraries: 
 
