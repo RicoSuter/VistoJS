@@ -52,7 +52,9 @@ The "common" package provides some reusable controls and views. The package is n
 
 1. Install [TypeScript 1.4 for Visual Studio 2013](https://visualstudiogallery.msdn.microsoft.com/2d42d8dc-e085-45eb-a30b-3f7d50d55304)
 2. Create a new, empty ASP.NET web project with TypeScript support
-3. Edit project properties, go to the "TypeScript Build" section and set the "Module system" to "AMD" 
+3. Edit project properties, go to the "TypeScript Build" section and 
+    - Disable "Allow implicit 'any' types"
+    - Set the "Module system" to "AMD" 
 4. Install the NuGet package [VistoJS.Complete](http://www.nuget.org/packages/VistoJS.Complete/) or [VistoJS](http://www.nuget.org/packages/VistoJS/)
 
 ## Final notes
