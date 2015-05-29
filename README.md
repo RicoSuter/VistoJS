@@ -53,7 +53,7 @@ The ["common" package](https://github.com/VistoJS/Core/wiki/common-Package) prov
 
 ## Installation
 
-To create an empty Visual Studio project with the installed framework: 
+To create an empty Visual Studio project with the framework installed: 
 
 1. Install [TypeScript 1.4 for Visual Studio 2013](https://visualstudiogallery.msdn.microsoft.com/2d42d8dc-e085-45eb-a30b-3f7d50d55304)
 2. Create a new, empty ASP.NET web project with TypeScript support
