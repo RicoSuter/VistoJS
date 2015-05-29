@@ -12,7 +12,8 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
 
 ## Features
 
-- Support for composable views with "code-behind" classes and view models (declared using HTML) 
+- Support for composable views with ["code-behind" classes](https://github.com/VistoJS/Core/wiki/View) and [view models](https://github.com/VistoJS/Core/wiki/View-Model)
+    - The appereance of the views are [declared using HTML](https://github.com/VistoJS/Core/wiki/View-HTML)
     - Support for [event methods](https://github.com/VistoJS/Core/wiki/Event-Methods) on views and view models like `onLoaded()`, `onNavigatedTo()`, etc. 
     - The view models are bound to the views using [KnockoutJS bindings](https://github.com/VistoJS/Core/wiki/Bindings) 
     - Load sub views declaratively using [custom tags](https://github.com/VistoJS/Core/wiki/Custom-Tags) and pass one-way or two-way bound parameters
