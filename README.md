@@ -44,10 +44,6 @@ To play with the sample application, [download](https://github.com/VistoJS/Core/
 
 The "common" package provides some reusable controls and views. The package is not required to use the Visto JavaScript Library. 
 
-**Important:** By default, IIS Express does not allow accessing JSON files from the server. The language JSON files are loaded from the browser and thus you have to enable them in the IIS configuration: You simply have to add the following line to the `<StaticContent>` tag in your applicationhost.config (`Documents\IISExpress\config\...`) configuration: 
-
-    <mimeMap fileExtension=".json" mimeType="application/json" />
-    
 ## Installation
 
 1. Install [TypeScript 1.4 for Visual Studio 2013](https://visualstudiogallery.msdn.microsoft.com/2d42d8dc-e085-45eb-a30b-3f7d50d55304)
