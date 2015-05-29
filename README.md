@@ -42,7 +42,7 @@ The Visto JavaScript Library is designed to be used with [TypeScript](http://www
 
 To play with the sample application, [download](https://github.com/VistoJS/Core/archive/master.zip) or clone the project and open `Visto/index.html` to execute the sample project in your browser. Open the Visual Studio solution `Visto.sln` to start developing on the sample application (TypeScript must be installed). 
 
-The ["common" package](https://github.com/VistoJS/Core/wiki/common-Package) provides some reusable controls and views. The package is not required to use the Visto JavaScript Library. The views in this package require the [Bootstrap](http://getbootstrap.com) UI framework.
+The ["common" package](https://github.com/VistoJS/Core/wiki/common-Package) provides some reusable controls and views. The package is not required to use the Visto JavaScript Library. Some methods and views in this package require the [Bootstrap](http://getbootstrap.com) UI framework.
 
 ## Installation
 
