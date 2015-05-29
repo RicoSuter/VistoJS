@@ -8,6 +8,8 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
 
 - [Demo application](https://rawgit.com/VistoJS/Core/master/Visto/index.html) (based on the [latest source code](https://github.com/VistoJS/Core/tree/master/Visto))
 
+(This project has originally been hosted on [CodePlex](http://visto.codeplex.com/))
+
 ## Features
 
 - Support for composable views with "code-behind" classes and view models (declared using HTML) 
