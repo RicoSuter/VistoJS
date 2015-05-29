@@ -38,6 +38,7 @@ The framework depends on the following 3rd party ilbraries:
 - JQuery.Hashchange: Detect user back navigation 
 - [RequireJS](http://www.requirejs.org): AMD module loading and dependency management 
 - [Q](https://github.com/kriskowal/q): Promises/A+ support 
+- (The sample application and the "common" package require the [Bootstrap](http://getbootstrap.com) UI framework)
 
 The Visto JavaScript Library is designed to be used with [TypeScript](http://www.typescriptlang.org) but is fully working with plain JavaScript. 
 
