@@ -13,18 +13,18 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
 ## Features
 
 - Support for composable views with "code-behind" classes and view models (declared using HTML) 
-    - Support for **event methods** on views and view models like `onLoaded()`, `onNavigatedTo()`, etc. 
-    - The view models are bound to the views using **KnockoutJS bindings** 
-    - Load sub views declaratively using **custom tags** and pass one-way or two-way bound parameters
+    - Support for [event methods](https://github.com/VistoJS/Core/wiki/Event-Methods) on views and view models like `onLoaded()`, `onNavigatedTo()`, etc. 
+    - The view models are bound to the views using [KnockoutJS bindings](https://github.com/VistoJS/Core/wiki/Bindings) 
+    - Load sub views declaratively using [custom tags](https://github.com/VistoJS/Core/wiki/Custom-Tags) and pass one-way or two-way bound parameters
     - Instantiate multiple instances of the same view for example in repeating lists
     - No "build-up flickering" by displaying a view not until every sub view has been loaded
-- Support for **stack-based paging** and **dialogs** 
+- Support for [stack-based paging](https://github.com/VistoJS/Core/wiki/Paging) and [dialogs](https://github.com/VistoJS/Core/wiki/Dialogs) 
     - The framework automatically calls `onNavigateTo()`, `onLoaded()`, `destroy()` and other event methods
     - The browser history is correctly handled and the page stack can be restored from an URL
 - More maintainable and understandable code by **enforcing structure and conventions**
     - The resulting application is component based
     - Application areas can be grouped in packages
-- Support for **declarative UI internationalization**
+- Support for [declarative UI internationalization](https://github.com/VistoJS/Core/wiki/Internationalization)
     - Declaratively translate your UI with the `vs-translate` attribute which automatically updates the UI when the language changes
     - "Language bindings" can also be programmatically used in code
 - Visto.js file size is 30kb minimized (54kb debug)
