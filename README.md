@@ -18,6 +18,7 @@ The Visto JavaScript Framework (VistoJS) is an MVVM-based application framework 
     - No "build-up flickering" by displaying a view not until every sub view has been loaded
 - Support for **stack-based paging** and **dialogs** 
     - The framework automatically calls `onNavigateTo()`, `onLoaded()`, `destroy()` and other event methods
+    - The browser history is correctly handled and the page stack can be restored from an URL
 - More maintainable and understandable code by **enforcing structure and conventions**
     - The resulting application is component based
     - Application areas can be grouped in packages
