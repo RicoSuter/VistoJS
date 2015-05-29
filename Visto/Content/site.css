@@ -1,10 +1,12 @@
 /* Loading screen */
 
 .loading-screen {
-    background: #7F7F7F;
+    opacity: 0.5;
+    filter: alpha(opacity=50);
+    background: #000;
     text-align: center;
     position: absolute;
-    z-index: 99999999999999;
+    z-index: 100000000;
     top: 0;
     left: 0;
     bottom: 0;
@@ -23,5 +25,5 @@ body {
 }
 
 .table > tbody > tr > td {
-    vertical-align:middle;
+    vertical-align: middle;
 }

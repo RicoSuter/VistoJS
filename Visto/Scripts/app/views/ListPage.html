@@ -15,7 +15,7 @@
                 <a vs-bind="click: $parent.showItem, text: title" href="#"></a>
             </td>
             <td style="text-align: right">
-                <button vs-bind="click: $root.deleteItem.bind($root, $data)" class="btn btn-default">Delete</button>
+                <button vs-bind="click: $parent.deleteItem.bind($parent, $data)" class="btn btn-default">Delete</button>
             </td>
         </tr>
         <!-- /ko -->

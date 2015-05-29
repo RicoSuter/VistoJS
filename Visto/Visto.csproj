@@ -56,6 +56,7 @@
     <TypeScriptModuleKind>AMD</TypeScriptModuleKind>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Content\bootstrap.min.css" />
     <Content Include="Content\Images\loading.gif" />
     <Content Include="Content\site.css" />
     <Content Include="index.html" />
@@ -96,6 +97,7 @@
     <Content Include="Scripts\app\views\tabs\Tab1.html" />
     <Content Include="Scripts\app\views\tabs\Tab2.html" />
     <Content Include="Scripts\app\views\WebViewPage.html" />
+    <Content Include="Scripts\libs\bootstrap.min.js" />
     <Content Include="Scripts\libs\q.min.js" />
     <Content Include="Scripts\libs\visto.js">
       <DependentUpon>visto.ts</DependentUpon>
@@ -151,7 +153,6 @@
     <Content Include="Scripts\app\views\controls\SampleControl.html" />
     <Content Include="Scripts\libs\jquery.browser.js" />
     <Content Include="Scripts\libs\jquery.js" />
-    <Content Include="Scripts\libs\visto.extensions.d.ts" />
     <Content Include="Scripts\libs\hashchange.js" />
     <Content Include="Scripts\libs\jquery.d.ts" />
     <Content Include="Scripts\libs\knockout.d.ts" />

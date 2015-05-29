@@ -11,7 +11,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /// <reference path="q.d.ts" />
     /// <reference path="knockout.d.ts" />
     /// <reference path="jquery.d.ts" />
-    /// <reference path="visto.extensions.d.ts" />
     /// <reference path="visto.modules.d.ts" />
     exports.__hashchange = __hashchange;
     // ----------------------------
@@ -47,7 +46,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var currentNavigationPath = "";
     var currentContext = null;
     var defaultFrame = null;
-    var initialLoadingElement = null;
+    var initialLoadingScreenElement = null;
     // Globals for bindings
     var globals = {
         navigateBack: function () {
@@ -66,7 +65,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function initialize(options) {
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-        initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+        initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
             $(document).bind("keypress", function (ev) {
@@ -493,8 +492,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             parameters[isDialogParameter] = true;
             showLoadingScreen();
             createView(container, fullViewName, parameters).then(function (view) {
-                hideLoadingScreen();
                 openedDialogs++;
+                // Remove focus from element of the underlying page to avoid click events on enter press
+                var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+                if (focusable != null) {
+                    focusable.focus();
+                    focusable.blur();
+                }
                 showNativeDialog(container, view, parameters, function () {
                     view.onShown();
                 }, function () {
@@ -505,6 +509,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     resolve(view);
                 });
                 container.removeAttr("style");
+                hideLoadingScreen();
                 if ($.isFunction(onLoaded))
                     onLoaded(view);
             }).fail(reject);
@@ -653,22 +658,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Loading screen
     // ----------------------------
     var loadingCount = 0;
-    var loadingElement = null;
-    /**
-     * [Replaceable] Creates the loading screen element
-     */
-    function createLoadingElement() {
-        return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
-    }
-    exports.createLoadingElement = createLoadingElement;
-    ;
+    var currentLoadingScreenElement = null;
+    var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>";
     /**
      * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
      */
     function showLoadingScreen(delayed) {
-        if (initialLoadingElement !== null) {
-            initialLoadingElement.remove();
-            initialLoadingElement = null;
+        if (initialLoadingScreenElement !== null) {
+            initialLoadingScreenElement.remove();
+            initialLoadingScreenElement = null;
         }
         if (loadingCount === 0) {
             if (delayed == undefined || delayed) {
@@ -685,9 +683,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.showLoadingScreen = showLoadingScreen;
     ;
     function appendLoadingElement() {
-        if (loadingElement === null) {
-            loadingElement = createLoadingElement();
-            $("body").append(loadingElement);
+        if (currentLoadingScreenElement === null) {
+            currentLoadingScreenElement = $(loadingScreenElement);
+            $("body").append(currentLoadingScreenElement);
         }
     }
     /**
@@ -696,9 +694,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     function hideLoadingScreen() {
         loadingCount--;
         if (loadingCount === 0) {
-            if (loadingElement !== null) {
-                loadingElement.remove();
-                loadingElement = null;
+            if (currentLoadingScreenElement !== null) {
+                currentLoadingScreenElement.remove();
+                currentLoadingScreenElement = null;
             }
         }
     }

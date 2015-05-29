@@ -22,7 +22,6 @@
         <file src="..\Visto\Scripts\libs\require.js" target="content\Scripts\libs\require.js" />
         
         <file src="..\Visto\Scripts\libs\visto.ts" target="content\Scripts\libs\visto.ts" />
-        <file src="..\Visto\Scripts\libs\visto.extensions.d.ts" target="content\Scripts\libs\visto.extensions.d.ts" />
         <file src="..\Visto\Scripts\libs\visto.modules.d.ts" target="content\Scripts\libs\visto.modules.d.ts" />
 
         <file src="..\Visto\Scripts\common\languages\de.json" target="content\Scripts\common\languages\de.json" />

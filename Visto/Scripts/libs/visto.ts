@@ -5,7 +5,6 @@
 /// <reference path="q.d.ts" />
 /// <reference path="knockout.d.ts" />
 /// <reference path="jquery.d.ts" />
-/// <reference path="visto.extensions.d.ts" />
 /// <reference path="visto.modules.d.ts" />
 
 declare function require(module: any, success: (...modules: any[]) => void, failed?: () => void): void;
@@ -52,7 +51,7 @@ var languageStrings: { [language: string]: { [path: string]: { [key: string]: st
 var currentNavigationPath = "";
 var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
-var initialLoadingElement: JQuery = null;
+var initialLoadingScreenElement: JQuery = null;
 
 // Globals for bindings
 var globals = {
@@ -70,7 +69,7 @@ var globals = {
  */
 export function initialize(options: IVistoOptions) {
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-    initialLoadingElement = options.initialLoadingElement === undefined ? $("body").find("div") : options.initialLoadingElement;
+    initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
 
     setUserLanguage(options.supportedLanguages);
 
@@ -94,7 +93,9 @@ export interface IVistoOptions {
     defaultPackage: string;
     supportedLanguages: string[];
     registerEnterKeyFix: boolean;
-    initialLoadingElement: JQuery;
+    defaultFrame: JQuery;
+    initialLoadingScreenElement: JQuery;
+    loadingScreenElement: string; 
 }
 
 // ----------------------------
@@ -559,8 +560,14 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
 
         showLoadingScreen();
         createView(container, fullViewName, <any>parameters).then((view: DialogBase) => {
-            hideLoadingScreen();
             openedDialogs++;
+
+            // Remove focus from element of the underlying page to avoid click events on enter press
+            var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+            if (focusable != null) {
+                focusable.focus();
+                focusable.blur();
+            }
 
             showNativeDialog(container, view, parameters,
                 () => { view.onShown(); },
@@ -575,6 +582,7 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
                 });
             container.removeAttr("style");
 
+            hideLoadingScreen();
             if ($.isFunction(onLoaded))
                 onLoaded(view);
         }).fail(reject);
@@ -739,22 +747,16 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
 // ----------------------------
 
 var loadingCount = 0;
-var loadingElement: JQuery = null;
-
-/**
- * [Replaceable] Creates the loading screen element
- */
-export function createLoadingElement() {
-    return $("<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>");
-};
+var currentLoadingScreenElement: JQuery = null;
+var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>"; 
 
 /**
  * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call. 
  */
 export function showLoadingScreen(delayed?: boolean) {
-    if (initialLoadingElement !== null) {
-        initialLoadingElement.remove();
-        initialLoadingElement = null;
+    if (initialLoadingScreenElement !== null) {
+        initialLoadingScreenElement.remove();
+        initialLoadingScreenElement = null;
     }
 
     if (loadingCount === 0) {
@@ -771,9 +773,9 @@ export function showLoadingScreen(delayed?: boolean) {
 };
 
 function appendLoadingElement() {
-    if (loadingElement === null) {
-        loadingElement = createLoadingElement();
-        $("body").append(loadingElement);
+    if (currentLoadingScreenElement === null) {
+        currentLoadingScreenElement = $(loadingScreenElement); 
+        $("body").append(currentLoadingScreenElement);
     }
 }
 
@@ -783,9 +785,9 @@ function appendLoadingElement() {
 export function hideLoadingScreen() {
     loadingCount--;
     if (loadingCount === 0) {
-        if (loadingElement !== null) {
-            loadingElement.remove();
-            loadingElement = null;
+        if (currentLoadingScreenElement !== null) {
+            currentLoadingScreenElement.remove();
+            currentLoadingScreenElement = null;
         }
     }
 };
@@ -912,7 +914,7 @@ export class ViewBase {
      * Gets an element by ID (defined using the "vs-id" attribute) inside this view. 
      */
     getViewElement(id: string) {
-        return this.findElements("#" + this.viewId + "_" + id);
+        return this.findElements("#" + this.viewId + "_" + id); 
     }
 
     // event methods
@@ -1287,7 +1289,7 @@ class ViewFactory {
 
         htmlData =
         "<!-- ko stopBinding -->" +
-        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") +
+        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + 
         "<!-- /ko -->";
 
         var container = $(document.createElement("div"));
@@ -1388,34 +1390,34 @@ class ViewFactory {
             .replace(/vs-translate="/g, "data-translate=\"")
             .replace(/vs-bind="/g, "data-bind=\"")
             .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g,(match: string, tag: string, attributes: string, close: string) => {
-            var path = "";
-            var pkg = "";
-            var bindings = "";
+                var path = "";
+                var pkg = "";
+                var bindings = "";
 
-            attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
-                name = convertDashedToCamelCase(name.trim());
-                if (name === "path")
-                    path = value;
-                else if (name === "package")
-                    pkg = value;
-                else if (startsWith(value, "{") && endsWith(value, "}")) {
-                    value = value.substr(1, value.length - 2);
-                    if (value.indexOf("(") > -1)
-                        value = "ko.computed(function () { return " + value + "; })";
-                    bindings += name + ": " + value + ", ";
-                }
-                else
-                    bindings += name + ": '" + value + "', ";
-                return match;
+                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
+                    name = convertDashedToCamelCase(name.trim());
+                    if (name === "path")
+                        path = value;
+                    else if (name === "package")
+                        pkg = value;
+                    else if (startsWith(value, "{") && endsWith(value, "}")) {
+                        value = value.substr(1, value.length - 2);
+                        if (value.indexOf("(") > -1)
+                            value = "ko.computed(function () { return " + value + "; })";
+                        bindings += name + ": " + value + ", ";
+                    }
+                    else
+                        bindings += name + ": '" + value + "', ";
+                    return match;
+                });
+
+                var view = convertDashedToCamelCase(tag);
+                view = view[0].toUpperCase() + view.substr(1);
+                view = path === "" ? view : path + "/" + view;
+
+                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+                return '<div data-bind="view: { ' + bindings + ' }" ' + close;
             });
-
-            var view = convertDashedToCamelCase(tag);
-            view = view[0].toUpperCase() + view.substr(1);
-            view = path === "" ? view : path + "/" + view;
-
-            bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-            return '<div data-bind="view: { ' + bindings + ' }" ' + close;
-        });
     }
 
     // ReSharper disable InconsistentNaming
