@@ -569,7 +569,7 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
                 focusable.blur();
             }
 
-            showNativeDialog(container, view, parameters,
+            showNativeDialog($(container.children().get(0)), view, parameters,
                 () => { view.onShown(); },
                 () => {
                     openedDialogs--;
@@ -600,7 +600,7 @@ export enum DialogResult {
  * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs). 
  */
 export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, parameters: { [key: string]: any }, onShown: () => void, onClosed: () => void) {
-    var dialog = <any>$(container.children()[0]);
+    var dialog = <any>container;
 
     if (dialog.modal !== undefined) {
         // Bootstrap dialog
@@ -621,7 +621,7 @@ export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, par
  * [Replaceable] Closes the native dialog (supports Bootstrap and jQuery UI dialogs). 
  */
 export function closeNativeDialog(container: JQuery) {
-    var dialog = <any>$(container.children()[0]);
+    var dialog = <any>container;
 
     if (dialog.modal !== undefined) {
         // Bootstrap dialog

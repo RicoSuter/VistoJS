@@ -499,7 +499,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     focusable.focus();
                     focusable.blur();
                 }
-                showNativeDialog(container, view, parameters, function () {
+                showNativeDialog($(container.children().get(0)), view, parameters, function () {
                     view.onShown();
                 }, function () {
                     openedDialogs--;
@@ -526,7 +526,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs).
      */
     function showNativeDialog(container, view, parameters, onShown, onClosed) {
-        var dialog = $(container.children()[0]);
+        var dialog = container;
         if (dialog.modal !== undefined) {
             // Bootstrap dialog
             dialog.modal({});
@@ -551,7 +551,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * [Replaceable] Closes the native dialog (supports Bootstrap and jQuery UI dialogs).
      */
     function closeNativeDialog(container) {
-        var dialog = $(container.children()[0]);
+        var dialog = container;
         if (dialog.modal !== undefined) {
             // Bootstrap dialog
             dialog.modal("hide");
