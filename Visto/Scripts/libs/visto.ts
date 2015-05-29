@@ -97,7 +97,7 @@ export interface IVistoOptions {
     registerEnterKeyFix: boolean;
     defaultFrame: JQuery;
     initialLoadingScreenElement: JQuery;
-    loadingScreenElement: string; 
+    loadingScreenElement: string;
 }
 
 // ----------------------------
@@ -593,6 +593,7 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
 }
 
 export enum DialogResult {
+    Undefined, 
     Ok,
     Cancel,
     Yes,
@@ -779,7 +780,7 @@ export function showLoadingScreen(delayed?: boolean) {
 
 function appendLoadingElement() {
     if (currentLoadingScreenElement === null) {
-        currentLoadingScreenElement = $(loadingScreenElement); 
+        currentLoadingScreenElement = $(loadingScreenElement);
         $("body").append(currentLoadingScreenElement);
     }
 }
@@ -802,8 +803,15 @@ export function hideLoadingScreen() {
 // ----------------------------
 
 export class ViewModel {
-    parameters: Parameters;
+    /**
+     * Gets some global objects to use in bindings. 
+     */
     globals = globals;
+
+    /**
+     * Gets the parameters provided by the creator of the view (e.g. attributes on the custom tag). 
+     */
+    parameters: Parameters;
 
     private view: ViewBase;
 
@@ -870,16 +878,39 @@ export class ViewModel {
 // ----------------------------
 
 export class ViewBase {
+    /**
+     * Gets the view ID which is globally unique between all views. 
+     */
     viewId: string;
+
+    /**
+     * Gets the full name of the view, i.e. the path and class name. 
+     */
     viewName: string;
+
+    /**
+     * Gets the view's TypeScript class name. 
+     */
     viewClass: string;
+
+    /**
+     * Gets the name of the package where this view is located. 
+     */
     viewPackage: string;
 
     /**
      * Gets the view element which originally was the custom tag (not available in ctor, initialize() and onLoading()). 
      */
     element: JQuery; 
+
+    /**
+     * Gets the parameters provided by the creator of the view (e.g. attributes on the custom tag). 
+     */
     parameters: Parameters;
+
+    /**
+     * Gets the parent view of this view. 
+     */
     parentView: ViewBase = null;
 
     private isDestroyed = false;
@@ -922,7 +953,7 @@ export class ViewBase {
      * Gets an element by ID (defined using the "vs-id" attribute) inside this view. 
      */
     getViewElement(id: string) {
-        return this.findElements("#" + this.viewId + "_" + id); 
+        return this.findElements("#" + this.viewId + "_" + id);
     }
 
     // event methods
@@ -1034,17 +1065,29 @@ export class PageBase extends Page<ViewModel> {
 // ----------------------------
 
 export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
-    result: DialogResult;
+    /**
+     * Gets the dialog result. 
+     */
+    result = DialogResult.Undefined;
 
+    /**
+     * Closes the dialog. 
+     */
     close(result?: DialogResult) {
         this.result = result;
         closeNativeDialog(this.element);
     }
 
+    /**
+     * [Virtual] Called when the dialog is shown and all animations have finished. 
+     */
     onShown() {
 
     }
 
+    /**
+     * [Virtual] Called after the dialog has been closed. 
+     */
     onClosed() {
 
     }
@@ -1296,7 +1339,7 @@ class ViewFactory {
 
         htmlData =
         "<!-- ko stopBinding -->" +
-        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + 
+        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") +
         "<!-- /ko -->";
 
         var container = $(document.createElement("div"));
@@ -1397,34 +1440,34 @@ class ViewFactory {
             .replace(/vs-translate="/g, "data-translate=\"")
             .replace(/vs-bind="/g, "data-bind=\"")
             .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g,(match: string, tag: string, attributes: string, close: string) => {
-                var path = "";
-                var pkg = "";
-                var bindings = "";
+            var path = "";
+            var pkg = "";
+            var bindings = "";
 
-                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
-                    name = convertDashedToCamelCase(name.trim());
-                    if (name === "path")
-                        path = value;
-                    else if (name === "package")
-                        pkg = value;
-                    else if (startsWith(value, "{") && endsWith(value, "}")) {
-                        value = value.substr(1, value.length - 2);
-                        if (value.indexOf("(") > -1)
-                            value = "ko.computed(function () { return " + value + "; })";
-                        bindings += name + ": " + value + ", ";
-                    }
-                    else
-                        bindings += name + ": '" + value + "', ";
-                    return match;
-                });
-
-                var view = convertDashedToCamelCase(tag);
-                view = view[0].toUpperCase() + view.substr(1);
-                view = path === "" ? view : path + "/" + view;
-
-                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-                return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+            attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
+                name = convertDashedToCamelCase(name.trim());
+                if (name === "path")
+                    path = value;
+                else if (name === "package")
+                    pkg = value;
+                else if (startsWith(value, "{") && endsWith(value, "}")) {
+                    value = value.substr(1, value.length - 2);
+                    if (value.indexOf("(") > -1)
+                        value = "ko.computed(function () { return " + value + "; })";
+                    bindings += name + ": " + value + ", ";
+                }
+                else
+                    bindings += name + ": '" + value + "', ";
+                return match;
             });
+
+            var view = convertDashedToCamelCase(tag);
+            view = view[0].toUpperCase() + view.substr(1);
+            view = path === "" ? view : path + "/" + view;
+
+            bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+            return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+        });
     }
 
     // ReSharper disable InconsistentNaming

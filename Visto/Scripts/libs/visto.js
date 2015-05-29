@@ -519,10 +519,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         });
     }
     (function (DialogResult) {
-        DialogResult[DialogResult["Ok"] = 0] = "Ok";
-        DialogResult[DialogResult["Cancel"] = 1] = "Cancel";
-        DialogResult[DialogResult["Yes"] = 2] = "Yes";
-        DialogResult[DialogResult["No"] = 3] = "No";
+        DialogResult[DialogResult["Undefined"] = 0] = "Undefined";
+        DialogResult[DialogResult["Ok"] = 1] = "Ok";
+        DialogResult[DialogResult["Cancel"] = 2] = "Cancel";
+        DialogResult[DialogResult["Yes"] = 3] = "Yes";
+        DialogResult[DialogResult["No"] = 4] = "No";
     })(exports.DialogResult || (exports.DialogResult = {}));
     var DialogResult = exports.DialogResult;
     /**
@@ -711,6 +712,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     var ViewModel = (function () {
         function ViewModel(view, parameters) {
+            /**
+             * Gets some global objects to use in bindings.
+             */
             this.globals = globals;
             this.view = view;
             this.parameters = parameters;
@@ -768,6 +772,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     var ViewBase = (function () {
         function ViewBase() {
+            /**
+             * Gets the parent view of this view.
+             */
             this.parentView = null;
             this.isDestroyed = false;
             this.subViews = [];
@@ -913,13 +920,26 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         __extends(Dialog, _super);
         function Dialog() {
             _super.apply(this, arguments);
+            /**
+             * Gets the dialog result.
+             */
+            this.result = 0 /* Undefined */;
         }
+        /**
+         * Closes the dialog.
+         */
         Dialog.prototype.close = function (result) {
             this.result = result;
             closeNativeDialog(this.element);
         };
+        /**
+         * [Virtual] Called when the dialog is shown and all animations have finished.
+         */
         Dialog.prototype.onShown = function () {
         };
+        /**
+         * [Virtual] Called after the dialog has been closed.
+         */
         Dialog.prototype.onClosed = function () {
         };
         return Dialog;
