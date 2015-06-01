@@ -1,4 +1,4 @@
-﻿// Visto JavaScript Framework (VistoJS) v2.0.0
+﻿// Visto JavaScript Framework (VistoJS) v2.0.1
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
@@ -593,7 +593,7 @@ function showDialogCore(fullViewName: string, parameters: { [key: string]: any }
 }
 
 export enum DialogResult {
-    Undefined, 
+    Undefined,
     Ok,
     Cancel,
     Yes,
@@ -1439,34 +1439,35 @@ class ViewFactory {
         return data
             .replace(/vs-translate="/g, "data-translate=\"")
             .replace(/vs-bind="/g, "data-bind=\"")
-            .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g,(match: string, tag: string, attributes: string, close: string) => {
-            var path = "";
-            var pkg = "";
-            var bindings = "";
+            .replace(/{{(.*?)}}/g, g => "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>")
+            .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, (match: string, tag: string, attributes: string, close: string) => {
+                var path = "";
+                var pkg = "";
+                var bindings = "";
 
-            attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
-                name = convertDashedToCamelCase(name.trim());
-                if (name === "path")
-                    path = value;
-                else if (name === "package")
-                    pkg = value;
-                else if (startsWith(value, "{") && endsWith(value, "}")) {
-                    value = value.substr(1, value.length - 2);
-                    if (value.indexOf("(") > -1)
-                        value = "ko.computed(function () { return " + value + "; })";
-                    bindings += name + ": " + value + ", ";
-                }
-                else
-                    bindings += name + ": '" + value + "', ";
-                return match;
-            });
+                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
+                    name = convertDashedToCamelCase(name.trim());
+                    if (name === "path")
+                        path = value;
+                    else if (name === "package")
+                        pkg = value;
+                    else if (startsWith(value, "{") && endsWith(value, "}")) {
+                        value = value.substr(1, value.length - 2);
+                        if (value.indexOf("(") > -1)
+                            value = "ko.computed(function () { return " + value + "; })";
+                        bindings += name + ": " + value + ", ";
+                    }
+                    else
+                        bindings += name + ": '" + value + "', ";
+                    return match;
+                });
 
-            var view = convertDashedToCamelCase(tag);
-            view = view[0].toUpperCase() + view.substr(1);
-            view = path === "" ? view : path + "/" + view;
+                var view = convertDashedToCamelCase(tag);
+                view = view[0].toUpperCase() + view.substr(1);
+                view = path === "" ? view : path + "/" + view;
 
-            bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-            return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+                return '<div data-bind="view: { ' + bindings + ' }" ' + close;
         });
     }
 

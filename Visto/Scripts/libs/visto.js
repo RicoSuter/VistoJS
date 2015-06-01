@@ -1,4 +1,4 @@
-// Visto JavaScript Framework (VistoJS) v2.0.0
+// Visto JavaScript Framework (VistoJS) v2.0.1
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = this.__extends || function (d, b) {
@@ -1228,7 +1228,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Process custom tags in the given HTML data string.
          */
         ViewFactory.prototype.processCustomTags = function (data) {
-            return data.replace(/vs-translate="/g, "data-translate=\"").replace(/vs-bind="/g, "data-bind=\"").replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
+            return data.replace(/vs-translate="/g, "data-translate=\"").replace(/vs-bind="/g, "data-bind=\"").replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; }).replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
                 var path = "";
                 var pkg = "";
                 var bindings = "";
