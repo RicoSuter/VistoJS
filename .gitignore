@@ -2,11 +2,11 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/Visto/bin
-/Visto/obj
-/Visto.v12.suo
-/Visto.sln.GhostDoc.xml
+/src/Visto/bin
+/src/Visto/obj
+/src/Visto.v12.suo
+/src/Visto.sln.GhostDoc.xml
 *.js.map
-/Visto/Visto.csproj.user
-/.vs
+/src/Visto/Visto.csproj.user
+/src/.vs
 *.suo

@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>VistoJS</id>
+        <version>2.0.2.0</version>
+        <title>VistoJS</title>
+        <authors>Rico Suter</authors>
+        <owners>Rico Suter</owners>
+        <licenseUrl>https://visto.codeplex.com/license</licenseUrl>
+        <projectUrl>http://www.vistojs.com</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Installs the Visto JavaScript Framework core files.</description>
+        <releaseNotes />
+        <iconUrl>http://rsuter.com/Projects/VistoJS/IconNuGet.png</iconUrl>
+    </metadata>
+    <files>
+        <file src="..\src\Visto\Scripts\libs\hashchange.js" target="content\Scripts\libs\hashchange.js" />
+        <file src="..\src\Visto\Scripts\libs\jquery.browser.js" target="content\Scripts\libs\jquery.browser.js" />
+        <file src="..\src\Visto\Scripts\libs\jquery.d.ts" target="content\Scripts\libs\jquery.d.ts" />
+        <file src="..\src\Visto\Scripts\libs\jquery.js" target="content\Scripts\libs\jquery.js" />
+        <file src="..\src\Visto\Scripts\libs\knockout.d.ts" target="content\Scripts\libs\knockout.d.ts" />
+        <file src="..\src\Visto\Scripts\libs\knockout.js" target="content\Scripts\libs\knockout.js" />
+        <file src="..\src\Visto\Scripts\libs\q.d.ts" target="content\Scripts\libs\q.d.ts" />
+        <file src="..\src\Visto\Scripts\libs\q.min.js" target="content\Scripts\libs\q.min.js" />
+        <file src="..\src\Visto\Scripts\libs\require.js" target="content\Scripts\libs\require.js" />
+
+        <file src="..\src\Visto\Scripts\libs\visto.ts" target="content\Scripts\libs\visto.ts" />
+        <file src="..\src\Visto\Scripts\libs\visto.modules.d.ts" target="content\Scripts\libs\visto.modules.d.ts" />
+
+        <file src="..\src\Visto\Scripts\common\languages\de.json" target="content\Scripts\common\languages\de.json" />
+        <file src="..\src\Visto\Scripts\common\languages\en.json" target="content\Scripts\common\languages\en.json" />
+        
+        <file src="..\src\Visto\Scripts\common\viewModels\dialogs\ConfirmModel.ts" target="content\Scripts\common\viewModels\dialogs\ConfirmModel.ts" />
+        <file src="..\src\Visto\Scripts\common\viewModels\dialogs\ListPickerModel.ts" target="content\Scripts\common\viewModels\dialogs\ListPickerModel.ts" />
+        <file src="..\src\Visto\Scripts\common\viewModels\dialogs\PromptModel.ts" target="content\Scripts\common\viewModels\dialogs\PromptModel.ts" />
+        <file src="..\src\Visto\Scripts\common\viewModels\LanguageSelectorModel.ts" target="content\Scripts\common\viewModels\LanguageSelectorModel.ts" />
+        <file src="..\src\Visto\Scripts\common\viewModels\TabControlModel.ts" target="content\Scripts\common\viewModels\TabControlModel.ts" />
+
+        <file src="..\src\Visto\Scripts\common\views\dialogs\Confirm.html" target="content\Scripts\common\views\dialogs\Confirm.html" />
+        <file src="..\src\Visto\Scripts\common\views\dialogs\ListPicker.html" target="content\Scripts\common\views\dialogs\ListPicker.html" />
+        <file src="..\src\Visto\Scripts\common\views\dialogs\ProgressDialog.html" target="content\Scripts\common\views\dialogs\ProgressDialog.html" />
+        <file src="..\src\Visto\Scripts\common\views\dialogs\Prompt.html" target="content\Scripts\common\views\dialogs\Prompt.html" />
+        <file src="..\src\Visto\Scripts\common\views\dialogs\Prompt.ts" target="content\Scripts\common\views\dialogs\Prompt.ts" />
+        <file src="..\src\Visto\Scripts\common\views\LanguageSelector.html" target="content\Scripts\common\views\LanguageSelector.html" />
+        <file src="..\src\Visto\Scripts\common\views\TabControl.html" target="content\Scripts\common\views\TabControl.html" />
+        
+        <file src="..\src\Visto\Scripts\common\views\TabControl.ts" target="content\Scripts\common\views\TabControl.ts" />
+        <file src="..\src\Visto\Scripts\common\views\WebView.ts" target="content\Scripts\common\views\WebView.ts" />
+        <file src="..\src\Visto\Scripts\common\main.ts" target="content\Scripts\common\main.ts" />
+        
+        <file src="VistoJS_install.ps1" target="tools\install.ps1" />
+    </files>
+</package>
