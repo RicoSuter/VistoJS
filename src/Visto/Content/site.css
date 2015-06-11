@@ -1,0 +1,35 @@
+/* Loading screen */
+
+.loading-screen {
+    position: fixed;
+    z-index: 100000000;
+    text-align: center;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+
+    opacity: 0.5;
+    filter: alpha(opacity=50);
+    background: #000;
+}
+
+.loading-screen-image {
+    border: 0;
+    margin-top: 150px;
+}
+
+/* Bootstrap customization */
+
+body {
+    padding-bottom: 70px;
+}
+
+*:focus {
+    outline: 0 !important;
+}
+
+.table > tbody > tr > td {
+    vertical-align: middle;
+}
