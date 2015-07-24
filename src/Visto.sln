@@ -1,17 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Visto", "Visto\Visto.csproj", "{B4D4E401-5AA8-4982-9C0A-B0D7B8733312}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{29DB8B5C-81D0-40C1-812D-69479EF444EA}"
 	ProjectSection(SolutionItems) = preProject
-		NuGet\MainView.html = NuGet\MainView.html
-		NuGet\VistoJS.Complete.nuspec = NuGet\VistoJS.Complete.nuspec
-		NuGet\VistoJS.Complete_install.ps1 = NuGet\VistoJS.Complete_install.ps1
-		NuGet\VistoJS.nuspec = NuGet\VistoJS.nuspec
-		NuGet\VistoJS_install.ps1 = NuGet\VistoJS_install.ps1
+		..\build\MainView.html = ..\build\MainView.html
+		..\build\VistoJS.Complete.nuspec = ..\build\VistoJS.Complete.nuspec
+		..\build\VistoJS.Complete_install.ps1 = ..\build\VistoJS.Complete_install.ps1
+		..\build\VistoJS.nuspec = ..\build\VistoJS.nuspec
+		..\build\VistoJS_install.ps1 = ..\build\VistoJS_install.ps1
 	EndProjectSection
 EndProject
 Global
