@@ -1228,7 +1228,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Process custom tags in the given HTML data string.
          */
         ViewFactory.prototype.processCustomTags = function (data) {
-            return data.replace(/vs-translate="/g, "data-translate=\"").replace(/vs-bind="/g, "data-bind=\"").replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; }).replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
+            data = data.replace(/vs-translate="/g, "data-translate=\"").replace(/vs-bind="/g, "data-bind=\"").replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; }).replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
                 var path = "";
                 var pkg = "";
                 var bindings = "";
@@ -1254,6 +1254,29 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
                 return '<div data-bind="view: { ' + bindings + ' }" ' + close;
             });
+            return this.convertKnockoutAttributes(data);
+        };
+        ViewFactory.prototype.convertKnockoutAttributes = function (input) {
+            var firstAttribute = true;
+            var bindings = 'data-bind="';
+            var output = input.replace(/ vs-(.*?)=("|')(.*?)("|')/g, function (match, key, quote, value) {
+                if (key !== "id") {
+                    key = convertDashedToCamelCase(key);
+                    value = (value.length > 0 && value[0] === "{" ? value.substr(1, value.length - 2) : "'" + value + "'");
+                    if (firstAttribute) {
+                        bindings += key + ": " + value;
+                        firstAttribute = false;
+                        return " [bindings]";
+                    }
+                    bindings += ", " + key + ": " + value;
+                    return " ";
+                }
+                else
+                    return match;
+            });
+            if (!firstAttribute)
+                output = output.replace("[bindings]", bindings + '"');
+            return output;
         };
         // ReSharper disable InconsistentNaming
         ViewFactory.prototype.__raiseLoadedEvents = function () {

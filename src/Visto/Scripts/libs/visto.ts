@@ -1436,7 +1436,7 @@ class ViewFactory {
      * Process custom tags in the given HTML data string.
      */
     private processCustomTags(data: string) {
-        return data
+        data = data
             .replace(/vs-translate="/g, "data-translate=\"")
             .replace(/vs-bind="/g, "data-bind=\"")
             .replace(/{{(.*?)}}/g, g => "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>")
@@ -1468,7 +1468,35 @@ class ViewFactory {
 
                 bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
                 return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+            });
+
+        return this.convertKnockoutAttributes(data);
+    }
+
+    convertKnockoutAttributes(input: string) {
+        var firstAttribute = true;
+        var bindings = 'data-bind="';
+        var output = input.replace(/ vs-(.*?)=("|')(.*?)("|')/g, (match: string, key: string, quote: string, value: string) => {
+            if (key !== "id") {
+                key = convertDashedToCamelCase(key);
+                value = (value.length > 0 && value[0] === "{" ? value.substr(1, value.length - 2) : "'" + value + "'");
+
+                if (firstAttribute) {
+                    bindings += key + ": " + value;
+                    firstAttribute = false;
+                    return " [bindings]";
+                }
+
+                bindings += ", " + key + ": " + value;
+                return " ";
+            } else
+                return match;
         });
+
+        if (!firstAttribute)
+            output = output.replace("[bindings]", bindings + '"');
+
+        return output;
     }
 
     // ReSharper disable InconsistentNaming

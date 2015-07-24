@@ -6,7 +6,7 @@
 
     <div class="form-group">
         <label>Text</label>
-        <input vs-bind="value: selectedText, valueUpdate: 'afterkeydown'" class="form-control" />
+        <input vs-value="{selectedText}" vs-value-update="afterkeydown" class="form-control" />
     </div>
     <p>
         The <code>SampleControl</code> takes the bound variable and binds it to its own input controls:
