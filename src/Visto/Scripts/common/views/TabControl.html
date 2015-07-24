@@ -2,14 +2,16 @@
     <!-- Tabs -->
     <ul class="nav nav-tabs" role="tablist">
         <!-- ko foreach: tabs -->
-        <li role="presentation" vs-bind="css: { active: $parent.selectedTab() == $data.view }, click: $parent.changeTab.bind($parent, $data)">
-            <a role="tab" data-toggle="tab" href="#" vs-bind="text: $data.title"></a>
+        <li role="presentation"
+            vs-css="{{ active: $parent.selectedTab() == $data.view }}"
+            vs-click="{$parent.changeTab.bind($parent, $data)}">
+            <a role="tab" data-toggle="tab" href="#" vs-text="{$data.title}"></a>
         </li>
         <!-- /ko -->
     </ul>
 
     <!-- Content -->
     <div class="tab-content" vs-bind="foreach: tabs">
-        <div class="tab-pane" vs-bind="css: { active: $parent.selectedTab() == $data.view }, view: { name: $data.view }"></div>
+        <div class="tab-pane" vs-css="{{ active: $parent.selectedTab() == $data.view }}" vs-view="{{ name: $data.view }}"></div>
     </div>
 </div>

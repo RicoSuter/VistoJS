@@ -1,7 +1,8 @@
 <div class="form-inline">
     <div class="form-group">
         <label vs-translate="labelLanguage"></label>
-        <select vs-bind="options: supportedLanguages, value: language"
+        <select vs-options="{supportedLanguages}" 
+                vs-value="{language}"
                 class="form-control"></select>
     </div>
 </div>

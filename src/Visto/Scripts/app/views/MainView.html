@@ -2,11 +2,11 @@
     <!-- Header -->
     <nav class="navbar navbar-default">
         <div class="container">
-            <button vs-bind="click: globals.navigateBack, css: { disabled: globals.canNavigateBack() === false }" 
+            <button vs-click="{globals.navigateBack}" vs-css="{{ disabled: globals.canNavigateBack() === false }}"
                     class="btn btn-default navbar-btn">
                 <span class="glyphicon glyphicon-chevron-left"></span>
             </button>
-            <button vs-bind="click: globals.navigateHome, css: { disabled: globals.canNavigateBack() === false }" 
+            <button vs-click="{globals.navigateHome}" vs-css="{{ disabled: globals.canNavigateBack() === false }}"
                     class="btn btn-default navbar-btn">
                 Home
             </button>

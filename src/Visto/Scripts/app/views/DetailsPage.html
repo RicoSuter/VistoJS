@@ -1,13 +1,13 @@
 ﻿<div class="container">
     <h1>DetailsPage</h1>
-    <div vs-bind="if: item() != null">
+    <div vs-if="{item() != null}">
         <div class="form-group">
             <label>ID</label>
-            <div vs-bind="text: item().id"></div>
+            <div vs-text="{item().id}"></div>
         </div>
         <div class="form-group">
             <label>Title</label>
-            <div vs-bind="text: item().title"></div>
+            <div vs-text="{item().title}"></div>
         </div>
     </div>
 </div>

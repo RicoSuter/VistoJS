@@ -2,13 +2,16 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" vs-bind="text: title"></h4>
+                <h4 class="modal-title" vs-text="{title}"></h4>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label vs-bind="text: label"></label>
-                    <select class="inputcontent" vs-bind="options: items() !== null ? items() : null, 
-                            value: selectedItem, optionsText: optionsText, enable: enable"></select>
+                    <label vs-text="{label}"></label>
+                    <select class="inputcontent"
+                            vs-options="{items() !== null ? items() : null}"
+                            vs-value="{selectedItem}"
+                            vs-options-text="{optionsText}"
+                            vs-enable="{enable}"></select>
                 </div>
             </div>
             <div class="modal-footer">
