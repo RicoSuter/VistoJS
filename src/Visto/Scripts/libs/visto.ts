@@ -975,6 +975,8 @@ export class ViewBase {
         return this.findElements("#" + this.viewId + "_" + id);
     }
 
+    isViewLoaded = ko.observable<boolean>(false);
+
     // event methods
 
     /**
@@ -1547,6 +1549,8 @@ class ViewFactory {
     __raiseLoadedEvents() {
         this.view.onLoaded();
         this.viewModel.onLoaded();
+
+        this.view.isViewLoaded(true);
     }
 
     __setHtml() {

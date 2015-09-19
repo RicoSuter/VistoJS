@@ -1,13 +1,13 @@
-define(["require", "exports", "libs/visto"], function (require, exports, visto) {
-    function isFormValid(formElement) {
-        var children = getFormViewChildren(formElement);
-        return isFormValidInternal(formElement, children);
+define(["require", "exports"], function (require, exports) {
+    function isFormValid(view, formElement) {
+        return isFormValidInternal(formElement, view.viewChildren);
     }
     exports.isFormValid = isFormValid;
-    function isFormValidComputable(formElement) {
-        var children = getFormViewChildren(formElement);
+    function isFormValidComputable(view, formElement) {
         return ko.computed(function () {
-            return isFormValidInternal(formElement, children);
+            var isViewLoaded = view.isViewLoaded();
+            var isFormValid = isFormValidInternal(formElement, view.viewChildren);
+            return isViewLoaded && isFormValid;
         });
     }
     exports.isFormValidComputable = isFormValidComputable;
@@ -33,12 +33,6 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             }
         }
         return inputViewModels;
-    }
-    function getFormViewChildren(formElement) {
-        var parentView = visto.getViewFromElement(formElement);
-        if (parentView !== undefined && parentView !== null)
-            return parentView.viewChildren;
-        return ko.observableArray();
     }
 });
 //# sourceMappingURL=validation.js.map

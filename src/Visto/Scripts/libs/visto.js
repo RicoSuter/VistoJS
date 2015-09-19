@@ -776,6 +776,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
+            this.isViewLoaded = ko.observable(false);
         }
         /**
          * Enables page restoring for the current page.
@@ -1304,6 +1305,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.__raiseLoadedEvents = function () {
             this.view.onLoaded();
             this.viewModel.onLoaded();
+            this.view.isViewLoaded(true);
         };
         ViewFactory.prototype.__setHtml = function () {
             this.element.html(this.rootElement);

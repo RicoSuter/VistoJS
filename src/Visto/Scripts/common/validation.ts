@@ -1,15 +1,15 @@
 ﻿import visto = require("libs/visto");
 import validationViewModel = require("./viewModels/ValidationViewModel");
 
-export function isFormValid(formElement: JQuery) {
-    var children = getFormViewChildren(formElement);
-    return isFormValidInternal(formElement, children);
+export function isFormValid(view: visto.ViewBase, formElement: JQuery) {
+    return isFormValidInternal(formElement, view.viewChildren);
 }
 
-export function isFormValidComputable(formElement: JQuery) {
-    var children = getFormViewChildren(formElement);
+export function isFormValidComputable(view: visto.ViewBase, formElement: JQuery) {
     return ko.computed<boolean>(() => {
-        return isFormValidInternal(formElement, children);
+        var isViewLoaded = view.isViewLoaded();
+        var isFormValid = isFormValidInternal(formElement, view.viewChildren);
+        return isViewLoaded && isFormValid;
     });
 }
 
@@ -35,11 +35,4 @@ function getInputViewModelsWithValidation(formElement: JQuery, children: Knockou
         }
     }
     return inputViewModels;
-}
-
-function getFormViewChildren(formElement: JQuery) {
-    var parentView = visto.getViewFromElement(formElement);
-    if (parentView !== undefined && parentView !== null)
-        return parentView.viewChildren; 
-    return ko.observableArray<visto.ViewBase>();
 }

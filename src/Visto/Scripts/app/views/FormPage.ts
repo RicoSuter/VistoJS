@@ -1,14 +1,12 @@
 ﻿import visto = require("libs/visto");
 import validation = require("common/validation");
+import formPageModel = require("../viewModels/FormPageModel");
 
-export class FormPage extends visto.PageBase {
-    onLoaded() {
-        var form = $("form");
+export class FormPage extends visto.Page<formPageModel.FormPageModel> {
+    initialize() {
+        var formElement = this.getViewElement("form");
+        var isFormValid = validation.isFormValidComputable(this, formElement); 
 
-        var isValidComputable = validation.isFormValidComputable(form);
-        this.subscribe(isValidComputable, (valid) => {
-            console.log("Valid: " + valid);
-        });
-        console.log("Valid: " + validation.isFormValid(form));
+        this.viewModel.isFormValid = isFormValid;
     }
 } 

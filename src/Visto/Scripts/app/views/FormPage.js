@@ -10,16 +10,13 @@ define(["require", "exports", "libs/visto", "common/validation"], function (requ
         function FormPage() {
             _super.apply(this, arguments);
         }
-        FormPage.prototype.onLoaded = function () {
-            var form = $("form");
-            var isValidComputable = validation.isFormValidComputable(form);
-            this.subscribe(isValidComputable, function (valid) {
-                console.log("Valid: " + valid);
-            });
-            console.log("Valid: " + validation.isFormValid(form));
+        FormPage.prototype.initialize = function () {
+            var formElement = this.getViewElement("form");
+            var isFormValid = validation.isFormValidComputable(this, formElement);
+            this.viewModel.isFormValid = isFormValid;
         };
         return FormPage;
-    })(visto.PageBase);
+    })(visto.Page);
     exports.FormPage = FormPage;
 });
 //# sourceMappingURL=FormPage.js.map

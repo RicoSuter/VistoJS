@@ -2,4 +2,5 @@
 
 export class FormPageModel extends visto.ViewModel {
     hasLastName = ko.observable<boolean>(true);
+    isFormValid: KnockoutComputed<boolean>;
 }
