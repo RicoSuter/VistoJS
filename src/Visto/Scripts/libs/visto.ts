@@ -1,4 +1,4 @@
-﻿// Visto JavaScript Framework (VistoJS) v2.0.1
+﻿// Visto JavaScript Framework (VistoJS) v2.1.0
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
@@ -53,6 +53,7 @@ var currentNavigationPath = "";
 var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
 var initialLoadingScreenElement: JQuery = null;
+var tagAliases: { [key: string]: any } = { };
 
 // Globals for bindings
 var globals = {
@@ -98,6 +99,19 @@ export interface IVistoOptions {
     defaultFrame: JQuery;
     initialLoadingScreenElement: JQuery;
     loadingScreenElement: string;
+}
+
+/**
+ * Registers an alias for a tag; specify the tag without 'vs-'. 
+ */
+export function registerTagAlias(tag: string, pkg: string | IModule, viewPath: string) {
+    if (tagAliases[tag] !== undefined)
+        throw new Error("The tag alias '" + tag + "' is already registered.");
+
+    if (typeof pkg === "string")
+        tagAliases[tag] = pkg + ":" + viewPath; 
+    else
+        tagAliases[tag] = getPackageNameForModule(pkg) + ":" + viewPath; 
 }
 
 // ----------------------------
@@ -304,7 +318,7 @@ function replaceLanguageStrings(element: JQuery, path?: string) {
  */
 export function getViewFromElement(element: JQuery): ViewBase {
     while ((element = element.parent()) != undefined) {
-        if (parent.length === 0)
+        if (element.length === 0)
             return null;
 
         var viewId = $(element[0]).attr(viewIdAttribute);
@@ -334,7 +348,7 @@ export function addInitializer(completed: () => void) {
  * Restores the page stack on the body element as frame. 
  */
 export function initializeDefaultFrame(frame: JQuery, viewName: string, parameters?: {}): Q.Promise<ViewBase>;
-export function initializeDefaultFrame(frame: JQuery, package: IModule, viewName: string, parameters?: {}): Q.Promise<ViewBase>;
+export function initializeDefaultFrame(frame: JQuery, module: IModule, viewName: string, parameters?: {}): Q.Promise<ViewBase>;
 export function initializeDefaultFrame(frame: JQuery, a: any, b?: any, c?: any): Q.Promise<ViewBase> {
     if (typeof a === "string")
         return initializeDefaultFrameCore(frame, a, b);
@@ -689,12 +703,12 @@ function getCurrentPageDescription(frame: JQuery): IPage {
 }
 
 function getPageStack(element: JQuery) {
-    var pageStack = <IPage[]>element.data(pageStackAttribute);
+    var pageStack: any = element.data(pageStackAttribute);
     if (pageStack === null || pageStack === undefined) {
         pageStack = new Array();
         element.data(pageStackAttribute, pageStack);
     }
-    return pageStack;
+    return <IPage[]>pageStack;
 }
 
 function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean): Q.Promise<PageBase> {
@@ -909,9 +923,14 @@ export class ViewBase {
     parameters: Parameters;
 
     /**
-     * Gets the parent view of this view. 
+     * Gets the view's parent view. 
      */
-    parentView: ViewBase = null;
+    viewParent: ViewBase = null;
+
+    /**
+     * Gets the view's direct child views.
+     */
+    viewChildren = ko.observableArray<ViewBase>();
 
     private isDestroyed = false;
     private subViews: ViewBase[] = <Array<any>>[];
@@ -1007,14 +1026,20 @@ export class ViewBase {
                 item.dispose();
             });
 
+            if (this.viewParent != null)
+                this.viewParent.viewChildren.remove(this);
+
             this.isDestroyed = true;
         }
     }
 
-    __setParentView(parentView: ViewBase) {
-        if (this.parentView !== null)
+    __setViewParent(viewParent: ViewBase) {
+        if (this.viewParent !== null)
             throw "Parent view has already been set.";
-        this.parentView = parentView;
+
+        this.viewParent = viewParent;
+        if (this.viewParent != null)
+            this.viewParent.viewChildren.push(this);
     }
 
     __addSubView(view: ViewBase) {
@@ -1306,7 +1331,7 @@ class ViewFactory {
             }
         } else {
             loadedViews[this.viewLocator.name] = {
-                data: null,
+                data: <any>null,
                 running: true,
                 callbacks: [(data) => this.htmlLoaded(data)]
             };
@@ -1318,16 +1343,18 @@ class ViewFactory {
                 dataType: "html"
             }).done((data: string) => {
                 data = this.processCustomTags(data);
+
                 loadedViews[this.viewLocator.name].data = data;
                 loadedViews[this.viewLocator.name].running = false;
-                $.each(loadedViews[this.viewLocator.name].callbacks,(index, item) => {
+                $.each(loadedViews[this.viewLocator.name].callbacks, (index, item) => {
                     item(data);
                 });
             }).fail(() => {
                 var data = "<div>[View '" + this.viewLocator.name + "' not found]</div>";
+
                 loadedViews[this.viewLocator.name].data = data;
                 loadedViews[this.viewLocator.name].running = false;
-                $.each(loadedViews[this.viewLocator.name].callbacks,(index, item) => {
+                $.each(loadedViews[this.viewLocator.name].callbacks, (index, item) => {
                     item(data);
                 });
             });
@@ -1339,7 +1366,9 @@ class ViewFactory {
 
         htmlData =
         "<!-- ko stopBinding -->" +
-        htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") +
+        htmlData
+            .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+            .replace(/\[\[viewid\]\]/gi, this.viewId) +
         "<!-- /ko -->";
 
         var container = $(document.createElement("div"));
@@ -1411,7 +1440,7 @@ class ViewFactory {
         view.viewPackage = this.viewLocator.package;
 
         view.parameters = this.parameters;
-        view.__setParentView(this.parentView);
+        view.__setViewParent(this.parentView);
 
         views[this.viewId] = view;
 
@@ -1443,21 +1472,26 @@ class ViewFactory {
                 var path = "";
                 var pkg = "";
                 var bindings = "";
+                //var knockoutsBindings = "";
 
-                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g,(match: string, name: string, value: string) => {
-                    name = convertDashedToCamelCase(name.trim());
-                    if (name === "path")
-                        path = value;
-                    else if (name === "package")
-                        pkg = value;
-                    else if (startsWith(value, "{") && endsWith(value, "}")) {
-                        value = value.substr(1, value.length - 2);
-                        if (value.indexOf("(") > -1)
-                            value = "ko.computed(function () { return " + value + "; })";
-                        bindings += name + ": " + value + ", ";
-                    }
-                    else
-                        bindings += name + ": '" + value + "', ";
+                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g, (match: string, name: string, value: string) => {
+                    //if (name.indexOf("vs-")) {
+                    //    // TODO: Parse vs attributes
+                    //} else {
+                        name = convertDashedToCamelCase(name.trim());
+                        if (name === "path")
+                            path = value;
+                        else if (name === "package")
+                            pkg = value;
+                        else if (startsWith(value, "{") && endsWith(value, "}")) {
+                            value = value.substr(1, value.length - 2);
+                            if (value.indexOf("(") > -1)
+                                value = "ko.computed(function () { return " + value + "; })";
+                            bindings += name + ": " + value + ", ";
+                        }
+                        else
+                            bindings += name + ": '" + value + "', ";
+                    //}
                     return match;
                 });
 
@@ -1465,7 +1499,11 @@ class ViewFactory {
                 view = view[0].toUpperCase() + view.substr(1);
                 view = path === "" ? view : path + "/" + view;
 
-                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+                if (tagAliases[tag] !== undefined)
+                    bindings += "name: '" + tagAliases[tag] + "'";
+                else
+                    bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+
                 return '<div data-bind="view: { ' + bindings + ' }" ' + close;
             });
 

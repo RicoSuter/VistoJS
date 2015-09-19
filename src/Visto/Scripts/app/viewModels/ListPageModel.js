@@ -1,10 +1,10 @@
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-define(["require", "exports", "libs/visto", "common/main", "SampleService", "module"], function (require, exports, visto, common, svc, package) {
+define(["require", "exports", "libs/visto", "common/main", "SampleService", "module"], function (require, exports, visto, common, svc, pkg) {
     var ListPageModel = (function (_super) {
         __extends(ListPageModel, _super);
         function ListPageModel() {
@@ -24,7 +24,7 @@ define(["require", "exports", "libs/visto", "common/main", "SampleService", "mod
             }).done();
         };
         ListPageModel.prototype.showItem = function (item) {
-            visto.navigateTo(package, "DetailsPage", { item: item });
+            visto.navigateTo(pkg, "DetailsPage", { item: item });
         };
         ListPageModel.prototype.addItem = function () {
             var _this = this;

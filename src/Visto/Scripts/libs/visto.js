@@ -1,7 +1,7 @@
-// Visto JavaScript Framework (VistoJS) v2.0.1
+// Visto JavaScript Framework (VistoJS) v2.1.0
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     __.prototype = b.prototype;
@@ -48,14 +48,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var currentContext = null;
     var defaultFrame = null;
     var initialLoadingScreenElement = null;
+    var tagAliases = {};
     // Globals for bindings
     var globals = {
-        navigateBack: function () {
-            return navigateBack();
-        },
-        navigateHome: function () {
-            return navigateHome();
-        },
+        navigateBack: function () { return navigateBack(); },
+        navigateHome: function () { return navigateHome(); },
         canNavigateBack: exports.canNavigateBack,
         pageStackSize: exports.pageStackSize
     };
@@ -78,6 +75,18 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         createView($("body").append("<div></div>"), options.startView, options.startParameters);
     }
     exports.initialize = initialize;
+    /**
+     * Registers an alias for a tag; specify the tag without 'vs-'.
+     */
+    function registerTagAlias(tag, pkg, viewPath) {
+        if (tagAliases[tag] !== undefined)
+            throw new Error("The tag alias '" + tag + "' is already registered.");
+        if (typeof pkg === "string")
+            tagAliases[tag] = pkg + ":" + viewPath;
+        else
+            tagAliases[tag] = getPackageNameForModule(pkg) + ":" + viewPath;
+    }
+    exports.registerTagAlias = registerTagAlias;
     // ----------------------------
     // Internal helper methods
     // ----------------------------
@@ -89,11 +98,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     ;
     // Tries to load a module using RequireJS
     function tryRequire(moduleNames, completed) {
-        require(moduleNames, function (result) {
-            completed(result);
-        }, function () {
-            completed(null);
-        });
+        require(moduleNames, function (result) { completed(result); }, function () { completed(null); });
     }
     ;
     // Checks whether a string ends with a given suffix
@@ -164,15 +169,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     dataType: "json"
                 }).done(function (result) {
                     languageStrings[lang][packageName] = result;
-                    $.each(languageLoadings[url], function (index, item) {
-                        item();
-                    });
+                    $.each(languageLoadings[url], function (index, item) { item(); });
                     delete languageLoadings[url];
                 }).fail(function (xhr, ajaxOptions) {
                     languageStrings[lang][packageName] = ([]);
-                    $.each(languageLoadings[url], function (index, item) {
-                        item();
-                    });
+                    $.each(languageLoadings[url], function (index, item) { item(); });
                     log("Error loading language JSON '" + url + "': " + ajaxOptions);
                     delete languageLoadings[url];
                 });
@@ -193,9 +194,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         if (languageStrings[lang] === undefined)
             languageStrings[lang] = ([]);
         if (languageStrings[lang][packageName] === undefined) {
-            loadLanguageFile(packageName, function () {
-                getStringForLanguage(lang, packageName, key, completed);
-            });
+            loadLanguageFile(packageName, function () { getStringForLanguage(lang, packageName, key, completed); });
             if (previousLanguage !== null)
                 return getStringForLanguage(previousLanguage, packageName, key);
             return "";
@@ -209,9 +208,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function getObservableString(key, packageName) {
         var observable = ko.observable();
-        observable(getString(key, packageName, function (value) {
-            observable(value);
-        }));
+        observable(getString(key, packageName, function (value) { observable(value); }));
         return observable;
     }
     exports.getObservableString = getObservableString;
@@ -284,7 +281,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function getViewFromElement(element) {
         while ((element = element.parent()) != undefined) {
-            if (parent.length === 0)
+            if (element.length === 0)
                 return null;
             var viewId = $(element[0]).attr(viewIdAttribute);
             if (viewId !== undefined)
@@ -346,7 +343,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 navigateToNextSegment(null);
             }
             else {
-                navigateTo(frame, fullViewName, parameters).then(function (view) { return resolve(view); }).fail(reject);
+                navigateTo(frame, fullViewName, parameters)
+                    .then(function (view) { return resolve(view); })
+                    .fail(reject);
             }
         });
     }
@@ -381,7 +380,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         var currentPage = getCurrentPageDescription($(frame));
         showLoadingScreen(currentPage !== null);
         if (currentPage !== null && currentPage !== undefined) {
-            return currentPage.view.onNavigatingFrom("forward").then(function (navigate) { return tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate); }).then(function (page) {
+            return currentPage.view.onNavigatingFrom("forward")
+                .then(function (navigate) { return tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate); })
+                .then(function (page) {
                 hideLoadingScreen();
                 return page;
             });
@@ -502,9 +503,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     focusable.focus();
                     focusable.blur();
                 }
-                showNativeDialog($(container.children().get(0)), view, parameters, function () {
-                    view.onShown();
-                }, function () {
+                showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
                     openedDialogs--;
                     view.onClosed();
                     view.__destroyView();
@@ -534,12 +533,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         if (dialog.modal !== undefined) {
             // Bootstrap dialog
             dialog.modal({});
-            dialog.on("shown.bs.modal", function () {
-                onShown();
-            });
-            dialog.on("hidden.bs.modal", function () {
-                onClosed();
-            });
+            dialog.on("shown.bs.modal", function () { onShown(); });
+            dialog.on("hidden.bs.modal", function () { onClosed(); });
         }
         else {
             // JQuery UI dialog: 
@@ -585,9 +580,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var value = ko.utils.unwrapObservable(valueAccessor());
             var factory = new ViewFactory();
             factory.create($(element), value.name, value, function (view) {
-                ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
-                    view.__destroyView();
-                });
+                ko.utils.domNodeDisposal.addDisposeCallback(element, function () { view.__destroyView(); });
                 if (rootView !== null)
                     rootView.__addSubView(view);
             });
@@ -773,9 +766,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewBase = (function () {
         function ViewBase() {
             /**
-             * Gets the parent view of this view.
+             * Gets the view's parent view.
              */
-            this.parentView = null;
+            this.viewParent = null;
+            /**
+             * Gets the view's direct child views.
+             */
+            this.viewChildren = ko.observableArray();
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
@@ -846,20 +843,25 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 view.__destroyView();
             });
             if (!this.isDestroyed) {
-                log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " + this.subViews.length + " subviews");
+                log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " +
+                    this.subViews.length + " subviews");
                 delete views[this.viewId];
                 this.viewModel.destroy();
                 this.destroy();
                 $.each(this.disposables, function (index, item) {
                     item.dispose();
                 });
+                if (this.viewParent != null)
+                    this.viewParent.viewChildren.remove(this);
                 this.isDestroyed = true;
             }
         };
-        ViewBase.prototype.__setParentView = function (parentView) {
-            if (this.parentView !== null)
+        ViewBase.prototype.__setViewParent = function (viewParent) {
+            if (this.viewParent !== null)
                 throw "Parent view has already been set.";
-            this.parentView = parentView;
+            this.viewParent = viewParent;
+            if (this.viewParent != null)
+                this.viewParent.viewChildren.push(this);
         };
         ViewBase.prototype.__addSubView = function (view) {
             this.subViews.push(view);
@@ -923,7 +925,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             /**
              * Gets the dialog result.
              */
-            this.result = 0 /* Undefined */;
+            this.result = DialogResult.Undefined;
         }
         /**
          * Closes the dialog.
@@ -1155,7 +1157,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         ViewFactory.prototype.htmlLoaded = function (htmlData) {
             this.viewId = "view_" + ++viewCount;
-            htmlData = "<!-- ko stopBinding -->" + htmlData.replace(/vs-id="/g, "id=\"" + this.viewId + "_") + "<!-- /ko -->";
+            htmlData =
+                "<!-- ko stopBinding -->" +
+                    htmlData
+                        .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+                        .replace(/\[\[viewid\]\]/gi, this.viewId) +
+                    "<!-- /ko -->";
             var container = $(document.createElement("div"));
             container.html(htmlData);
             this.rootElement = $(container.children()[0]);
@@ -1210,7 +1217,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             view.viewClass = this.viewLocator.className;
             view.viewPackage = this.viewLocator.package;
             view.parameters = this.parameters;
-            view.__setParentView(this.parentView);
+            view.__setViewParent(this.parentView);
             views[this.viewId] = view;
             return view;
         };
@@ -1228,11 +1235,18 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Process custom tags in the given HTML data string.
          */
         ViewFactory.prototype.processCustomTags = function (data) {
-            data = data.replace(/vs-translate="/g, "data-translate=\"").replace(/vs-bind="/g, "data-bind=\"").replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
+            data = data
+                .replace(/vs-translate="/g, "data-translate=\"")
+                .replace(/vs-bind="/g, "data-bind=\"")
+                .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
                 var path = "";
                 var pkg = "";
                 var bindings = "";
+                //var knockoutsBindings = "";
                 attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g, function (match, name, value) {
+                    //if (name.indexOf("vs-")) {
+                    //    // TODO: Parse vs attributes
+                    //} else {
                     name = convertDashedToCamelCase(name.trim());
                     if (name === "path")
                         path = value;
@@ -1246,15 +1260,20 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     }
                     else
                         bindings += name + ": '" + value + "', ";
+                    //}
                     return match;
                 });
                 var view = convertDashedToCamelCase(tag);
                 view = view[0].toUpperCase() + view.substr(1);
                 view = path === "" ? view : path + "/" + view;
-                bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
+                if (tagAliases[tag] !== undefined)
+                    bindings += "name: '" + tagAliases[tag] + "'";
+                else
+                    bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
                 return '<div data-bind="view: { ' + bindings + ' }" ' + close;
             });
-            return this.processKnockoutAttributes(data).replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; });
+            return this.processKnockoutAttributes(data)
+                .replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; });
         };
         ViewFactory.prototype.processKnockoutAttributes = function (input) {
             var output = input.replace(/<[^]*?>/g, function (tagContent) {

@@ -1,0 +1,17 @@
+﻿<div class="form-group" vs-css="{{ 'has-error': isValidDisplay() === false }}">
+    <label class="control-label"
+           for="text_input_[[viewId]]"
+           vs-text="{label}"></label>
+    
+    <input id="text_input_[[viewId]]"
+           type="text"
+           class="form-control"
+           vs-value="{value}"
+           vs-value-update="afterkeydown">
+
+    <div vs-visible="{isValidDisplay() === false}">
+        <!-- ko foreach: validationErrors -->
+        <div vs-text="{$data}" class="help-block"></div>
+        <!-- /ko -->
+    </div>
+</div>

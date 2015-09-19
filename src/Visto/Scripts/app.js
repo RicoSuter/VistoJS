@@ -1,4 +1,5 @@
-define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+define(["require", "exports", "libs/visto", "common/main"], function (require, exports, visto, common) {
+    common.registerTagAliases();
     visto.initialize({
         startView: "MainView",
         supportedLanguages: ["en", "de"]

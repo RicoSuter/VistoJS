@@ -14,7 +14,7 @@
     <IISExpressAnonymousAuthentication />
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
-    <TypeScriptToolsVersion>1.4</TypeScriptToolsVersion>
+    <TypeScriptToolsVersion>1.6</TypeScriptToolsVersion>
     <UseGlobalApplicationHostFile />
   </PropertyGroup>
   <PropertyGroup>
@@ -60,8 +60,14 @@
     <Content Include="Content\site.css" />
     <Content Include="index.html" />
     <TypeScriptCompile Include="Scripts\app\viewModels\BindingsPageModel.ts" />
+    <TypeScriptCompile Include="Scripts\app\viewModels\FormPageModel.ts" />
     <TypeScriptCompile Include="Scripts\app\viewModels\RecursivePageModel.ts" />
+    <TypeScriptCompile Include="Scripts\app\views\FormPage.ts" />
     <TypeScriptCompile Include="Scripts\app\views\MainView.ts" />
+    <TypeScriptCompile Include="Scripts\common\validation.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\CheckBoxModel.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\TextBoxModel.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\ValidationControlModel.ts" />
     <TypeScriptCompile Include="Scripts\common\views\TabControl.ts" />
     <TypeScriptCompile Include="Scripts\common\main.ts" />
     <TypeScriptCompile Include="Scripts\common\viewModels\LanguageSelectorModel.ts" />
@@ -78,6 +84,9 @@
     <Content Include="Scripts\app\viewModels\DetailsPageModel.js">
       <DependentUpon>DetailsPageModel.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\app\viewModels\FormPageModel.js">
+      <DependentUpon>FormPageModel.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\app\viewModels\HomePageModel.js">
       <DependentUpon>HomePageModel.ts</DependentUpon>
     </Content>
@@ -87,7 +96,15 @@
     <Content Include="Scripts\app\viewModels\RecursivePageModel.js">
       <DependentUpon>RecursivePageModel.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\common\viewModels\CheckBoxModel.js">
+      <DependentUpon>CheckBoxModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\views\CheckBox.html" />
     <Content Include="Scripts\app\views\DetailsPage.html" />
+    <Content Include="Scripts\app\views\FormPage.html" />
+    <Content Include="Scripts\app\views\FormPage.js">
+      <DependentUpon>FormPage.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\app\views\InternationalizationPage.html" />
     <Content Include="Scripts\app\views\ListPage.html" />
     <Content Include="Scripts\app\views\BindingsPage.html" />
@@ -101,8 +118,21 @@
     <Content Include="Scripts\app\views\tabs\Tab1.html" />
     <Content Include="Scripts\app\views\tabs\Tab2.html" />
     <Content Include="Scripts\app\views\WebViewPage.html" />
+    <Content Include="Scripts\common\validation.js">
+      <DependentUpon>validation.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\TextBoxModel.js">
+      <DependentUpon>TextBoxModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\viewModels\ValidationControlModel.js">
+      <DependentUpon>ValidationControlModel.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\views\TextBox.html" />
     <Content Include="Scripts\common\views\TabControl.js">
       <DependentUpon>TabControl.ts</DependentUpon>
+    </Content>
+    <Content Include="Scripts\common\views\WebView.js">
+      <DependentUpon>WebView.ts</DependentUpon>
     </Content>
     <Content Include="Scripts\libs\q.min.js" />
     <Content Include="Scripts\libs\visto.js">
@@ -161,14 +191,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Scripts\common\views\TabControl.html" />
-    <TypeScriptCompile Include="Scripts\common\views\WebView.ts" />
     <Content Include="Scripts\libs\visto.modules.d.ts" />
+    <TypeScriptCompile Include="Scripts\common\views\WebView.ts" />
     <TypeScriptCompile Include="Scripts\libs\q.d.ts" />
     <TypeScriptCompile Include="Scripts\libs\visto.ts" />
     <TypeScriptCompile Include="Scripts\SampleService.ts" />
-    <Content Include="Scripts\common\views\WebView.js">
-      <DependentUpon>WebView.ts</DependentUpon>
-    </Content>
     <Content Include="Scripts\SampleService.js">
       <DependentUpon>SampleService.ts</DependentUpon>
     </Content>
@@ -193,6 +220,15 @@
   </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
+    <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
+    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
+    <TypeScriptOutFile />
+    <TypeScriptOutDir />
+    <TypeScriptGeneratesDeclarations>True</TypeScriptGeneratesDeclarations>
+    <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
+    <TypeScriptMapRoot />
+    <TypeScriptSourceRoot />
   </PropertyGroup>
   <Import Project="$(VSToolsPath)\TypeScript\Microsoft.TypeScript.targets" />
 </Project>

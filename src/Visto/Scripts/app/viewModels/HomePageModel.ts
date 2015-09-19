@@ -1,6 +1,6 @@
 import visto = require("libs/visto");
 import common = require("common/main");
-import package = require("module");
+import pkg = require("module");
 
 export class HomePageModel extends visto.ViewModel {
     initialize() {
@@ -8,27 +8,31 @@ export class HomePageModel extends visto.ViewModel {
     }
 
     navigateToBindings() {
-        visto.navigateTo(package, "BindingsPage");
+        visto.navigateTo(pkg, "BindingsPage");
+    }
+
+    navigateToForm() {
+        visto.navigateTo(pkg, "FormPage");
     }
 
     navigateToRecursivePage() {
-        visto.navigateTo(package, "RecursivePage");
+        visto.navigateTo(pkg, "RecursivePage");
     }
 
     navigateToInternationalization() {
-        visto.navigateTo(package, "InternationalizationPage");
+        visto.navigateTo(pkg, "InternationalizationPage");
     }
 
     navigateToTabPage() {
-        visto.navigateTo(package, "TabPage");
+        visto.navigateTo(pkg, "TabPage");
     }
 
 	navigateToListPage() {
-        visto.navigateTo(package, "ListPage");
-	}
+        visto.navigateTo(pkg, "ListPage");
+    }
 
     navigateToWebViewPage() {
-        visto.navigateTo(package, "WebViewPage");
+        visto.navigateTo(pkg, "WebViewPage");
     }
 
 	showAlert() {
@@ -36,6 +40,6 @@ export class HomePageModel extends visto.ViewModel {
 	}
 
 	showCustomDialog() {
-        visto.showDialog(package, "SampleDialog");
+        visto.showDialog(pkg, "SampleDialog");
 	}
 };

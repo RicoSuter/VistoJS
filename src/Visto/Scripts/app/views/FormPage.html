@@ -1,0 +1,25 @@
+﻿<div class="container">
+    <h1>FormPage</h1>
+
+    <vs-text-box label="Foo" value="Bar" required="true"
+                 min-length="3"
+                 max-length="10" max-length-error="The foo must have at most {max} characters!"
+                 validation-regex="[a-zA-Z]*" />
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            Form
+        </div>
+        <div class="panel-body">
+            <form>
+                <vs-text-box label="First name" value="John" required="true" />
+                <vs-check-box label="Has last name" checked="{hasLastName}" />
+                <div vs-visible="{hasLastName}">
+                    <vs-text-box label="Last name" 
+                                 required="true"
+                                 validation-enabled="{hasLastName}" />
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

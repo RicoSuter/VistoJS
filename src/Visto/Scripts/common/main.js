@@ -1,42 +1,50 @@
-define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, package) {
+define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, pkg) {
+    /**
+     * Registers common control aliases so that they can be used without specifying the common package.
+     */
+    function registerTagAliases() {
+        visto.registerTagAlias("text-box", pkg, "TextBox");
+        visto.registerTagAlias("check-box", pkg, "CheckBox");
+    }
+    exports.registerTagAliases = registerTagAliases;
     /**
      * Shows a confirm dialog box with with various buttons.
      */
     function confirm(title, message, buttons) {
         var buttonCollection = [];
-        if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
+        if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
             buttonCollection.push({
                 label: "Yes",
                 click: function (dialog) {
-                    dialog.close(3 /* Yes */);
+                    dialog.close(visto.DialogResult.Yes);
                 }
             });
         }
-        if (buttons === 0 /* YesNoCancel */ || buttons === 1 /* YesNo */) {
+        if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
             buttonCollection.push({
                 label: "No",
                 click: function (dialog) {
-                    dialog.close(4 /* No */);
+                    dialog.close(visto.DialogResult.No);
                 }
             });
         }
-        if (buttons === 2 /* OkCancel */ || buttons === 3 /* Ok */) {
+        if (buttons === Buttons.OkCancel || buttons === Buttons.Ok) {
             buttonCollection.push({
                 label: "OK",
                 click: function (dialog) {
-                    dialog.close(1 /* Ok */);
+                    dialog.close(visto.DialogResult.Ok);
                 }
             });
         }
-        if (buttons === 0 /* YesNoCancel */ || buttons === 2 /* OkCancel */) {
+        if (buttons === Buttons.YesNoCancel || buttons === Buttons.OkCancel) {
             buttonCollection.push({
                 label: "Cancel",
                 click: function (dialog) {
-                    dialog.close(2 /* Cancel */);
+                    dialog.close(visto.DialogResult.Cancel);
                 }
             });
         }
-        return visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
+        return visto.showDialog(visto.getViewName(pkg, "dialogs/Confirm"), {
             title: title,
             message: message,
             buttons: buttonCollection
@@ -58,7 +66,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      */
     function progressDialog(title) {
         return Q.Promise(function (resolve) {
-            visto.showDialog(package, "dialogs/ProgressDialog", {
+            visto.showDialog(pkg, "dialogs/ProgressDialog", {
                 title: title,
                 resizable: false,
                 draggable: true,
@@ -98,7 +106,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      * Shows an alert dialog box.
      */
     function alert(title, message) {
-        return confirm(title, message, 3 /* Ok */);
+        return confirm(title, message, Buttons.Ok);
     }
     exports.alert = alert;
     ;
@@ -107,12 +115,12 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      */
     function prompt(title, message, defaultText) {
         var output = ko.observable(defaultText);
-        return visto.showDialog(package, "dialogs/Prompt", {
+        return visto.showDialog(pkg, "dialogs/Prompt", {
             message: message,
             output: output,
             title: title
         }).then(function (dialog) {
-            if (dialog.result === 1 /* Ok */)
+            if (dialog.result === visto.DialogResult.Ok)
                 return output();
             else
                 return null;
@@ -124,14 +132,14 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
      * Shows a dialog with a list picker.
      */
     function listPicker(header, label, items, selectedItem, optionsText) {
-        return visto.showDialog(package, "dialogs/ListPicker", {
+        return visto.showDialog(pkg, "dialogs/ListPicker", {
             title: header,
             label: label,
             items: items,
             selectedItem: selectedItem,
             optionsText: optionsText
         }).then(function (dialog) {
-            if (dialog.result === 1 /* Ok */)
+            if (dialog.result === visto.DialogResult.Ok)
                 return dialog.viewModel.selectedItem();
             else
                 return null;

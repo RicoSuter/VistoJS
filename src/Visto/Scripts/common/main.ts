@@ -1,6 +1,14 @@
 import visto = require("libs/visto");
-import package = require("module");
+import pkg = require("module");
 import listPickerModel = require("viewModels/dialogs/ListPickerModel"); 
+
+/**
+ * Registers common control aliases so that they can be used without specifying the common package.
+ */
+export function registerTagAliases() {
+    visto.registerTagAlias("text-box", pkg, "TextBox");
+    visto.registerTagAlias("check-box", pkg, "CheckBox");
+}
 
 /**
  * Shows a confirm dialog box with with various buttons.
@@ -43,7 +51,7 @@ export function confirm(title: string, message: string, buttons: Buttons) {
         });
     }
 
-    return visto.showDialog(visto.getViewName(package, "dialogs/Confirm"), {
+    return visto.showDialog(visto.getViewName(pkg, "dialogs/Confirm"), {
         title: title,
         message: message,
         buttons: buttonCollection
@@ -69,7 +77,7 @@ export enum Buttons {
  */
 export function progressDialog(title: string) {
     return Q.Promise<IProgressDialog>((resolve) => {
-        visto.showDialog(package, "dialogs/ProgressDialog", {
+        visto.showDialog(pkg, "dialogs/ProgressDialog", {
             title: title,
             resizable: false,
             draggable: true,
@@ -124,7 +132,7 @@ export function alert(title: string, message: string) {
  */
 export function prompt(title: string, message: string, defaultText: string) {
     var output = ko.observable(defaultText);
-    return visto.showDialog(package, "dialogs/Prompt", {
+    return visto.showDialog(pkg, "dialogs/Prompt", {
         message: message,
         output: output,
         title: title
@@ -140,7 +148,7 @@ export function prompt(title: string, message: string, defaultText: string) {
  * Shows a dialog with a list picker. 
  */
 export function listPicker<TItem>(header: string, label: string, items: any[], selectedItem: TItem, optionsText: string) {
-    return visto.showDialog(package, "dialogs/ListPicker", {
+    return visto.showDialog(pkg, "dialogs/ListPicker", {
         title: header,
         label: label,
         items: items,

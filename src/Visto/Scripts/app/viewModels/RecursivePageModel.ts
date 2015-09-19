@@ -1,5 +1,5 @@
 ﻿import visto = require("libs/visto");
-import package = require("module");
+import pkg = require("module");
 
 export class RecursivePageModel extends visto.ViewModel {
     initialize() {
@@ -7,6 +7,6 @@ export class RecursivePageModel extends visto.ViewModel {
     }
 
     navigate() {
-        visto.navigateTo(package, "RecursivePage");
+        visto.navigateTo(pkg, "RecursivePage");
     }
 } 

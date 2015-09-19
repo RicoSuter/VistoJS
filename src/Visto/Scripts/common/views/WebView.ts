@@ -10,7 +10,7 @@ export class WebView extends visto.ViewBase {
         this.url = this.parameters.getObservableString("url", "");
         this.subscribe(this.url,(newUrl) => this.navigateToUrl(newUrl));
         this.registerSubmitEvent();
-
+        
         return Q($.ajax({
             type: "GET",
             url: this.url()

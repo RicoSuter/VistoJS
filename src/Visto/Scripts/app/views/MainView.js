@@ -1,10 +1,10 @@
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, package) {
+define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, pkg) {
     var MainView = (function (_super) {
         __extends(MainView, _super);
         function MainView() {
@@ -12,7 +12,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
         }
         MainView.prototype.onLoading = function () {
             var frame = this.getViewElement("frame");
-            return visto.initializeDefaultFrame(frame, package, "HomePage");
+            return visto.initializeDefaultFrame(frame, pkg, "HomePage");
         };
         return MainView;
     })(visto.ViewBase);

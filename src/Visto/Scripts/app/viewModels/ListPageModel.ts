@@ -1,7 +1,7 @@
 import visto = require("libs/visto");
 import common = require("common/main");
 import svc = require("SampleService");
-import package = require("module");
+import pkg = require("module");
 
 export class ListPageModel extends visto.ViewModel {
     items = ko.observableArray<svc.ISampleItem>();
@@ -20,7 +20,7 @@ export class ListPageModel extends visto.ViewModel {
     }
 
     showItem(item: svc.ISampleItem) {
-        visto.navigateTo(package, "DetailsPage", { item: item });
+        visto.navigateTo(pkg, "DetailsPage", { item: item });
     }
 
     addItem() {
