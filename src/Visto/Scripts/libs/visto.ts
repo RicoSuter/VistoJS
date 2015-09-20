@@ -1474,12 +1474,13 @@ class ViewFactory {
             .replace(/<vs-([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, (match: string, tagName: string, attributes: string, tagClosing: string) => {
                 var path = "";
                 var pkg = "";
+
                 var bindings = "";
-                var knockoutAttributes = "";
+                var htmlAttributes = "";
 
                 attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, (match: string, attributeName: string, attributeValue: string) => {
-                    if (attributeName.indexOf("vs-") === 0) {
-                        knockoutAttributes += " " + match;
+                    if (attributeName.indexOf("vs-") === 0 || attributeName === "class" || attributeName === "style") { // class and style attribute are allowed on view tag
+                        htmlAttributes += " " + match;
                         return match;
                     } else {
                         attributeName = convertDashedToCamelCase(attributeName.trim());
@@ -1508,7 +1509,7 @@ class ViewFactory {
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
 
-                return '<div data-bind="view: { ' + bindings + ' }" ' + knockoutAttributes + tagClosing;
+                return '<div data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
 
         return data;
@@ -1522,7 +1523,7 @@ class ViewFactory {
             var existingDataBindValue = "";
             var additionalDataBindValue = "";
             
-            attributes = attributes.replace(/([a-zA-Z0-9-]+?)="([^]*?)"/g, (attributeContent: string, key: string, value: string) => {
+            attributes = attributes.replace(/([a-zA-Z0-9-]+?)="([^]*?)"/g, (match: string, key: string, value: string) => {
                 if (key.indexOf("vs-") === 0 && key !== "vs-id") {
                     var knockoutBindingHandler = convertDashedToCamelCase(key.substr(3));
                     var knockoutBindingValue = (value.length > 0 && value[0] === "{" ? value.substr(1, value.length - 2) : "'" + value + "'");
@@ -1534,7 +1535,7 @@ class ViewFactory {
                     return "";
                 }
                 else
-                    return attributeContent;
+                    return match;
             });
 
             if (existingDataBindValue !== "" || additionalDataBindValue !== "") {

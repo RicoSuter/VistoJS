@@ -1244,10 +1244,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 var path = "";
                 var pkg = "";
                 var bindings = "";
-                var knockoutAttributes = "";
+                var htmlAttributes = "";
                 attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, function (match, attributeName, attributeValue) {
-                    if (attributeName.indexOf("vs-") === 0) {
-                        knockoutAttributes += " " + match;
+                    if (attributeName.indexOf("vs-") === 0 || attributeName === "class" || attributeName === "style") {
+                        htmlAttributes += " " + match;
                         return match;
                     }
                     else {
@@ -1274,7 +1274,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     bindings += "name: '" + tagAliases[tagName] + "'";
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-                return '<div data-bind="view: { ' + bindings + ' }" ' + knockoutAttributes + tagClosing;
+                return '<div data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
             return data;
         };
@@ -1285,7 +1285,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             data = data.replace(/<([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, function (match, tagName, attributes, tagClosing) {
                 var existingDataBindValue = "";
                 var additionalDataBindValue = "";
-                attributes = attributes.replace(/([a-zA-Z0-9-]+?)="([^]*?)"/g, function (attributeContent, key, value) {
+                attributes = attributes.replace(/([a-zA-Z0-9-]+?)="([^]*?)"/g, function (match, key, value) {
                     if (key.indexOf("vs-") === 0 && key !== "vs-id") {
                         var knockoutBindingHandler = convertDashedToCamelCase(key.substr(3));
                         var knockoutBindingValue = (value.length > 0 && value[0] === "{" ? value.substr(1, value.length - 2) : "'" + value + "'");
@@ -1297,7 +1297,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         return "";
                     }
                     else
-                        return attributeContent;
+                        return match;
                 });
                 if (existingDataBindValue !== "" || additionalDataBindValue !== "") {
                     if (existingDataBindValue === "")
