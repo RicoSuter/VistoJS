@@ -1141,6 +1141,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     dataType: "html"
                 }).done(function (data) {
                     data = _this.processCustomTags(data);
+                    data = _this.processKnockoutAttributes(data);
                     loadedViews[_this.viewLocator.name].data = data;
                     loadedViews[_this.viewLocator.name].running = false;
                     $.each(loadedViews[_this.viewLocator.name].callbacks, function (index, item) {
@@ -1239,67 +1240,73 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             data = data
                 .replace(/vs-translate="/g, "data-translate=\"")
                 .replace(/vs-bind="/g, "data-bind=\"")
-                .replace(/<vs-([\s\S]+?) ([\s\S]*?)(\/>|>)/g, function (match, tag, attributes, close) {
+                .replace(/<vs-([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, function (match, tagName, attributes, tagClosing) {
                 var path = "";
                 var pkg = "";
                 var bindings = "";
-                //var knockoutsBindings = "";
-                attributes.replace(/([\s\S]*?)="([\s\S]*?)"/g, function (match, name, value) {
-                    //if (name.indexOf("vs-")) {
-                    //    // TODO: Parse vs attributes
-                    //} else {
-                    name = convertDashedToCamelCase(name.trim());
-                    if (name === "path")
-                        path = value;
-                    else if (name === "package")
-                        pkg = value;
-                    else if (startsWith(value, "{") && endsWith(value, "}")) {
-                        value = value.substr(1, value.length - 2);
-                        if (value.indexOf("(") > -1)
-                            value = "ko.computed(function () { return " + value + "; })";
-                        bindings += name + ": " + value + ", ";
+                var knockoutAttributes = "";
+                attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, function (match, attributeName, attributeValue) {
+                    if (attributeName.indexOf("vs-") === 0) {
+                        knockoutAttributes += " " + match;
+                        return match;
                     }
-                    else
-                        bindings += name + ": '" + value + "', ";
-                    //}
-                    return match;
+                    else {
+                        attributeName = convertDashedToCamelCase(attributeName.trim());
+                        if (attributeName === "path")
+                            path = attributeValue;
+                        else if (attributeName === "package")
+                            pkg = attributeValue;
+                        else if (startsWith(attributeValue, "{") && endsWith(attributeValue, "}")) {
+                            attributeValue = attributeValue.substr(1, attributeValue.length - 2);
+                            if (attributeValue.indexOf("(") > -1)
+                                attributeValue = "ko.computed(function () { return " + attributeValue + "; })";
+                            bindings += attributeName + ": " + attributeValue + ", ";
+                        }
+                        else
+                            bindings += attributeName + ": '" + attributeValue + "', ";
+                        return match;
+                    }
                 });
-                var view = convertDashedToCamelCase(tag);
+                var view = convertDashedToCamelCase(tagName);
                 view = view[0].toUpperCase() + view.substr(1);
                 view = path === "" ? view : path + "/" + view;
-                if (tagAliases[tag] !== undefined)
-                    bindings += "name: '" + tagAliases[tag] + "'";
+                if (tagAliases[tagName] !== undefined)
+                    bindings += "name: '" + tagAliases[tagName] + "'";
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-                return '<div data-bind="view: { ' + bindings + ' }" ' + close;
+                return '<div data-bind="view: { ' + bindings + ' }" ' + knockoutAttributes + tagClosing;
             });
-            return this.processKnockoutAttributes(data)
-                .replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; });
+            return data;
         };
-        ViewFactory.prototype.processKnockoutAttributes = function (input) {
-            var output = input.replace(/<[^]*?>/g, function (tagContent) {
-                var firstAttribute = true;
-                var bindings = 'data-bind="';
-                tagContent = tagContent.replace(/ vs-(.*?)="([^]*?)"/g, function (attributeContent, key, value) {
-                    if (key !== "id") {
-                        key = convertDashedToCamelCase(key);
-                        value = (value.length > 0 && value[0] === "{" ? value.substr(1, value.length - 2) : "'" + value + "'");
-                        if (firstAttribute) {
-                            bindings += key + ": " + value;
-                            firstAttribute = false;
-                            return " [bindings]";
-                        }
-                        bindings += ", " + key + ": " + value;
-                        return " ";
+        /**
+         * Process Knockout attributes (vs-) in the given HTML data string (must be called after processCustomTags).
+         */
+        ViewFactory.prototype.processKnockoutAttributes = function (data) {
+            data = data.replace(/<([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, function (match, tagName, attributes, tagClosing) {
+                var existingDataBindValue = "";
+                var additionalDataBindValue = "";
+                attributes = attributes.replace(/([a-zA-Z0-9-]+?)="([^]*?)"/g, function (attributeContent, key, value) {
+                    if (key.indexOf("vs-") === 0 && key !== "vs-id") {
+                        var knockoutBindingHandler = convertDashedToCamelCase(key.substr(3));
+                        var knockoutBindingValue = (value.length > 0 && value[0] === "{" ? value.substr(1, value.length - 2) : "'" + value + "'");
+                        additionalDataBindValue += ", " + knockoutBindingHandler + ": " + knockoutBindingValue;
+                        return "";
+                    }
+                    else if (key === "data-bind") {
+                        existingDataBindValue = value;
+                        return "";
                     }
                     else
                         return attributeContent;
                 });
-                if (!firstAttribute)
-                    tagContent = tagContent.replace("[bindings]", bindings + '"');
-                return tagContent;
+                if (existingDataBindValue !== "" || additionalDataBindValue !== "") {
+                    if (existingDataBindValue === "")
+                        additionalDataBindValue = additionalDataBindValue.substr(2); // remove unused ", "
+                    return "<" + tagName + " " + attributes + " data-bind=\"" + existingDataBindValue + additionalDataBindValue + "\"" + tagClosing;
+                }
+                return match;
             });
-            return output;
+            return data.replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; });
         };
         // ReSharper disable InconsistentNaming
         ViewFactory.prototype.__raiseLoadedEvents = function () {

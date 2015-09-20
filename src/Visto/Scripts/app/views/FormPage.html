@@ -14,12 +14,10 @@
             <form vs-id="form">
                 <vs-text-box label="First name" value="John" required="true" />
                 <vs-check-box label="Has last name" checked="{hasLastName}" />
-                <div vs-visible="{hasLastName}">
-                    <vs-text-box label="Last name"
-                                 required="true"
-                                 validation-enabled="{hasLastName}"/>
-                </div>
-
+                <vs-text-box vs-visible="{hasLastName}"
+                             label="Last name"
+                             required="true"
+                             validation-enabled="{hasLastName}" />
                 <button type="button" vs-enable="{isFormValid}"
                         class="btn btn-default">Save</button>
             </form>
