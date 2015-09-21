@@ -1,5 +1,5 @@
 ﻿import visto = require("libs/visto");
-import validationViewModel = require("./viewModels/ValidationViewModel");
+import validationControlModel = require("./viewModels/ValidationControlModel");
 
 export function isFormValid(view: visto.ViewBase, formElement: JQuery) {
     return isFormValidInternal(formElement, view.viewChildren);
@@ -24,7 +24,7 @@ function isFormValidInternal(formElement: JQuery, children: KnockoutObservableAr
 }
 
 function getInputViewModelsWithValidation(formElement: JQuery, children: KnockoutObservableArray<visto.ViewBase>) {
-    var inputViewModels: validationViewModel.ValidationViewModel[] = [];
+    var inputViewModels: validationControlModel.ValidationControlModel[] = [];
     for (var viewChild of children()) {
         var viewElement = (<any>viewChild).element;
         var viewModel = (<any>viewChild).viewModel;
