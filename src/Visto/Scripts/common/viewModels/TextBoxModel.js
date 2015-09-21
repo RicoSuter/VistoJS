@@ -13,6 +13,7 @@ define(["require", "exports", "./ValidationControlModel"], function (require, ex
             var _this = this;
             this.label = this.parameters.getObservableString("label", "");
             this.value = this.parameters.getObservableString("value", "");
+            this.placeholder = this.parameters.getObservableString("placeholder", "");
             this.required = this.parameters.getObservableBoolean("required", true);
             this.minLength = this.parameters.getObservableNumber("minLength", 0);
             this.maxLength = this.parameters.getObservableNumber("maxLength", 0);

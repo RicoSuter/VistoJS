@@ -4,6 +4,7 @@ import validationControlModel = require("./ValidationControlModel");
 export class TextBoxModel extends validationControlModel.ValidationControlModel {
     label: KnockoutObservable<string>;
     value: KnockoutObservable<string>;
+    placeholder: KnockoutObservable<string>;
 
     required: KnockoutObservable<boolean>;
     minLength: KnockoutObservable<number>;
@@ -18,6 +19,7 @@ export class TextBoxModel extends validationControlModel.ValidationControlModel 
     initialize(parameters: visto.Parameters) {
         this.label = this.parameters.getObservableString("label", "");
         this.value = this.parameters.getObservableString("value", "");
+        this.placeholder = this.parameters.getObservableString("placeholder", "");
 
         this.required = this.parameters.getObservableBoolean("required", true);
         this.minLength = this.parameters.getObservableNumber("minLength", 0);

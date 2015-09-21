@@ -63,6 +63,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function initialize(options) {
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
+        defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
         initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
@@ -71,7 +72,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     ev.preventDefault();
             });
         }
-        createView($("body").append("<div></div>"), options.startView, options.startParameters);
+        createView($("body"), options.startView, options.startParameters).done();
     }
     exports.initialize = initialize;
     /**
@@ -959,12 +960,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Parameters
     // ----------------------------
     var Parameters = (function () {
-        function Parameters(parameters, element) {
+        function Parameters(fullViewName, parameters, element) {
             this.parameters = {};
             this.originalParameters = {};
+            this.fullViewName = fullViewName;
             if (parameters !== undefined && parameters !== null)
                 this.originalParameters = (parameters);
             this.parseElementChildren(element);
+            this.tagContent = element.children();
+            this.tagContentHtml = element.get(0).innerHTML;
         }
         Parameters.prototype.getObservableString = function (key, defaultValue) {
             return this.getObservableWithConversion(key, function (value) { return value.toString(); }, defaultValue);
@@ -1005,7 +1009,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else if (defaultValue !== undefined)
                     this.parameters[key] = ko.observableArray(defaultValue);
                 else
-                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
+                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
             }
             return this.parameters[key];
         };
@@ -1026,15 +1030,19 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else if (defaultValue !== undefined)
                     this.parameters[key] = ko.observable(defaultValue);
                 else
-                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
+                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
             }
             return this.parameters[key];
         };
         Parameters.prototype.parseElementChildren = function (element) {
             var _this = this;
             element.children().each(function (index, child) {
+                var key = convertDashedToCamelCase(child.tagName.toLowerCase());
                 var value = _this.createObjectFromElement($(child));
-                _this.originalParameters[convertDashedToCamelCase(child.tagName.toLowerCase())] = value;
+                if (_this.originalParameters[key] === undefined)
+                    _this.originalParameters[key] = value;
+                else
+                    throw new Error("The parameter '" + key + "' is defined as attribute and content tag in view '" + _this.fullViewName + "'.");
             });
         };
         Parameters.prototype.createObjectFromElement = function (element) {
@@ -1090,7 +1098,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.isRootView = false;
             }
             this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-            this.parameters = new Parameters(parameters, element);
+            this.parameters = new Parameters(fullViewName, parameters, element);
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (!lazySubviewLoading)
                 this.context.viewCount++;
@@ -1275,7 +1283,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
                 return '<div data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
-            return data;
+            return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</div>");
         };
         /**
          * Process Knockout attributes (vs-) in the given HTML data string (must be called after processCustomTags).

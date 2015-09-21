@@ -53,7 +53,7 @@ var currentNavigationPath = "";
 var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
 var initialLoadingScreenElement: JQuery = null;
-var tagAliases: { [key: string]: any } = { };
+var tagAliases: { [key: string]: any } = {};
 
 // Globals for bindings
 var globals = {
@@ -72,6 +72,7 @@ var globals = {
  */
 export function initialize(options: IVistoOptions) {
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
+    defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
     initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
 
     setUserLanguage(options.supportedLanguages);
@@ -83,7 +84,7 @@ export function initialize(options: IVistoOptions) {
         });
     }
 
-    createView($("body").append("<div></div>"), options.startView, options.startParameters);
+    createView($("body"), options.startView, options.startParameters).done();
 }
 
 /**
@@ -96,7 +97,6 @@ export interface IVistoOptions {
     defaultPackage: string;
     supportedLanguages: string[];
     registerEnterKeyFix: boolean;
-    defaultFrame: JQuery;
     initialLoadingScreenElement: JQuery;
     loadingScreenElement: string;
 }
@@ -109,9 +109,9 @@ export function registerTagAlias(tag: string, pkg: string | IModule, viewPath: s
         throw new Error("The tag alias '" + tag + "' is already registered.");
 
     if (typeof pkg === "string")
-        tagAliases[tag] = pkg + ":" + viewPath; 
+        tagAliases[tag] = pkg + ":" + viewPath;
     else
-        tagAliases[tag] = getPackageNameForModule(pkg) + ":" + viewPath; 
+        tagAliases[tag] = getPackageNameForModule(pkg) + ":" + viewPath;
 }
 
 // ----------------------------
@@ -126,7 +126,7 @@ function log(value: string) {
 
 // Tries to load a module using RequireJS
 function tryRequire(moduleNames: any, completed: (m: any) => void) {
-    require(moduleNames,(result: any) => { completed(result); },() => { completed(null); });
+    require(moduleNames, (result: any) => { completed(result); }, () => { completed(null); });
 };
 
 // Checks whether a string ends with a given suffix
@@ -203,11 +203,11 @@ function loadLanguageFile(packageName: string, completed: () => void) {
                 dataType: "json"
             }).done((result: any) => {
                 languageStrings[lang][packageName] = result;
-                $.each(languageLoadings[url],(index, item) => { item(); });
+                $.each(languageLoadings[url], (index, item) => { item(); });
                 delete languageLoadings[url];
             }).fail((xhr: any, ajaxOptions: any) => {
                 languageStrings[lang][packageName] = <any>([]);
-                $.each(languageLoadings[url],(index, item) => { item(); });
+                $.each(languageLoadings[url], (index, item) => { item(); });
                 log("Error loading language JSON '" + url + "': " + ajaxOptions);
                 delete languageLoadings[url];
             });
@@ -228,7 +228,7 @@ function getString(key: string, packageName: string, completed?: (value: string)
         languageStrings[lang] = <any>([]);
 
     if (languageStrings[lang][packageName] === undefined) {
-        loadLanguageFile(packageName,() => { getStringForLanguage(lang, packageName, key, completed); });
+        loadLanguageFile(packageName, () => { getStringForLanguage(lang, packageName, key, completed); });
         if (previousLanguage !== null)
             return getStringForLanguage(previousLanguage, packageName, key);
         return "";
@@ -441,9 +441,9 @@ function navigateToCore(frame: JQuery, fullViewName: string, parameters: {}): Q.
         return currentPage.view.onNavigatingFrom("forward")
             .then<PageBase>((navigate) => tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate))
             .then((page) => {
-            hideLoadingScreen();
-            return page;
-        });
+                hideLoadingScreen();
+                return page;
+            });
     } else {
         return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then((page) => {
             hideLoadingScreen();
@@ -623,11 +623,11 @@ export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, par
     if (dialog.modal !== undefined) {
         // Bootstrap dialog
         dialog.modal({});
-        dialog.on("shown.bs.modal",() => { onShown(); });
-        dialog.on("hidden.bs.modal",() => { onClosed(); });
+        dialog.on("shown.bs.modal", () => { onShown(); });
+        dialog.on("hidden.bs.modal", () => { onClosed(); });
     } else {
         // JQuery UI dialog: 
-        dialog.bind('dialogclose',() => {
+        dialog.bind('dialogclose', () => {
             dialog.dialog("destroy");
             onClosed();
         });
@@ -673,8 +673,8 @@ ko.bindingHandlers["view"] = {
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
 
         var factory = new ViewFactory();
-        factory.create($(element),(<any>value).name, value, view => {
-            ko.utils.domNodeDisposal.addDisposeCallback(element,() => { view.__destroyView(); });
+        factory.create($(element), (<any>value).name, value, view => {
+            ko.utils.domNodeDisposal.addDisposeCallback(element, () => { view.__destroyView(); });
             if (rootView !== null)
                 rootView.__addSubView(view);
         });
@@ -1011,7 +1011,7 @@ export class ViewBase {
     // ReSharper disable InconsistentNaming
 
     __destroyView() {
-        $.each(this.subViews,(index: number, view: ViewBase) => {
+        $.each(this.subViews, (index: number, view: ViewBase) => {
             view.__destroyView();
         });
 
@@ -1024,7 +1024,7 @@ export class ViewBase {
             (<View<ViewModel>>this).viewModel.destroy();
             this.destroy();
 
-            $.each(this.disposables,(index: number, item: IDisposable) => {
+            $.each(this.disposables, (index: number, item: IDisposable) => {
                 item.dispose();
             });
 
@@ -1131,27 +1131,37 @@ export class DialogBase extends Dialog<ViewModel> {
 export class Parameters {
     private parameters: { [key: string]: any } = {};
     private originalParameters: { [key: string]: any } = {};
+    private fullViewName: string;
 
-    constructor(parameters: {}, element: JQuery) {
+    tagContent: JQuery;
+    tagContentHtml: string;
+
+    constructor(fullViewName: string, parameters: {}, element: JQuery) {
+        this.fullViewName = fullViewName;
+
         if (parameters !== undefined && parameters !== null)
             this.originalParameters = <any>(parameters);
+
         this.parseElementChildren(element);
+
+        this.tagContent = element.children();
+        this.tagContentHtml = element.get(0).innerHTML;
     }
 
     getObservableString(key: string, defaultValue?: string): KnockoutObservable<string> {
-        return this.getObservableWithConversion(key,(value: any) => value.toString(), defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => value.toString(), defaultValue);
     }
 
     getObservableNumber(key: string, defaultValue?: number): KnockoutObservable<number> {
-        return this.getObservableWithConversion(key,(value: any) => Number(value), defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => Number(value), defaultValue);
     }
 
     getObservableBoolean(key: string, defaultValue?: boolean): KnockoutObservable<boolean> {
-        return this.getObservableWithConversion(key,(value: any) => value.toString().toLowerCase() === "true", defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => value.toString().toLowerCase() === "true", defaultValue);
     }
 
     getObservableObject<T>(key: string, defaultValue?: T) {
-        return this.getObservableWithConversion(key,(value: any) => value, defaultValue);
+        return this.getObservableWithConversion(key, (value: any) => value, defaultValue);
     }
 
     getString(key: string, defaultValue?: string) {
@@ -1186,7 +1196,7 @@ export class Parameters {
             else if (defaultValue !== undefined)
                 this.parameters[key] = ko.observableArray(defaultValue);
             else
-                throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
+                throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
         }
         return this.parameters[key];
     }
@@ -1210,15 +1220,20 @@ export class Parameters {
             else if (defaultValue !== undefined)
                 this.parameters[key] = ko.observable(defaultValue);
             else
-                throw new Error("The parameter '" + key + "' is not defined and no default value is provided.");
+                throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
         }
         return this.parameters[key];
     }
 
     private parseElementChildren(element: JQuery) {
         element.children().each((index: number, child: Element) => {
+            var key = convertDashedToCamelCase(child.tagName.toLowerCase());
             var value = this.createObjectFromElement($(child));
-            this.originalParameters[convertDashedToCamelCase(child.tagName.toLowerCase())] = value;
+
+            if (this.originalParameters[key] === undefined)
+                this.originalParameters[key] = value;
+            else
+                throw new Error("The parameter '" + key + "' is defined as attribute and content tag in view '" + this.fullViewName + "'.");
         });
     }
 
@@ -1232,7 +1247,7 @@ export class Parameters {
             return array;
         } else {
             var object: { [key: string]: any } = {};
-            $.each(element.get(0).attributes,(index: number, attr: Attr) => {
+            $.each(element.get(0).attributes, (index: number, attr: Attr) => {
                 object[attr.name] = attr.value; // TODO: Also evaluate bindings 
             });
             return object;
@@ -1247,7 +1262,7 @@ export class Parameters {
 export function createView(element: JQuery, fullViewName: string, parameters: { [key: string]: any }) {
     return Q.Promise<ViewBase>((resolve) => {
         var factory = new ViewFactory();
-        factory.create(element, fullViewName, parameters,(view) => {
+        factory.create(element, fullViewName, parameters, (view) => {
             resolve(view);
         });
     });
@@ -1290,7 +1305,7 @@ class ViewFactory {
         }
 
         this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-        this.parameters = new Parameters(parameters, element);
+        this.parameters = new Parameters(fullViewName, parameters, element);
 
         var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (!lazySubviewLoading)
@@ -1302,19 +1317,19 @@ class ViewFactory {
     private loadScriptsAndLanguageFile() {
         var count = 3;
 
-        tryRequire([this.viewLocator.package + "/views/" + this.viewLocator.view],(m: any) => {
+        tryRequire([this.viewLocator.package + "/views/" + this.viewLocator.view], (m: any) => {
             this.viewModule = m;
             if ((--count) === 0)
                 this.loadHtml();
         });
 
-        tryRequire([this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model"],(m: any) => {
+        tryRequire([this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model"], (m: any) => {
             this.viewModelModule = m;
             if ((--count) === 0)
                 this.loadHtml();
         });
 
-        loadLanguageFile(this.viewLocator.package,() => {
+        loadLanguageFile(this.viewLocator.package, () => {
             if ((--count) === 0)
                 this.loadHtml();
         });
@@ -1512,7 +1527,7 @@ class ViewFactory {
                 return '<div data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
 
-        return data;
+        return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</div>");
     }
 
     /**
@@ -1522,7 +1537,7 @@ class ViewFactory {
         data = data.replace(/<([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, (match: string, tagName: string, attributes: string, tagClosing: string) => {
             var existingDataBindValue = "";
             var additionalDataBindValue = "";
-            
+
             attributes = attributes.replace(/([a-zA-Z0-9-]+?)="([^]*?)"/g, (match: string, key: string, value: string) => {
                 if (key.indexOf("vs-") === 0 && key !== "vs-id") {
                     var knockoutBindingHandler = convertDashedToCamelCase(key.substr(3));
@@ -1544,7 +1559,7 @@ class ViewFactory {
                 return "<" + tagName + " " + attributes + " data-bind=\"" + existingDataBindValue + additionalDataBindValue + "\"" + tagClosing;
             }
 
-            return match; 
+            return match;
         });
 
         return data.replace(/{{(.*?)}}/g, g => "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>");
@@ -1590,27 +1605,27 @@ class ViewContext {
         this.loadedViewCount++;
         if (this.loadedViewCount === this.viewCount) {
             this.loadedViewCount = 0;
-            $.each(this.factories,(index: number, context: ViewFactory) => {
+            $.each(this.factories, (index: number, context: ViewFactory) => {
                 context.view.onLoading().then(() => {
                     this.loadedViewCount++;
                     if (this.loadedViewCount === this.viewCount) {
                         this.loadedViewCount = 0;
-                        $.each(this.factories,(index: number, context: ViewFactory) => {
+                        $.each(this.factories, (index: number, context: ViewFactory) => {
                             context.viewModel.onLoading().then(() => {
                                 this.loadedViewCount++;
                                 if (this.loadedViewCount === this.viewCount) {
-                                    $.each(this.factories.reverse(),(index: number, factory: ViewFactory) => {
+                                    $.each(this.factories.reverse(), (index: number, factory: ViewFactory) => {
                                         factory.__setHtml();
                                     });
 
                                     if ($.isFunction(this.completed))
-                                        this.completed(this.rootView,(<any>this.rootView).viewModel, this.restoreQuery);
+                                        this.completed(this.rootView, (<any>this.rootView).viewModel, this.restoreQuery);
 
-                                    $.each(this.factories,(index: number, factory: ViewFactory) => {
+                                    $.each(this.factories, (index: number, factory: ViewFactory) => {
                                         factory.__raiseLoadedEvents();
                                     });
 
-                                    $.each(this.initializers,(index: number, initializer: () => void) => {
+                                    $.each(this.initializers, (index: number, initializer: () => void) => {
                                         initializer();
                                     });
                                 }

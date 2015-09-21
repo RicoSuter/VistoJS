@@ -8,6 +8,7 @@ import listPickerModel = require("viewModels/dialogs/ListPickerModel");
 export function registerTagAliases() {
     visto.registerTagAlias("text-box", pkg, "TextBox");
     visto.registerTagAlias("check-box", pkg, "CheckBox");
+    visto.registerTagAlias("button", pkg, "Button");
 }
 
 /**

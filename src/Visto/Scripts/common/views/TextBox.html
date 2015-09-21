@@ -6,12 +6,13 @@
     <input id="text_input_[[viewId]]"
            type="text"
            class="form-control"
+           vs-attr="{{placeholder: placeholder}}"
            vs-value="{value}"
            vs-value-update="afterkeydown">
 
-    <div vs-visible="{isValidDisplay() === false}">
+    <div vs-visible="{isValidDisplay() === false}" class="help-block">
         <!-- ko foreach: validationErrors -->
-        <div vs-text="{$data}" class="help-block"></div>
+        <div vs-text="{$data}"></div>
         <!-- /ko -->
     </div>
 </div>

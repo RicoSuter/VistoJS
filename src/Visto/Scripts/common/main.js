@@ -5,6 +5,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
     function registerTagAliases() {
         visto.registerTagAlias("text-box", pkg, "TextBox");
         visto.registerTagAlias("check-box", pkg, "CheckBox");
+        visto.registerTagAlias("button", pkg, "Button");
     }
     exports.registerTagAliases = registerTagAliases;
     /**

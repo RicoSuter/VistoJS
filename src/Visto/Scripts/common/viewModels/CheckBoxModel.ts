@@ -1,6 +1,7 @@
 ﻿import visto = require("libs/visto");
+import validationControlModel = require("ValidationControlModel");
 
-export class CheckBoxModel extends visto.ViewModel {
+export class CheckBoxModel extends validationControlModel.ValidationControlModel {
     label: KnockoutObservable<string>;
     checked: KnockoutObservable<boolean>;
 

@@ -3,7 +3,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+define(["require", "exports", "ValidationControlModel"], function (require, exports, validationControlModel) {
     var CheckBoxModel = (function (_super) {
         __extends(CheckBoxModel, _super);
         function CheckBoxModel() {
@@ -14,7 +14,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.checked = this.parameters.getObservableBoolean("checked", false);
         };
         return CheckBoxModel;
-    })(visto.ViewModel);
+    })(validationControlModel.ValidationControlModel);
     exports.CheckBoxModel = CheckBoxModel;
 });
 //# sourceMappingURL=CheckBoxModel.js.map

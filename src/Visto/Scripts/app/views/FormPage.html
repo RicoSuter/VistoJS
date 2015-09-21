@@ -15,17 +15,18 @@
         </div>
         <div class="panel-body">
             <form vs-id="form">
-                <vs-text-box label="First name" value="John" required="true"/>
+                <vs-text-box label="First name"
+                             placeholder="John" 
+                             required="true"/>
 
                 <vs-check-box label="Has last name" checked="{hasLastName}" />
-                <vs-text-box label="Last name"
+                <vs-text-box label="Last name" 
+                             placeholder="Doe" 
                              required="true"
                              vs-visible="{hasLastName}"
                              validation-enabled="{hasLastName}"/>
 
-                <button type="button" 
-                        vs-enable="{isFormValid}"
-                        class="btn btn-default">Save</button>
+                <vs-button enabled="{isFormValid}">Save</vs-button>
             </form>
         </div>
     </div>

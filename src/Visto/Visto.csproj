@@ -65,6 +65,7 @@
     <TypeScriptCompile Include="Scripts\app\views\FormPage.ts" />
     <TypeScriptCompile Include="Scripts\app\views\MainView.ts" />
     <TypeScriptCompile Include="Scripts\common\validation.ts" />
+    <TypeScriptCompile Include="Scripts\common\viewModels\ButtonModel.ts" />
     <TypeScriptCompile Include="Scripts\common\viewModels\CheckBoxModel.ts" />
     <TypeScriptCompile Include="Scripts\common\viewModels\TextBoxModel.ts" />
     <TypeScriptCompile Include="Scripts\common\viewModels\ValidationControlModel.ts" />
@@ -96,9 +97,13 @@
     <Content Include="Scripts\app\viewModels\RecursivePageModel.js">
       <DependentUpon>RecursivePageModel.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\common\viewModels\ButtonModel.js">
+      <DependentUpon>ButtonModel.ts</DependentUpon>
+    </Content>
     <Content Include="Scripts\common\viewModels\CheckBoxModel.js">
       <DependentUpon>CheckBoxModel.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\common\views\Button.html" />
     <Content Include="Scripts\common\views\CheckBox.html" />
     <Content Include="Scripts\app\views\DetailsPage.html" />
     <Content Include="Scripts\app\views\FormPage.html" />
