@@ -26,28 +26,9 @@
 
         <file src="..\src\Visto\Scripts\libs\visto.ts" target="content\Scripts\libs\visto.ts" />
         <file src="..\src\Visto\Scripts\libs\visto.modules.d.ts" target="content\Scripts\libs\visto.modules.d.ts" />
-
-        <file src="..\src\Visto\Scripts\common\languages\de.json" target="content\Scripts\common\languages\de.json" />
-        <file src="..\src\Visto\Scripts\common\languages\en.json" target="content\Scripts\common\languages\en.json" />
-        
-        <file src="..\src\Visto\Scripts\common\viewModels\dialogs\ConfirmModel.ts" target="content\Scripts\common\viewModels\dialogs\ConfirmModel.ts" />
-        <file src="..\src\Visto\Scripts\common\viewModels\dialogs\ListPickerModel.ts" target="content\Scripts\common\viewModels\dialogs\ListPickerModel.ts" />
-        <file src="..\src\Visto\Scripts\common\viewModels\dialogs\PromptModel.ts" target="content\Scripts\common\viewModels\dialogs\PromptModel.ts" />
-        <file src="..\src\Visto\Scripts\common\viewModels\LanguageSelectorModel.ts" target="content\Scripts\common\viewModels\LanguageSelectorModel.ts" />
-        <file src="..\src\Visto\Scripts\common\viewModels\TabControlModel.ts" target="content\Scripts\common\viewModels\TabControlModel.ts" />
-
-        <file src="..\src\Visto\Scripts\common\views\dialogs\Confirm.html" target="content\Scripts\common\views\dialogs\Confirm.html" />
-        <file src="..\src\Visto\Scripts\common\views\dialogs\ListPicker.html" target="content\Scripts\common\views\dialogs\ListPicker.html" />
-        <file src="..\src\Visto\Scripts\common\views\dialogs\ProgressDialog.html" target="content\Scripts\common\views\dialogs\ProgressDialog.html" />
-        <file src="..\src\Visto\Scripts\common\views\dialogs\Prompt.html" target="content\Scripts\common\views\dialogs\Prompt.html" />
-        <file src="..\src\Visto\Scripts\common\views\dialogs\Prompt.ts" target="content\Scripts\common\views\dialogs\Prompt.ts" />
-        <file src="..\src\Visto\Scripts\common\views\LanguageSelector.html" target="content\Scripts\common\views\LanguageSelector.html" />
-        <file src="..\src\Visto\Scripts\common\views\TabControl.html" target="content\Scripts\common\views\TabControl.html" />
-        
-        <file src="..\src\Visto\Scripts\common\views\TabControl.ts" target="content\Scripts\common\views\TabControl.ts" />
-        <file src="..\src\Visto\Scripts\common\views\WebView.ts" target="content\Scripts\common\views\WebView.ts" />
-        <file src="..\src\Visto\Scripts\common\main.ts" target="content\Scripts\common\main.ts" />
-        
-        <file src="VistoJS_install.ps1" target="tools\install.ps1" />
+		
+        <file src="..\src\Visto\Scripts\common\**\*.html" target="content\common" />
+        <file src="..\src\Visto\Scripts\common\**\*.ts" target="content\common" />
+        <file src="..\src\Visto\Scripts\common\**\*.json" target="content\common" />
     </files>
 </package>
