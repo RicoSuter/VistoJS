@@ -27,8 +27,8 @@
         <file src="..\src\Visto\Scripts\libs\visto.ts" target="content\Scripts\libs\visto.ts" />
         <file src="..\src\Visto\Scripts\libs\visto.modules.d.ts" target="content\Scripts\libs\visto.modules.d.ts" />
 		
-        <file src="..\src\Visto\Scripts\common\**\*.html" target="content\common" />
-        <file src="..\src\Visto\Scripts\common\**\*.ts" target="content\common" />
-        <file src="..\src\Visto\Scripts\common\**\*.json" target="content\common" />
+        <file src="..\src\Visto\Scripts\common\**\*.html" target="content\Scripts\common" />
+        <file src="..\src\Visto\Scripts\common\**\*.ts" target="content\Scripts\common" />
+        <file src="..\src\Visto\Scripts\common\**\*.json" target="content\Scripts\common" />
     </files>
 </package>
