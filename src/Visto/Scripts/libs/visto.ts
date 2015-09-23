@@ -144,6 +144,11 @@ function convertDashedToCamelCase(data: string) {
     return data.replace(/-([a-z])/g, g => g[1].toUpperCase());
 }
 
+// Converts a camel case string (myString) into a dashed string ('my-string')
+function convertCamelCaseToDashed(data: string) {
+    return data.replace(/([A-Z])/g, g => "-" + g.toLowerCase());
+}
+
 // ----------------------------
 // Internationalization
 // ----------------------------
@@ -1142,8 +1147,6 @@ export class Parameters {
         if (parameters !== undefined && parameters !== null)
             this.originalParameters = <any>(parameters);
 
-        this.parseElementChildren(element);
-
         this.tagContent = element.children();
         this.tagContentHtml = element.get(0).innerHTML;
     }
@@ -1185,28 +1188,32 @@ export class Parameters {
         observable(value);
     }
 
-    getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
-        if (this.parameters[key] === undefined) {
-            if (this.originalParameters[key] !== undefined) {
-                if ($.isFunction(this.originalParameters[key]))
-                    this.parameters[key] = this.originalParameters[key];
-                else
-                    this.parameters[key] = ko.observable(this.originalParameters[key]);
-            }
-            else if (defaultValue !== undefined)
-                this.parameters[key] = ko.observableArray(defaultValue);
-            else
-                throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
-        }
-        return this.parameters[key];
-    }
-
     getRestoreQuery(): string {
         return this.originalParameters["restoreQuery"];
     }
 
     setRestoreQuery(restoreQuery: string) {
         this.originalParameters["restoreQuery"] = restoreQuery;
+    }
+
+    getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
+        if (this.parameters[key] === undefined) {
+            if (this.originalParameters[key] !== undefined) {
+                if ($.isFunction(this.originalParameters[key]))
+                    this.parameters[key] = this.originalParameters[key];
+                else
+                    this.parameters[key] = ko.observableArray(this.originalParameters[key]);
+            } else {
+                var tagContentChild = this.readTagContentChild(key);
+                if (tagContentChild !== null)
+                    this.parameters[key] = ko.observableArray(tagContentChild);
+                else if (defaultValue !== undefined)
+                    this.parameters[key] = ko.observableArray(defaultValue);
+                else
+                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
+            }
+        }
+        return this.parameters[key];
     }
 
     private getObservableWithConversion<T>(key: string, valueConverter: (value: any) => T, defaultValue: T): KnockoutObservable<T> {
@@ -1216,25 +1223,25 @@ export class Parameters {
                     this.parameters[key] = this.originalParameters[key];
                 else
                     this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
+            } else {
+                var tagContentChild = this.readTagContentChild(key);
+                if (tagContentChild !== null)
+                    this.parameters[key] = ko.observable(tagContentChild);
+                else if (defaultValue !== undefined)
+                    this.parameters[key] = ko.observable(defaultValue);
+                else
+                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
             }
-            else if (defaultValue !== undefined)
-                this.parameters[key] = ko.observable(defaultValue);
-            else
-                throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
         }
         return this.parameters[key];
     }
 
-    private parseElementChildren(element: JQuery) {
-        element.children().each((index: number, child: Element) => {
-            var key = convertDashedToCamelCase(child.tagName.toLowerCase());
-            var value = this.createObjectFromElement($(child));
-
-            if (this.originalParameters[key] === undefined)
-                this.originalParameters[key] = value;
-            else
-                throw new Error("The parameter '" + key + "' is defined as attribute and content tag in view '" + this.fullViewName + "'.");
-        });
+    private readTagContentChild(key: string): any {
+        var tagName = convertCamelCaseToDashed(key);
+        var elements = $.grep(<HTMLElement[]>this.tagContent.get(), (element) => element.tagName.toLowerCase() === tagName);
+        if (elements.length === 1)
+            return this.createObjectFromElement($(elements[0]));
+        return null; 
     }
 
     private createObjectFromElement(element: JQuery): any {
@@ -1247,6 +1254,7 @@ export class Parameters {
             return array;
         } else {
             var object: { [key: string]: any } = {};
+            object["html"] = element.get(0).innerHTML;
             $.each(element.get(0).attributes, (index: number, attr: Attr) => {
                 object[attr.name] = attr.value; // TODO: Also evaluate bindings 
             });

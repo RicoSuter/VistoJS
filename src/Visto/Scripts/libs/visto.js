@@ -115,6 +115,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     function convertDashedToCamelCase(data) {
         return data.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
     }
+    // Converts a camel case string (myString) into a dashed string ('my-string')
+    function convertCamelCaseToDashed(data) {
+        return data.replace(/([A-Z])/g, function (g) { return "-" + g.toLowerCase(); });
+    }
     // ----------------------------
     // Internationalization
     // ----------------------------
@@ -966,7 +970,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.fullViewName = fullViewName;
             if (parameters !== undefined && parameters !== null)
                 this.originalParameters = (parameters);
-            this.parseElementChildren(element);
             this.tagContent = element.children();
             this.tagContentHtml = element.get(0).innerHTML;
         }
@@ -998,26 +1001,31 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var observable = this.getObservableObject(key, value);
             observable(value);
         };
+        Parameters.prototype.getRestoreQuery = function () {
+            return this.originalParameters["restoreQuery"];
+        };
+        Parameters.prototype.setRestoreQuery = function (restoreQuery) {
+            this.originalParameters["restoreQuery"] = restoreQuery;
+        };
         Parameters.prototype.getObservableArray = function (key, defaultValue) {
             if (this.parameters[key] === undefined) {
                 if (this.originalParameters[key] !== undefined) {
                     if ($.isFunction(this.originalParameters[key]))
                         this.parameters[key] = this.originalParameters[key];
                     else
-                        this.parameters[key] = ko.observable(this.originalParameters[key]);
+                        this.parameters[key] = ko.observableArray(this.originalParameters[key]);
                 }
-                else if (defaultValue !== undefined)
-                    this.parameters[key] = ko.observableArray(defaultValue);
-                else
-                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
+                else {
+                    var tagContentChild = this.readTagContentChild(key);
+                    if (tagContentChild !== null)
+                        this.parameters[key] = ko.observableArray(tagContentChild);
+                    else if (defaultValue !== undefined)
+                        this.parameters[key] = ko.observableArray(defaultValue);
+                    else
+                        throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
+                }
             }
             return this.parameters[key];
-        };
-        Parameters.prototype.getRestoreQuery = function () {
-            return this.originalParameters["restoreQuery"];
-        };
-        Parameters.prototype.setRestoreQuery = function (restoreQuery) {
-            this.originalParameters["restoreQuery"] = restoreQuery;
         };
         Parameters.prototype.getObservableWithConversion = function (key, valueConverter, defaultValue) {
             if (this.parameters[key] === undefined) {
@@ -1027,23 +1035,24 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     else
                         this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
                 }
-                else if (defaultValue !== undefined)
-                    this.parameters[key] = ko.observable(defaultValue);
-                else
-                    throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
+                else {
+                    var tagContentChild = this.readTagContentChild(key);
+                    if (tagContentChild !== null)
+                        this.parameters[key] = ko.observable(tagContentChild);
+                    else if (defaultValue !== undefined)
+                        this.parameters[key] = ko.observable(defaultValue);
+                    else
+                        throw new Error("The parameter '" + key + "' is not defined and no default value is provided in view '" + this.fullViewName + "'.");
+                }
             }
             return this.parameters[key];
         };
-        Parameters.prototype.parseElementChildren = function (element) {
-            var _this = this;
-            element.children().each(function (index, child) {
-                var key = convertDashedToCamelCase(child.tagName.toLowerCase());
-                var value = _this.createObjectFromElement($(child));
-                if (_this.originalParameters[key] === undefined)
-                    _this.originalParameters[key] = value;
-                else
-                    throw new Error("The parameter '" + key + "' is defined as attribute and content tag in view '" + _this.fullViewName + "'.");
-            });
+        Parameters.prototype.readTagContentChild = function (key) {
+            var tagName = convertCamelCaseToDashed(key);
+            var elements = $.grep(this.tagContent.get(), function (element) { return element.tagName.toLowerCase() === tagName; });
+            if (elements.length === 1)
+                return this.createObjectFromElement($(elements[0]));
+            return null;
         };
         Parameters.prototype.createObjectFromElement = function (element) {
             var _this = this;
@@ -1057,6 +1066,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             else {
                 var object = {};
+                object["html"] = element.get(0).innerHTML;
                 $.each(element.get(0).attributes, function (index, attr) {
                     object[attr.name] = attr.value; // TODO: Also evaluate bindings 
                 });
