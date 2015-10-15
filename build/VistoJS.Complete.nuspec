@@ -2,18 +2,18 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>VistoJS.Complete</id>
-        <version>2.1.1.0</version>
+        <version>2.1.2.0</version>
         <title>VistoJS.Complete</title>
         <authors>Rico Suter</authors>
         <owners>Rico Suter</owners>
-        <licenseUrl>https://visto.codeplex.com/license</licenseUrl>
+        <licenseUrl>https://github.com/VistoJS/VistoJS/blob/master/LICENSE.md</licenseUrl>
         <projectUrl>http://www.vistojs.com</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Installs the Visto JavaScript Framework and some base files. </description>
         <releaseNotes />
         <iconUrl>http://rsuter.com/Projects/VistoJS/IconNuGet.png</iconUrl>
         <dependencies>
-            <dependency id="VistoJS" version="2.1.1.0" />
+            <dependency id="VistoJS" version="2.1.2.0" />
         </dependencies>
     </metadata>
     <files>

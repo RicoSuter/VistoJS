@@ -1,4 +1,4 @@
-// Visto JavaScript Framework (VistoJS) v2.1.1
+// Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = (this && this.__extends) || function (d, b) {
