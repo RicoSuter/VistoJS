@@ -1205,6 +1205,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);
+            if (this.view.inheritViewModel)
+                this.view.viewModel = this.parentView.viewModel;
             if (this.isRootView)
                 this.context.restoreQuery = this.parameters.getRestoreQuery();
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);

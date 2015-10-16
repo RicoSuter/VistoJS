@@ -1431,6 +1431,9 @@ class ViewFactory {
         this.view.initialize(this.parameters);
         this.viewModel.initialize(this.parameters);
 
+        if (this.view.inheritViewModel)
+            (<any>this.view).viewModel = (<any>this.parentView).viewModel;
+
         if (this.isRootView)
             this.context.restoreQuery = this.parameters.getRestoreQuery();
 
