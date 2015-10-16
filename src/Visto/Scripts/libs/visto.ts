@@ -947,15 +947,17 @@ export class ViewBase {
      */
     viewChildren = ko.observableArray<ViewBase>();
 
-    /**
-     * Gets or sets a value indicating whether this view inherits the view model from its parent view (must be set in the view's initialize() method). 
-     */
-    inheritViewModel = false;
-
     private isDestroyed = false;
     private subViews: ViewBase[] = <Array<any>>[];
     private disposables: IDisposable[] = <Array<any>>[];
 
+    /**
+     * Sets the view model to the view model of the parent view (must be called in the view's initialize() method). 
+     */
+    inheritViewModelFromParent() {
+        (<any>this).viewModel = (<any>this.viewParent).viewModel;
+    }
+    
     /**
      * Enables page restoring for the current page. 
      * This method must be called in the initialize() method. 
@@ -1431,19 +1433,13 @@ class ViewFactory {
         this.view.initialize(this.parameters);
         this.viewModel.initialize(this.parameters);
 
-        if (this.view.inheritViewModel)
-            (<any>this.view).viewModel = (<any>this.parentView).viewModel;
-
         if (this.isRootView)
             this.context.restoreQuery = this.parameters.getRestoreQuery();
 
         var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (lazySubviewLoading) {
             this.__setHtml();
-            if (this.view.inheritViewModel)
-                ko.applyBindings((<any>this.parentView).viewModel, this.rootElement.get(0));
-            else
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            ko.applyBindings(this.viewModel, this.rootElement.get(0));
             this.__raiseLoadedEvents();
         } else {
             this.context.factories.push(this);
@@ -1457,10 +1453,7 @@ class ViewFactory {
             this.context.parentPackage = this.viewLocator.package;
 
             currentContext = this.context;
-            if (this.view.inheritViewModel)
-                ko.applyBindings((<any>this.parentView).viewModel, this.rootElement.get(0));
-            else
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            ko.applyBindings(this.viewModel, this.rootElement.get(0));
             currentContext = null;
 
             this.context.loaded();

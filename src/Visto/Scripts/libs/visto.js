@@ -782,15 +782,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
              * Gets the view's direct child views.
              */
             this.viewChildren = ko.observableArray();
-            /**
-             * Gets or sets a value indicating whether this view inherits the view model from its parent view (must be set in the view's initialize() method).
-             */
-            this.inheritViewModel = false;
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
             this.isViewLoaded = ko.observable(false);
         }
+        /**
+         * Sets the view model to the view model of the parent view (must be called in the view's initialize() method).
+         */
+        ViewBase.prototype.inheritViewModelFromParent = function () {
+            this.viewModel = this.viewParent.viewModel;
+        };
         /**
          * Enables page restoring for the current page.
          * This method must be called in the initialize() method.
@@ -1205,17 +1207,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);
-            if (this.view.inheritViewModel)
-                this.view.viewModel = this.parentView.viewModel;
             if (this.isRootView)
                 this.context.restoreQuery = this.parameters.getRestoreQuery();
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (lazySubviewLoading) {
                 this.__setHtml();
-                if (this.view.inheritViewModel)
-                    ko.applyBindings(this.parentView.viewModel, this.rootElement.get(0));
-                else
-                    ko.applyBindings(this.viewModel, this.rootElement.get(0));
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
                 this.__raiseLoadedEvents();
             }
             else {
@@ -1227,10 +1224,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.context.parentView = this.view;
                 this.context.parentPackage = this.viewLocator.package;
                 currentContext = this.context;
-                if (this.view.inheritViewModel)
-                    ko.applyBindings(this.parentView.viewModel, this.rootElement.get(0));
-                else
-                    ko.applyBindings(this.viewModel, this.rootElement.get(0));
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
                 currentContext = null;
                 this.context.loaded();
             }
