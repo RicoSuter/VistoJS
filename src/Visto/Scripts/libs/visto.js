@@ -1204,6 +1204,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 replaceLanguageStrings(this.rootElement, this.viewLocator.package);
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
+            this.viewModel = this.view.viewModel; // may be changed by inheritViewModelFromParent()
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);

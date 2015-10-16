@@ -1428,6 +1428,7 @@ class ViewFactory {
 
         this.view = this.instantiateView();
         this.viewModel = this.instantiateViewModel(this.view);
+        this.viewModel = (<any>this.view).viewModel; // may be changed by inheritViewModelFromParent()
 
         // initialize and retrieve restore query
         this.view.initialize(this.parameters);
