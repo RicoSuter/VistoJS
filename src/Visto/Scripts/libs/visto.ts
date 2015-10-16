@@ -71,9 +71,11 @@ var globals = {
  * Initializes the framework and navigates to the first page or restores the pages. 
  */
 export function initialize(options: IVistoOptions) {
+    var rootElement = options.rootElement === undefined ? $("body") : options.rootElement;
+
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
     defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-    initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
+    initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $(rootElement).find("div") : options.initialLoadingScreenElement;
 
     setUserLanguage(options.supportedLanguages);
 
@@ -84,13 +86,15 @@ export function initialize(options: IVistoOptions) {
         });
     }
 
-    createView($("body"), options.startView, options.startParameters).done();
+    createView($(rootElement), options.startView, options.startParameters).done();
 }
 
 /**
  * Interface containing the initialization options. 
  */
 export interface IVistoOptions {
+    rootElement: JQuery;
+
     startView: string;
     startParameters: { [key: string]: any };
 
@@ -513,7 +517,9 @@ function tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage
         if ($.isFunction(backNavigationResolve))
             backNavigationResolve();
     } else {
-        (<any>window).location = "#" + currentPage.hash;
+        if (defaultFrame !== null)
+            (<any>window).location = "#" + currentPage.hash;
+
         if ($.isFunction(backNavigationReject))
             backNavigationReject("Cannot navigate back.");
     }
@@ -728,7 +734,8 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
             currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
-            (<any>window).location = "#" + currentNavigationPath;
+            if (defaultFrame !== null)
+                (<any>window).location = "#" + currentNavigationPath;
 
             navigationHistory.push(frame);
 
@@ -742,6 +749,9 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
             // show next page by removing hiding css styles
             if (!isPageRestore)
                 pageContainer.removeAttr("style");
+
+            //pageContainer.replaceWith(view.element);
+            //pageContainer = view.element;
 
             var pageStack = getPageStack(frame);
             pageStack.push(<IPage>{
@@ -936,6 +946,11 @@ export class ViewBase {
      * Gets the view's direct child views.
      */
     viewChildren = ko.observableArray<ViewBase>();
+
+    /**
+     * Gets or sets a value indicating whether this view inherits the view model from its parent view (must be set in the view's initialize() method). 
+     */
+    inheritViewModel = false;
 
     private isDestroyed = false;
     private subViews: ViewBase[] = <Array<any>>[];
@@ -1147,8 +1162,10 @@ export class Parameters {
         if (parameters !== undefined && parameters !== null)
             this.originalParameters = <any>(parameters);
 
-        this.tagContent = element.children();
         this.tagContentHtml = element.get(0).innerHTML;
+        var content = $(document.createElement("div"));
+        content.html(this.tagContentHtml);
+        this.tagContent = content;
     }
 
     getObservableString(key: string, defaultValue?: string): KnockoutObservable<string> {
@@ -1238,10 +1255,10 @@ export class Parameters {
 
     private readTagContentChild(key: string): any {
         var tagName = convertCamelCaseToDashed(key);
-        var elements = $.grep(<HTMLElement[]>this.tagContent.get(), (element) => element.tagName.toLowerCase() === tagName);
+        var elements = $.grep(<HTMLElement[]>this.tagContent.children().get(), (element) => element.tagName.toLowerCase() === tagName);
         if (elements.length === 1)
             return this.createObjectFromElement($(elements[0]));
-        return null; 
+        return null;
     }
 
     private createObjectFromElement(element: JQuery): any {
@@ -1314,6 +1331,7 @@ class ViewFactory {
 
         this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
         this.parameters = new Parameters(fullViewName, parameters, element);
+        element.html("");
 
         var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (!lazySubviewLoading)
@@ -1376,7 +1394,7 @@ class ViewFactory {
                     item(data);
                 });
             }).fail(() => {
-                var data = "<div>[View '" + this.viewLocator.name + "' not found]</div>";
+                var data = "<span>[View '" + this.viewLocator.name + "' not found]</span>";
 
                 loadedViews[this.viewLocator.name].data = data;
                 loadedViews[this.viewLocator.name].running = false;
@@ -1419,7 +1437,10 @@ class ViewFactory {
         var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (lazySubviewLoading) {
             this.__setHtml();
-            ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            if (this.view.inheritViewModel)
+                ko.applyBindings((<any>this.parentView).viewModel, this.rootElement.get(0));
+            else
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
             this.__raiseLoadedEvents();
         } else {
             this.context.factories.push(this);
@@ -1433,7 +1454,10 @@ class ViewFactory {
             this.context.parentPackage = this.viewLocator.package;
 
             currentContext = this.context;
-            ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            if (this.view.inheritViewModel)
+                ko.applyBindings((<any>this.parentView).viewModel, this.rootElement.get(0));
+            else
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
             currentContext = null;
 
             this.context.loaded();
@@ -1532,10 +1556,10 @@ class ViewFactory {
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
 
-                return '<div data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
+                return '<span data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
 
-        return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</div>");
+        return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</span>");
     }
 
     /**

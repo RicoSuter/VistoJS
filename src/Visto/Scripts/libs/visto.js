@@ -62,9 +62,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Initializes the framework and navigates to the first page or restores the pages.
      */
     function initialize(options) {
+        var rootElement = options.rootElement === undefined ? $("body") : options.rootElement;
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
         defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-        initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $("body").find("div") : options.initialLoadingScreenElement;
+        initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $(rootElement).find("div") : options.initialLoadingScreenElement;
         setUserLanguage(options.supportedLanguages);
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
             $(document).bind("keypress", function (ev) {
@@ -72,7 +73,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     ev.preventDefault();
             });
         }
-        createView($("body"), options.startView, options.startParameters).done();
+        createView($(rootElement), options.startView, options.startParameters).done();
     }
     exports.initialize = initialize;
     /**
@@ -448,7 +449,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 backNavigationResolve();
         }
         else {
-            window.location = "#" + currentPage.hash;
+            if (defaultFrame !== null)
+                window.location = "#" + currentPage.hash;
             if ($.isFunction(backNavigationReject))
                 backNavigationReject("Cannot navigate back.");
         }
@@ -625,7 +627,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return createView(pageContainer, fullViewName, parameters).then(function (view) {
                 var restoreQuery = view.parameters.getRestoreQuery();
                 currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
-                window.location = "#" + currentNavigationPath;
+                if (defaultFrame !== null)
+                    window.location = "#" + currentNavigationPath;
                 navigationHistory.push(frame);
                 // current page
                 var currentPage = getCurrentPageDescription(frame);
@@ -636,6 +639,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 // show next page by removing hiding css styles
                 if (!exports.isPageRestore)
                     pageContainer.removeAttr("style");
+                //pageContainer.replaceWith(view.element);
+                //pageContainer = view.element;
                 var pageStack = getPageStack(frame);
                 pageStack.push({
                     view: view,
@@ -777,6 +782,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
              * Gets the view's direct child views.
              */
             this.viewChildren = ko.observableArray();
+            /**
+             * Gets or sets a value indicating whether this view inherits the view model from its parent view (must be set in the view's initialize() method).
+             */
+            this.inheritViewModel = false;
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
@@ -970,8 +979,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.fullViewName = fullViewName;
             if (parameters !== undefined && parameters !== null)
                 this.originalParameters = (parameters);
-            this.tagContent = element.children();
             this.tagContentHtml = element.get(0).innerHTML;
+            var content = $(document.createElement("div"));
+            content.html(this.tagContentHtml);
+            this.tagContent = content;
         }
         Parameters.prototype.getObservableString = function (key, defaultValue) {
             return this.getObservableWithConversion(key, function (value) { return value.toString(); }, defaultValue);
@@ -1049,7 +1060,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         Parameters.prototype.readTagContentChild = function (key) {
             var tagName = convertCamelCaseToDashed(key);
-            var elements = $.grep(this.tagContent.get(), function (element) { return element.tagName.toLowerCase() === tagName; });
+            var elements = $.grep(this.tagContent.children().get(), function (element) { return element.tagName.toLowerCase() === tagName; });
             if (elements.length === 1)
                 return this.createObjectFromElement($(elements[0]));
             return null;
@@ -1109,6 +1120,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
             this.parameters = new Parameters(fullViewName, parameters, element);
+            element.html("");
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (!lazySubviewLoading)
                 this.context.viewCount++;
@@ -1165,7 +1177,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         item(data);
                     });
                 }).fail(function () {
-                    var data = "<div>[View '" + _this.viewLocator.name + "' not found]</div>";
+                    var data = "<span>[View '" + _this.viewLocator.name + "' not found]</span>";
                     loadedViews[_this.viewLocator.name].data = data;
                     loadedViews[_this.viewLocator.name].running = false;
                     $.each(loadedViews[_this.viewLocator.name].callbacks, function (index, item) {
@@ -1198,7 +1210,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (lazySubviewLoading) {
                 this.__setHtml();
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
+                if (this.view.inheritViewModel)
+                    ko.applyBindings(this.parentView.viewModel, this.rootElement.get(0));
+                else
+                    ko.applyBindings(this.viewModel, this.rootElement.get(0));
                 this.__raiseLoadedEvents();
             }
             else {
@@ -1210,7 +1225,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.context.parentView = this.view;
                 this.context.parentPackage = this.viewLocator.package;
                 currentContext = this.context;
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
+                if (this.view.inheritViewModel)
+                    ko.applyBindings(this.parentView.viewModel, this.rootElement.get(0));
+                else
+                    ko.applyBindings(this.viewModel, this.rootElement.get(0));
                 currentContext = null;
                 this.context.loaded();
             }
@@ -1291,9 +1309,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     bindings += "name: '" + tagAliases[tagName] + "'";
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-                return '<div data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
+                return '<span data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
-            return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</div>");
+            return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</span>");
         };
         /**
          * Process Knockout attributes (vs-) in the given HTML data string (must be called after processCustomTags).
