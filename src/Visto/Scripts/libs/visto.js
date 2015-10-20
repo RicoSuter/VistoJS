@@ -789,6 +789,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
         /**
          * Sets the view model to the view model of the parent view (must be called in the view's initialize() method).
+         * The view cannot have an own view model class.
          */
         ViewBase.prototype.inheritViewModelFromParent = function () {
             this.viewModel = this.viewParent.viewModel;
@@ -1204,10 +1205,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 replaceLanguageStrings(this.rootElement, this.viewLocator.package);
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
-            this.viewModel = this.view.viewModel; // may be changed by inheritViewModelFromParent()
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);
+            this.viewModel = this.view.viewModel; // may be changed by inheritViewModelFromParent()
             if (this.isRootView)
                 this.context.restoreQuery = this.parameters.getRestoreQuery();
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
@@ -1272,7 +1273,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             data = data
                 .replace(/vs-translate="/g, "data-translate=\"")
                 .replace(/vs-bind="/g, "data-bind=\"")
-                .replace(/<vs-([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, function (match, tagName, attributes, tagClosing) {
+                .replace(/<vs-([a-zA-Z0-9-]+?)(( ([^]*?)(\/>|>))|(\/>|>))/g, function (match, tagName, tagWithoutAttributesClosing, unused2, attributes, tagClosing) {
+                if (tagClosing == undefined) {
+                    tagClosing = tagWithoutAttributesClosing;
+                    attributes = "";
+                }
                 var path = "";
                 var pkg = "";
                 var bindings = "";
@@ -1347,6 +1352,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.view.isViewLoaded(true);
         };
         ViewFactory.prototype.__setHtml = function () {
+            //this.element.replaceWith(this.rootElement);
+            //this.rootElement = this.element;
             this.element.html(this.rootElement);
         };
         return ViewFactory;

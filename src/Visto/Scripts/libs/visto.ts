@@ -953,11 +953,12 @@ export class ViewBase {
 
     /**
      * Sets the view model to the view model of the parent view (must be called in the view's initialize() method). 
+     * The view cannot have an own view model class. 
      */
     inheritViewModelFromParent() {
         (<any>this).viewModel = (<any>this.viewParent).viewModel;
     }
-    
+
     /**
      * Enables page restoring for the current page. 
      * This method must be called in the initialize() method. 
@@ -1428,11 +1429,11 @@ class ViewFactory {
 
         this.view = this.instantiateView();
         this.viewModel = this.instantiateViewModel(this.view);
-        this.viewModel = (<any>this.view).viewModel; // may be changed by inheritViewModelFromParent()
 
         // initialize and retrieve restore query
         this.view.initialize(this.parameters);
         this.viewModel.initialize(this.parameters);
+        this.viewModel = (<any>this.view).viewModel; // may be changed by inheritViewModelFromParent()
 
         if (this.isRootView)
             this.context.restoreQuery = this.parameters.getRestoreQuery();
@@ -1515,7 +1516,12 @@ class ViewFactory {
         data = data
             .replace(/vs-translate="/g, "data-translate=\"")
             .replace(/vs-bind="/g, "data-bind=\"")
-            .replace(/<vs-([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, (match: string, tagName: string, attributes: string, tagClosing: string) => {
+            .replace(/<vs-([a-zA-Z0-9-]+?)(( ([^]*?)(\/>|>))|(\/>|>))/g, (match: string, tagName: string, tagWithoutAttributesClosing: string, unused2: string, attributes: string, tagClosing: string) => {
+                if (tagClosing == undefined) {
+                    tagClosing = tagWithoutAttributesClosing;
+                    attributes = "";
+                }
+
                 var path = "";
                 var pkg = "";
 
@@ -1604,6 +1610,8 @@ class ViewFactory {
     }
 
     __setHtml() {
+        //this.element.replaceWith(this.rootElement);
+        //this.rootElement = this.element;
         this.element.html(<any>this.rootElement);
     }
 
