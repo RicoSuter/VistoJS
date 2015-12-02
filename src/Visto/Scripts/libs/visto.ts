@@ -319,6 +319,30 @@ function replaceLanguageStrings(element: JQuery, path?: string) {
 };
 
 // ----------------------------
+// Events
+// ----------------------------
+
+export class Event<TSender, TArgs> {
+    private registrations: ((sender: TSender, args: TArgs) => void)[] = [];
+
+    public add(callback: (sender: TSender, args: TArgs) => void) {
+        this.registrations.push(callback);
+    }
+
+    public remove(callback: (sender: TSender, args: TArgs) => void) {
+        var index = this.registrations.indexOf(callback);
+        if (index > -1)
+            this.registrations.splice(index, 1);
+    }
+
+    public raise(sender: TSender, args: TArgs) {
+        for (var callback of this.registrations) {
+            callback(sender, args);
+        }
+    }
+}
+
+// ----------------------------
 // Views
 // ----------------------------
 

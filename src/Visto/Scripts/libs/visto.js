@@ -279,6 +279,30 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     }
     ;
     // ----------------------------
+    // Events
+    // ----------------------------
+    var Event = (function () {
+        function Event() {
+            this.registrations = [];
+        }
+        Event.prototype.add = function (callback) {
+            this.registrations.push(callback);
+        };
+        Event.prototype.remove = function (callback) {
+            var index = this.registrations.indexOf(callback);
+            if (index > -1)
+                this.registrations.splice(index, 1);
+        };
+        Event.prototype.raise = function (sender, args) {
+            for (var _i = 0, _a = this.registrations; _i < _a.length; _i++) {
+                var callback = _a[_i];
+                callback(sender, args);
+            }
+        };
+        return Event;
+    })();
+    exports.Event = Event;
+    // ----------------------------
     // Views
     // ----------------------------
     /**
