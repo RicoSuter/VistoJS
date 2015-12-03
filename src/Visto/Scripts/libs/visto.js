@@ -1057,10 +1057,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         Parameters.prototype.getFunction = function (key, viewModel) {
             var func = this.getObject("click");
-            if (func.caller !== undefined && func.caller !== null)
-                return func;
             return function () {
-                var parentViewModel = viewModel.view.viewParent.viewModel;
+                if (func.caller !== undefined && func.caller !== null)
+                    return func;
+                var parentElement = viewModel.view.element.parent()[0];
+                var parentViewModel = ko.contextFor(parentElement).$data;
                 return func.apply(parentViewModel, arguments);
             };
         };

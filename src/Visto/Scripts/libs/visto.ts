@@ -1250,11 +1250,13 @@ export class Parameters {
      */
     getFunction(key: string, viewModel: ViewModel): any {
         var func = this.getObject<any>("click");
-        if (func.caller !== undefined && func.caller !== null)
-            return func;
 
         return function () {
-            var parentViewModel = (<any>viewModel).view.viewParent.viewModel;
+            if (func.caller !== undefined && func.caller !== null)
+                return func;
+
+            var parentElement = (<any>viewModel).view.element.parent()[0];
+            var parentViewModel = ko.contextFor(parentElement).$data;
             return func.apply(parentViewModel, arguments);
         };
     }
