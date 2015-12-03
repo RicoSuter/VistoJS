@@ -1,6 +1,7 @@
 // Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
+// License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -1054,7 +1055,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         Parameters.prototype.getObservableArray = function (key, defaultValue) {
             if (this.parameters[key] === undefined) {
                 if (this.originalParameters[key] !== undefined) {
-                    if ($.isFunction(this.originalParameters[key]))
+                    if (this.originalParameters[key].notifySubscribers !== undefined)
                         this.parameters[key] = this.originalParameters[key];
                     else
                         this.parameters[key] = ko.observableArray(this.originalParameters[key]);
@@ -1074,7 +1075,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         Parameters.prototype.getObservableWithConversion = function (key, valueConverter, defaultValue) {
             if (this.parameters[key] === undefined) {
                 if (this.originalParameters[key] !== undefined) {
-                    if ($.isFunction(this.originalParameters[key]))
+                    if (this.originalParameters[key].notifySubscribers !== undefined)
                         this.parameters[key] = this.originalParameters[key];
                     else
                         this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));

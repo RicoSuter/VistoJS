@@ -1,6 +1,7 @@
 ﻿// Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
+// License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
 /// <reference path="q.d.ts" />
 /// <reference path="knockout.d.ts" />
@@ -1250,7 +1251,7 @@ export class Parameters {
     getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
         if (this.parameters[key] === undefined) {
             if (this.originalParameters[key] !== undefined) {
-                if ($.isFunction(this.originalParameters[key]))
+                if (this.originalParameters[key].notifySubscribers !== undefined)
                     this.parameters[key] = this.originalParameters[key];
                 else
                     this.parameters[key] = ko.observableArray(this.originalParameters[key]);
@@ -1270,7 +1271,7 @@ export class Parameters {
     private getObservableWithConversion<T>(key: string, valueConverter: (value: any) => T, defaultValue: T): KnockoutObservable<T> {
         if (this.parameters[key] === undefined) {
             if (this.originalParameters[key] !== undefined) {
-                if ($.isFunction(this.originalParameters[key]))
+                if (this.originalParameters[key].notifySubscribers !== undefined)
                     this.parameters[key] = this.originalParameters[key];
                 else
                     this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
