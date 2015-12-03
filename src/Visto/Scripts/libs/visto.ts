@@ -326,11 +326,15 @@ function replaceLanguageStrings(element: JQuery, path?: string) {
  * Gets the parent view of the given element.
  */
 export function getViewFromElement(element: JQuery): ViewBase {
+    var viewId = element.attr(viewIdAttribute);
+    if (viewId !== undefined)
+        return views[viewId];
+
     while ((element = element.parent()) != undefined) {
         if (element.length === 0)
             return null;
 
-        var viewId = $(element[0]).attr(viewIdAttribute);
+        viewId = $(element[0]).attr(viewIdAttribute);
         if (viewId !== undefined)
             return views[viewId];
     }
@@ -676,13 +680,16 @@ ko.virtualElements.allowedBindings["stopBinding"] = true;
 
 // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
 ko.bindingHandlers["view"] = {
-    init(element: Element, valueAccessor: any) {
+    update(element: Element, valueAccessor: any): void {
+        var view = getViewFromElement($(element));
+        if (view !== null && view !== undefined)
+            view.__destroyView();
+
         var rootView: ViewBase = null;
         if (currentContext !== null)
             rootView = currentContext.rootView;
 
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
-
         var factory = new ViewFactory();
         factory.create($(element), (<any>value).name, value, view => {
             ko.utils.domNodeDisposal.addDisposeCallback(element, () => { view.__destroyView(); });
@@ -1529,7 +1536,7 @@ class ViewFactory {
                 var htmlAttributes = "";
 
                 attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, (match: string, attributeName: string, attributeValue: string) => {
-                    if (attributeName.indexOf("vs-") === 0 || attributeName === "class" || attributeName === "style") { // class and style attribute are allowed on view tag
+                    if (attributeName.indexOf("vs-") === 0) {
                         htmlAttributes += " " + match;
                         return match;
                     } else {
