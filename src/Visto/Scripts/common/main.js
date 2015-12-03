@@ -1,11 +1,14 @@
 define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, pkg) {
+    var tagAliasesRegistered = false;
     /**
      * Registers common control aliases so that they can be used without specifying the common package.
      */
     function registerTagAliases() {
-        visto.registerTagAlias("text-box", pkg, "TextBox");
-        visto.registerTagAlias("check-box", pkg, "CheckBox");
-        visto.registerTagAlias("button", pkg, "Button");
+        if (!tagAliasesRegistered) {
+            visto.registerTagAlias("text-box", pkg, "TextBox");
+            visto.registerTagAlias("check-box", pkg, "CheckBox");
+            visto.registerTagAlias("button", pkg, "Button");
+        }
     }
     exports.registerTagAliases = registerTagAliases;
     /**

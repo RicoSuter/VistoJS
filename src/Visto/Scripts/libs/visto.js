@@ -1,6 +1,7 @@
 // Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
+// License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -309,10 +310,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Gets the parent view of the given element.
      */
     function getViewFromElement(element) {
+        var viewId = element.attr(viewIdAttribute);
+        if (viewId !== undefined)
+            return views[viewId];
         while ((element = element.parent()) != undefined) {
             if (element.length === 0)
                 return null;
-            var viewId = $(element[0]).attr(viewIdAttribute);
+            viewId = $(element[0]).attr(viewIdAttribute);
             if (viewId !== undefined)
                 return views[viewId];
         }
@@ -613,7 +617,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     ko.virtualElements.allowedBindings["stopBinding"] = true;
     // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
     ko.bindingHandlers["view"] = {
-        init: function (element, valueAccessor) {
+        update: function (element, valueAccessor) {
+            var view = getViewFromElement($(element));
+            if (view !== null && view !== undefined)
+                view.__destroyView();
             var rootView = null;
             if (currentContext !== null)
                 rootView = currentContext.rootView;
@@ -1070,7 +1077,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         Parameters.prototype.getObservableArray = function (key, defaultValue) {
             if (this.parameters[key] === undefined) {
                 if (this.originalParameters[key] !== undefined) {
-                    if ($.isFunction(this.originalParameters[key]))
+                    if (this.originalParameters[key].notifySubscribers !== undefined)
                         this.parameters[key] = this.originalParameters[key];
                     else
                         this.parameters[key] = ko.observableArray(this.originalParameters[key]);
@@ -1090,7 +1097,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         Parameters.prototype.getObservableWithConversion = function (key, valueConverter, defaultValue) {
             if (this.parameters[key] === undefined) {
                 if (this.originalParameters[key] !== undefined) {
-                    if ($.isFunction(this.originalParameters[key]))
+                    if (this.originalParameters[key].notifySubscribers !== undefined)
                         this.parameters[key] = this.originalParameters[key];
                     else
                         this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
@@ -1329,7 +1336,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 var bindings = "";
                 var htmlAttributes = "";
                 attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, function (match, attributeName, attributeValue) {
-                    if (attributeName.indexOf("vs-") === 0 || attributeName === "class" || attributeName === "style") {
+                    if (attributeName.indexOf("vs-") === 0) {
                         htmlAttributes += " " + match;
                         return match;
                     }

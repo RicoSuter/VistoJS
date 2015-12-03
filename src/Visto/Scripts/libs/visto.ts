@@ -1,6 +1,7 @@
 ﻿// Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
+// License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
 /// <reference path="q.d.ts" />
 /// <reference path="knockout.d.ts" />
@@ -350,11 +351,15 @@ export class Event<TSender, TArgs> {
  * Gets the parent view of the given element.
  */
 export function getViewFromElement(element: JQuery): ViewBase {
+    var viewId = element.attr(viewIdAttribute);
+    if (viewId !== undefined)
+        return views[viewId];
+
     while ((element = element.parent()) != undefined) {
         if (element.length === 0)
             return null;
 
-        var viewId = $(element[0]).attr(viewIdAttribute);
+        viewId = $(element[0]).attr(viewIdAttribute);
         if (viewId !== undefined)
             return views[viewId];
     }
@@ -710,13 +715,16 @@ ko.virtualElements.allowedBindings["stopBinding"] = true;
 
 // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
 ko.bindingHandlers["view"] = {
-    init(element: Element, valueAccessor: any) {
+    update(element: Element, valueAccessor: any): void {
+        var view = getViewFromElement($(element));
+        if (view !== null && view !== undefined)
+            view.__destroyView();
+
         var rootView: ViewBase = null;
         if (currentContext !== null)
             rootView = currentContext.rootView;
 
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
-
         var factory = new ViewFactory();
         factory.create($(element), (<any>value).name, value, view => {
             ko.utils.domNodeDisposal.addDisposeCallback(element, () => { view.__destroyView(); });
@@ -1267,7 +1275,7 @@ export class Parameters {
     getObservableArray<T>(key: string, defaultValue?: T[]): KnockoutObservableArray<T> {
         if (this.parameters[key] === undefined) {
             if (this.originalParameters[key] !== undefined) {
-                if ($.isFunction(this.originalParameters[key]))
+                if (this.originalParameters[key].notifySubscribers !== undefined)
                     this.parameters[key] = this.originalParameters[key];
                 else
                     this.parameters[key] = ko.observableArray(this.originalParameters[key]);
@@ -1287,7 +1295,7 @@ export class Parameters {
     private getObservableWithConversion<T>(key: string, valueConverter: (value: any) => T, defaultValue: T): KnockoutObservable<T> {
         if (this.parameters[key] === undefined) {
             if (this.originalParameters[key] !== undefined) {
-                if ($.isFunction(this.originalParameters[key]))
+                if (this.originalParameters[key].notifySubscribers !== undefined)
                     this.parameters[key] = this.originalParameters[key];
                 else
                     this.parameters[key] = ko.observable(valueConverter(this.originalParameters[key]));
@@ -1577,7 +1585,7 @@ class ViewFactory {
                 var htmlAttributes = "";
 
                 attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, (match: string, attributeName: string, attributeValue: string) => {
-                    if (attributeName.indexOf("vs-") === 0 || attributeName === "class" || attributeName === "style") { // class and style attribute are allowed on view tag
+                    if (attributeName.indexOf("vs-") === 0) {
                         htmlAttributes += " " + match;
                         return match;
                     } else {
