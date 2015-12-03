@@ -362,6 +362,16 @@ export function getViewFromElement(element: JQuery): ViewBase {
 };
 
 /**
+ * Gets the parent view model of the given element.
+ */
+export function getViewModelFromElement(element: JQuery): ViewModel {
+    var view = <View<any>>getViewFromElement(element);
+    if (view !== null && view !== undefined)
+        return view.viewModel;
+    return null;
+}
+
+/**
  * Registers an initializer which is called after the elements of the context are added to the DOM. 
  * This is used for custom ko bindings so that they work correctly if they assume that an element is already in the DOM. 
  * Call this in custom ko bindings to run code after element has been added to the DOM. 
@@ -1225,6 +1235,20 @@ export class Parameters {
 
     getObject<T>(key: string, defaultValue?: T) {
         return this.getObservableObject(key, defaultValue)();
+    }
+
+    /**
+     * Gets a function parameter and sets the this/caller to the parent view model if no caller is set.
+     */
+    getFunction(key: string, viewModel: ViewModel): any {
+        var func = this.getObject<any>("click");
+        if (func.caller !== undefined && func.caller !== null)
+            return func;
+
+        return function () {
+            var parentViewModel = (<any>viewModel).view.viewParent.viewModel;
+            return func.apply(parentViewModel, arguments);
+        };
     }
 
     setValue<T>(key: string, value: T) {

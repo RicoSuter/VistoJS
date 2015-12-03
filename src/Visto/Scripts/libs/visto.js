@@ -321,6 +321,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     exports.getViewFromElement = getViewFromElement;
     ;
     /**
+     * Gets the parent view model of the given element.
+     */
+    function getViewModelFromElement(element) {
+        var view = getViewFromElement(element);
+        if (view !== null && view !== undefined)
+            return view.viewModel;
+        return null;
+    }
+    exports.getViewModelFromElement = getViewModelFromElement;
+    /**
      * Registers an initializer which is called after the elements of the context are added to the DOM.
      * This is used for custom ko bindings so that they work correctly if they assume that an element is already in the DOM.
      * Call this in custom ko bindings to run code after element has been added to the DOM.
@@ -1034,6 +1044,18 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         Parameters.prototype.getObject = function (key, defaultValue) {
             return this.getObservableObject(key, defaultValue)();
+        };
+        /**
+         * Gets a function parameter and sets the this/caller to the parent view model if no caller is set.
+         */
+        Parameters.prototype.getFunction = function (key, viewModel) {
+            var func = this.getObject("click");
+            if (func.caller !== undefined && func.caller !== null)
+                return func;
+            return function () {
+                var parentViewModel = viewModel.view.viewParent.viewModel;
+                return func.apply(parentViewModel, arguments);
+            };
         };
         Parameters.prototype.setValue = function (key, value) {
             var observable = this.getObservableObject(key, value);
