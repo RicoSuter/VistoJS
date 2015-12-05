@@ -54,7 +54,6 @@ var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
 var initialLoadingScreenElement: JQuery = null;
 var tagAliases: { [key: string]: any } = {};
-var remotePackages: { [packageName: string]: string } = {};
 
 // Globals for bindings
 var globals = {
@@ -104,17 +103,6 @@ export interface IVistoOptions {
     registerEnterKeyFix: boolean;
     initialLoadingScreenElement: JQuery;
     loadingScreenElement: string;
-}
-
-export function registerRemotePackage(packageName: string, remoteUrl: string) {
-    if (remotePackages[packageName] !== undefined)
-        throw new Error("The remote package '" + packageName + "' is already registered.");
-
-    remotePackages[packageName] = remoteUrl;
-}
-
-function getBaseUrl(packageName: string) {
-    return remotePackages[packageName] !== undefined ? remotePackages[packageName] + "/" : "";
 }
 
 /**
@@ -170,6 +158,40 @@ function convertCamelCaseToDashed(data: string) {
 }
 
 // ----------------------------
+// Remoting
+// ----------------------------
+
+var remotePackages: { [packageName: string]: string } = {};
+
+export function registerRemotePackage(packageName: string, remoteUrl: string) {
+    if (remotePackages[packageName.toLowerCase()] !== undefined)
+        throw new Error("The remote package '" + packageName + "' is already registered.");
+
+    remotePackages[packageName.toLowerCase()] = remoteUrl;
+}
+
+function getRemoteBaseUrl(packageName: string) {
+    return remotePackages[packageName.toLowerCase()] !== undefined ? remotePackages[packageName.toLowerCase()] + "/" : "";
+}
+
+// Replace original RequireJS require function to fix remote dependency loading
+var originalDefine = <any>define;
+define = <any>((modules: string[], success: (...modules: any[]) => void, failed?: () => void) => {
+    if ($.isArray(modules)) {
+        for (var packageName in remotePackages) {
+            if (remotePackages.hasOwnProperty(packageName)) {
+                $.each(modules, (index, module) => {
+                    if (module.toLowerCase().indexOf(packageName + "/") === 0)
+                        modules[index] = remotePackages[packageName] + "/Scripts/" + module + ".js";
+                });
+            }
+        }
+    }
+
+    originalDefine(modules, success, failed);
+});
+
+// ----------------------------
 // Internationalization
 // ----------------------------
 
@@ -213,7 +235,7 @@ export function getViewName(module: IModule, viewPath: string) {
  * [Replaceable] Loads the translated string for a given package and language. 
  */
 export var getLanguageStrings = (packageName: string, lang: string, completed: (languageStrings: { [key: string]: string }) => void) => {
-    var url = getBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
+    var url = getRemoteBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
     $.ajax({
         url: url,
         type: "get",
@@ -810,7 +832,7 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
 
             //pageContainer.replaceWith(view.element);
             //pageContainer = view.element;
-            
+
             var pageStack = getPageStack(frame);
             pageStack.push(<IPage>{
                 view: view,
@@ -1432,7 +1454,7 @@ class ViewFactory {
         var viewUrl = this.viewLocator.package + "/views/" + this.viewLocator.view;
         var viewModelUrl = this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model";
 
-        var baseUrl = getBaseUrl(this.viewLocator.package);
+        var baseUrl = getRemoteBaseUrl(this.viewLocator.package);
         if (baseUrl !== "") {
             viewUrl = baseUrl + viewUrl + ".js";
             viewModelUrl = baseUrl + viewModelUrl + ".js";
@@ -1476,7 +1498,7 @@ class ViewFactory {
 
             log("Loading view from server: " + this.viewLocator.name);
 
-            var baseUrl = getBaseUrl(this.viewLocator.package);
+            var baseUrl = getRemoteBaseUrl(this.viewLocator.package);
             $.ajax({
                 url: baseUrl + "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
                 dataType: "html",
