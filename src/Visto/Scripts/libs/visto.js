@@ -1,7 +1,6 @@
 // Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
-// License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -89,6 +88,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             tagAliases[tag] = getPackageNameForModule(pkg) + ":" + viewPath;
     }
     exports.registerTagAlias = registerTagAlias;
+    function getViewForViewModel(viewModel) {
+        return viewModel.view;
+    }
+    exports.getViewForViewModel = getViewForViewModel;
     // ----------------------------
     // Internal helper methods
     // ----------------------------
@@ -158,34 +161,41 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     }
     exports.getViewName = getViewName;
     /**
-     * Loads the language file for the given package and current language.
+     * [Replaceable] Loads the translated string for a given package and language.
      */
-    function loadLanguageFile(packageName, completed) {
+    exports.getLanguageStrings = function (packageName, lang, completed) {
+        var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
+        $.ajax({
+            url: url,
+            type: "get",
+            dataType: "json",
+            global: false
+        }).done(function (result) {
+            completed(result);
+        }).fail(function (xhr, ajaxOptions) {
+            log("Error loading language JSON '" + url + "': " + ajaxOptions);
+            completed(([]));
+        });
+    };
+    /**
+     * Loads the language file for the given package and current language with checking.
+     */
+    function loadLanguageStrings(packageName, completed) {
         var lang = exports.language();
         if (languageStrings[lang] === undefined)
             languageStrings[lang] = ([]);
         if (languageStrings[lang][packageName] === undefined) {
-            // TODO avoid multiple simultaneous loadings
-            var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
-            if (languageLoadings[url] === undefined) {
-                languageLoadings[url] = [completed];
-                $.ajax({
-                    url: url,
-                    type: "get",
-                    dataType: "json"
-                }).done(function (result) {
-                    languageStrings[lang][packageName] = result;
-                    $.each(languageLoadings[url], function (index, item) { item(); });
-                    delete languageLoadings[url];
-                }).fail(function (xhr, ajaxOptions) {
-                    languageStrings[lang][packageName] = ([]);
-                    $.each(languageLoadings[url], function (index, item) { item(); });
-                    log("Error loading language JSON '" + url + "': " + ajaxOptions);
-                    delete languageLoadings[url];
+            var key = packageName + ":" + lang;
+            if (languageLoadings[key] === undefined) {
+                languageLoadings[key] = [completed];
+                exports.getLanguageStrings(packageName, lang, function (ls) {
+                    languageStrings[lang][packageName] = ls;
+                    $.each(languageLoadings[key], function (index, item) { item(); });
+                    delete languageLoadings[key];
                 });
             }
             else
-                languageLoadings[url].push(completed);
+                languageLoadings[key].push(completed);
         }
         else
             completed();
@@ -200,7 +210,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         if (languageStrings[lang] === undefined)
             languageStrings[lang] = ([]);
         if (languageStrings[lang][packageName] === undefined) {
-            loadLanguageFile(packageName, function () { getStringForLanguage(lang, packageName, key, completed); });
+            loadLanguageStrings(packageName, function () { getStringForLanguage(lang, packageName, key, completed); });
             if (previousLanguage !== null)
                 return getStringForLanguage(previousLanguage, packageName, key);
             return "";
@@ -234,14 +244,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * Sets the language of the application.
      */
-    function setLanguage(lang, supportedLangs, updateBindings) {
+    function setLanguage(lang, supportedLangs) {
         if (exports.language() !== lang) {
             previousLanguage = exports.language();
             exports.language(lang);
             if (supportedLangs !== null && supportedLangs !== undefined)
                 exports.supportedLanguages = supportedLangs;
-            if (updateBindings === null || updateBindings === undefined || updateBindings)
-                replaceLanguageStrings($('body > *'));
         }
     }
     exports.setLanguage = setLanguage;
@@ -249,42 +257,26 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * Sets the language to the user preferred language.
      */
-    function setUserLanguage(supportedLangs, updateBindings) {
+    function setUserLanguage(supportedLangs) {
         var newLanguage;
         if (navigator.userLanguage !== undefined)
             newLanguage = navigator.userLanguage.split("-")[0];
         else
             newLanguage = navigator.language.split("-")[0];
         if ($.inArray(newLanguage, exports.supportedLanguages))
-            setLanguage(newLanguage, supportedLangs, updateBindings);
+            setLanguage(newLanguage, supportedLangs);
         else
-            setLanguage(supportedLangs[0], supportedLangs, updateBindings);
+            setLanguage(supportedLangs[0], supportedLangs);
     }
     exports.setUserLanguage = setUserLanguage;
-    ;
-    /**
-     * Updates all translated strings of an HTML element and its children.
-     */
-    function replaceLanguageStrings(element, path) {
-        var findRootPath = path === undefined;
-        element.find("[data-translate]").each(function () {
-            var self = $(this);
-            if (findRootPath)
-                path = self.attr("data-translate-root");
-            else
-                self.attr("data-translate-root", path); // used for language refreshes... 
-            getString(self.attr("data-translate"), path, function (content) {
-                self.html(content);
-            });
-        });
-    }
     ;
     // ----------------------------
     // Events
     // ----------------------------
     var Event = (function () {
-        function Event() {
+        function Event(sender) {
             this.registrations = [];
+            this.sender = sender;
         }
         Event.prototype.add = function (callback) {
             this.registrations.push(callback);
@@ -294,10 +286,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (index > -1)
                 this.registrations.splice(index, 1);
         };
-        Event.prototype.raise = function (sender, args) {
+        Event.prototype.raise = function (args) {
             for (var _i = 0, _a = this.registrations; _i < _a.length; _i++) {
                 var callback = _a[_i];
-                callback(sender, args);
+                callback(this.sender, args);
             }
         };
         return Event;
@@ -547,7 +539,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     focusable.focus();
                     focusable.blur();
                 }
-                showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
+                exports.showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
                     openedDialogs--;
                     view.onClosed();
                     view.__destroyView();
@@ -572,7 +564,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     /**
      * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs).
      */
-    function showNativeDialog(container, view, parameters, onShown, onClosed) {
+    exports.showNativeDialog = function (container, view, parameters, onShown, onClosed) {
         var dialog = container;
         if (dialog.modal !== undefined) {
             // Bootstrap dialog
@@ -588,12 +580,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             });
             onShown();
         }
-    }
-    exports.showNativeDialog = showNativeDialog;
+    };
     /**
      * [Replaceable] Closes the native dialog (supports Bootstrap and jQuery UI dialogs).
      */
-    function closeNativeDialog(container) {
+    exports.closeNativeDialog = function (container) {
         var dialog = container;
         if (dialog.modal !== undefined) {
             // Bootstrap dialog
@@ -603,8 +594,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // JQuery UI dialog
             dialog.dialog("close");
         }
-    }
-    exports.closeNativeDialog = closeNativeDialog;
+    };
     // ----------------------------
     // KnockoutJS extensions
     // ----------------------------
@@ -618,15 +608,23 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
     ko.bindingHandlers["view"] = {
         update: function (element, valueAccessor) {
-            var view = getViewFromElement($(element));
-            if (view !== null && view !== undefined)
-                view.__destroyView();
+            var value = ko.utils.unwrapObservable(valueAccessor());
+            var viewName = value.name;
+            // destroy if view is already loaded and only viewName has changed
+            var viewId = $(element).attr(viewIdAttribute);
+            if (viewId !== undefined) {
+                var view = views[viewId];
+                if (view !== null && view !== undefined) {
+                    if (view.viewName === viewName || view.viewName === defaultPackage + ":" + viewName)
+                        return; // only rebuild when viewName changed
+                    view.__destroyView();
+                }
+            }
             var rootView = null;
             if (currentContext !== null)
                 rootView = currentContext.rootView;
-            var value = ko.utils.unwrapObservable(valueAccessor());
             var factory = new ViewFactory();
-            factory.create($(element), value.name, value, function (view) {
+            factory.create($(element), viewName, value, function (view) {
                 ko.utils.domNodeDisposal.addDisposeCallback(element, function () { view.__destroyView(); });
                 if (rootView !== null)
                     rootView.__addSubView(view);
@@ -781,6 +779,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         ViewModel.prototype.getString = function (key) {
             return this.view.getString(key);
+        };
+        /**
+         * Loads a translated string which is internally observed (should only be called in a view, e.g. <vs-my-view my-text="translate('key')">).
+         */
+        ViewModel.prototype.translate = function (key) {
+            return getObservableString(key, this.view.viewPackage)();
         };
         /**
          * [Virtual] Initializes the view before it is added to the DOM.
@@ -990,7 +994,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         Dialog.prototype.close = function (result) {
             this.result = result;
-            closeNativeDialog(this.element);
+            exports.closeNativeDialog(this.element);
         };
         /**
          * [Virtual] Called when the dialog is shown and all animations have finished.
@@ -1053,10 +1057,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return this.getObservableObject(key, defaultValue)();
         };
         /**
-         * Gets a function parameter and sets the this/caller to the parent view model if no caller is set.
+         * Gets a function parameter and sets the this/caller to the parent element's view model if no caller is set.
          */
         Parameters.prototype.getFunction = function (key, viewModel) {
-            var func = this.getObject("click");
+            var func = this.getObject("click", null);
+            if (func === null)
+                return null;
             return function () {
                 if (func.caller !== undefined && func.caller !== null)
                     return func;
@@ -1196,7 +1202,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if ((--count) === 0)
                     _this.loadHtml();
             });
-            loadLanguageFile(this.viewLocator.package, function () {
+            loadLanguageStrings(this.viewLocator.package, function () {
                 if ((--count) === 0)
                     _this.loadHtml();
             });
@@ -1255,8 +1261,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             container.html(htmlData);
             this.rootElement = $(container.children()[0]);
             this.element.attr(viewIdAttribute, this.viewId);
-            if (exports.language() !== null)
-                replaceLanguageStrings(this.rootElement, this.viewLocator.package);
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
             // initialize and retrieve restore query
@@ -1325,7 +1329,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         ViewFactory.prototype.processCustomTags = function (data) {
             data = data
-                .replace(/vs-translate="/g, "data-translate=\"")
+                .replace(/vs-translate="(.*?)"/g, function (match, key) { return 'vs-html="{translate(\'' + key + '\')}"'; })
                 .replace(/vs-bind="/g, "data-bind=\"")
                 .replace(/<vs-([a-zA-Z0-9-]+?)(( ([^]*?)(\/>|>))|(\/>|>))/g, function (match, tagName, tagWithoutAttributesClosing, unused2, attributes, tagClosing) {
                 if (tagClosing == undefined) {

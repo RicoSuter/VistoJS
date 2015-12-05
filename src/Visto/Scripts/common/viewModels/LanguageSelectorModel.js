@@ -14,7 +14,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         LanguageSelectorModel.prototype.initialize = function () {
             var _this = this;
             this.subscribe(this.language, function () {
-                visto.setLanguage(_this.language(), _this.supportedLanguages, true);
+                visto.setLanguage(_this.language(), _this.supportedLanguages);
             });
             this.subscribe(visto.language, function () {
                 _this.language(visto.language());

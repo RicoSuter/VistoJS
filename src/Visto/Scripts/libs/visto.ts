@@ -1,7 +1,6 @@
 ﻿// Visto JavaScript Framework (VistoJS) v2.1.2
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
-// License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
 /// <reference path="q.d.ts" />
 /// <reference path="knockout.d.ts" />
@@ -119,6 +118,10 @@ export function registerTagAlias(tag: string, pkg: string | IModule, viewPath: s
         tagAliases[tag] = getPackageNameForModule(pkg) + ":" + viewPath;
 }
 
+export function getViewForViewModel(viewModel: ViewModel): ViewBase {
+    return (<any>viewModel).view;
+}
+
 // ----------------------------
 // Internal helper methods
 // ----------------------------
@@ -195,34 +198,42 @@ export function getViewName(module: IModule, viewPath: string) {
 }
 
 /**
- * Loads the language file for the given package and current language.
+ * [Replaceable] Loads the translated string for a given package and language. 
  */
-function loadLanguageFile(packageName: string, completed: () => void) {
+export var getLanguageStrings = (packageName: string, lang: string, completed: (languageStrings: { [key: string]: string }) => void) => {
+    var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
+    $.ajax({
+        url: url,
+        type: "get",
+        dataType: "json",
+        global: false
+    }).done((result: any) => {
+        completed(result);
+    }).fail((xhr: any, ajaxOptions: any) => {
+        log("Error loading language JSON '" + url + "': " + ajaxOptions);
+        completed(<any>([]));
+    });
+}
+
+/**
+ * Loads the language file for the given package and current language with checking.
+ */
+function loadLanguageStrings(packageName: string, completed: () => void) {
     var lang = language();
     if (languageStrings[lang] === undefined)
         languageStrings[lang] = <any>([]);
 
-    if (languageStrings[lang][packageName] === undefined) { 
-        // TODO avoid multiple simultaneous loadings
-        var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
-        if (languageLoadings[url] === undefined) {
-            languageLoadings[url] = [completed];
-            $.ajax({
-                url: url,
-                type: "get",
-                dataType: "json"
-            }).done((result: any) => {
-                languageStrings[lang][packageName] = result;
-                $.each(languageLoadings[url], (index, item) => { item(); });
-                delete languageLoadings[url];
-            }).fail((xhr: any, ajaxOptions: any) => {
-                languageStrings[lang][packageName] = <any>([]);
-                $.each(languageLoadings[url], (index, item) => { item(); });
-                log("Error loading language JSON '" + url + "': " + ajaxOptions);
-                delete languageLoadings[url];
+    if (languageStrings[lang][packageName] === undefined) {
+        var key = packageName + ":" + lang;
+        if (languageLoadings[key] === undefined) {
+            languageLoadings[key] = [completed];
+            getLanguageStrings(packageName, lang, ls => {
+                languageStrings[lang][packageName] = ls;
+                $.each(languageLoadings[key], (index, item) => { item(); });
+                delete languageLoadings[key];
             });
         } else
-            languageLoadings[url].push(completed);
+            languageLoadings[key].push(completed);
     } else
         completed();
 };
@@ -238,7 +249,7 @@ function getString(key: string, packageName: string, completed?: (value: string)
         languageStrings[lang] = <any>([]);
 
     if (languageStrings[lang][packageName] === undefined) {
-        loadLanguageFile(packageName, () => { getStringForLanguage(lang, packageName, key, completed); });
+        loadLanguageStrings(packageName, () => { getStringForLanguage(lang, packageName, key, completed); });
         if (previousLanguage !== null)
             return getStringForLanguage(previousLanguage, packageName, key);
         return "";
@@ -270,23 +281,20 @@ function getStringForLanguage(lang: string, packageName: string, key: string, co
 /**
  * Sets the language of the application. 
  */
-export function setLanguage(lang: string, supportedLangs: string[], updateBindings?: boolean) {
+export function setLanguage(lang: string, supportedLangs: string[]) {
     if (language() !== lang) {
         previousLanguage = language();
         language(lang);
 
         if (supportedLangs !== null && supportedLangs !== undefined)
             supportedLanguages = supportedLangs;
-
-        if (updateBindings === null || updateBindings === undefined || updateBindings)
-            replaceLanguageStrings($('body > *'));
     }
 };
 
 /**
  * Sets the language to the user preferred language.
  */
-export function setUserLanguage(supportedLangs: string[], updateBindings?: boolean) {
+export function setUserLanguage(supportedLangs: string[]) {
     var newLanguage: string;
 
     if (navigator.userLanguage !== undefined)
@@ -295,28 +303,9 @@ export function setUserLanguage(supportedLangs: string[], updateBindings?: boole
         newLanguage = navigator.language.split("-")[0];
 
     if ($.inArray(newLanguage, supportedLanguages))
-        setLanguage(newLanguage, supportedLangs, updateBindings);
+        setLanguage(newLanguage, supportedLangs);
     else
-        setLanguage(supportedLangs[0], supportedLangs, updateBindings);
-};
-
-/**
- * Updates all translated strings of an HTML element and its children. 
- */
-function replaceLanguageStrings(element: JQuery, path?: string) {
-    var findRootPath = path === undefined;
-    element.find("[data-translate]").each(function () {
-        var self = $(this);
-
-        if (findRootPath)
-            path = self.attr("data-translate-root");
-        else
-            self.attr("data-translate-root", path); // used for language refreshes... 
-
-        getString(self.attr("data-translate"), path, content => {
-            self.html(content);
-        });
-    });
+        setLanguage(supportedLangs[0], supportedLangs);
 };
 
 // ----------------------------
@@ -324,7 +313,12 @@ function replaceLanguageStrings(element: JQuery, path?: string) {
 // ----------------------------
 
 export class Event<TSender, TArgs> {
+    private sender: TSender;
     private registrations: ((sender: TSender, args: TArgs) => void)[] = [];
+
+    constructor(sender: TSender) {
+        this.sender = sender;
+    }
 
     public add(callback: (sender: TSender, args: TArgs) => void) {
         this.registrations.push(callback);
@@ -336,9 +330,9 @@ export class Event<TSender, TArgs> {
             this.registrations.splice(index, 1);
     }
 
-    public raise(sender: TSender, args: TArgs) {
+    public raise(args: TArgs) {
         for (var callback of this.registrations) {
-            callback(sender, args);
+            callback(this.sender, args);
         }
     }
 }
@@ -667,7 +661,7 @@ export enum DialogResult {
 /**
  * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs). 
  */
-export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, parameters: { [key: string]: any }, onShown: () => void, onClosed: () => void) {
+export var showNativeDialog = (container: JQuery, view: Dialog<ViewModel>, parameters: { [key: string]: any }, onShown: () => void, onClosed: () => void) => {
     var dialog = <any>container;
 
     if (dialog.modal !== undefined) {
@@ -688,7 +682,7 @@ export function showNativeDialog(container: JQuery, view: Dialog<ViewModel>, par
 /**
  * [Replaceable] Closes the native dialog (supports Bootstrap and jQuery UI dialogs). 
  */
-export function closeNativeDialog(container: JQuery) {
+export var closeNativeDialog = (container: JQuery) => {
     var dialog = <any>container;
 
     if (dialog.modal !== undefined) {
@@ -716,17 +710,27 @@ ko.virtualElements.allowedBindings["stopBinding"] = true;
 // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
 ko.bindingHandlers["view"] = {
     update(element: Element, valueAccessor: any): void {
-        var view = getViewFromElement($(element));
-        if (view !== null && view !== undefined)
-            view.__destroyView();
+        var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
+        var viewName = (<any>value).name; 
+
+        // destroy if view is already loaded and only viewName has changed
+        var viewId = $(element).attr(viewIdAttribute);
+        if (viewId !== undefined) {
+            var view = views[viewId];
+            if (view !== null && view !== undefined) {
+                if (view.viewName === viewName || view.viewName === defaultPackage + ":" + viewName)
+                    return; // only rebuild when viewName changed
+            
+                view.__destroyView();
+            }
+        }
 
         var rootView: ViewBase = null;
         if (currentContext !== null)
             rootView = currentContext.rootView;
 
-        var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
         var factory = new ViewFactory();
-        factory.create($(element), (<any>value).name, value, view => {
+        factory.create($(element), viewName, value, view => {
             ko.utils.domNodeDisposal.addDisposeCallback(element, () => { view.__destroyView(); });
             if (rootView !== null)
                 rootView.__addSubView(view);
@@ -794,7 +798,7 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
 
             //pageContainer.replaceWith(view.element);
             //pageContainer = view.element;
-
+            
             var pageStack = getPageStack(frame);
             pageStack.push(<IPage>{
                 view: view,
@@ -912,6 +916,13 @@ export class ViewModel {
      */
     getString(key: string) {
         return this.view.getString(key);
+    }
+
+    /**
+     * Loads a translated string which is internally observed (should only be called in a view, e.g. <vs-my-view my-text="translate('key')">).
+     */
+    translate(key: string) {
+        return getObservableString(key, this.view.viewPackage)();
     }
 
     /**
@@ -1246,10 +1257,12 @@ export class Parameters {
     }
 
     /**
-     * Gets a function parameter and sets the this/caller to the parent view model if no caller is set.
+     * Gets a function parameter and sets the this/caller to the parent element's view model if no caller is set.
      */
     getFunction(key: string, viewModel: ViewModel): any {
-        var func = this.getObject<any>("click");
+        var func = this.getObject<any>("click", null);
+        if (func === null)
+            return null;
 
         return function () {
             if (func.caller !== undefined && func.caller !== null)
@@ -1416,7 +1429,7 @@ class ViewFactory {
                 this.loadHtml();
         });
 
-        loadLanguageFile(this.viewLocator.package, () => {
+        loadLanguageStrings(this.viewLocator.package, () => {
             if ((--count) === 0)
                 this.loadHtml();
         });
@@ -1481,9 +1494,6 @@ class ViewFactory {
 
         this.rootElement = $(container.children()[0]);
         this.element.attr(viewIdAttribute, this.viewId);
-
-        if (language() !== null)
-            replaceLanguageStrings(this.rootElement, this.viewLocator.package);
 
         this.view = this.instantiateView();
         this.viewModel = this.instantiateViewModel(this.view);
@@ -1572,7 +1582,7 @@ class ViewFactory {
      */
     private processCustomTags(data: string) {
         data = data
-            .replace(/vs-translate="/g, "data-translate=\"")
+            .replace(/vs-translate="(.*?)"/g, (match: string, key: string) => { return 'vs-html="{translate(\'' + key + '\')}"'; })
             .replace(/vs-bind="/g, "data-bind=\"")
             .replace(/<vs-([a-zA-Z0-9-]+?)(( ([^]*?)(\/>|>))|(\/>|>))/g, (match: string, tagName: string, tagWithoutAttributesClosing: string, unused2: string, attributes: string, tagClosing: string) => {
                 if (tagClosing == undefined) {
