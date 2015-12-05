@@ -48,6 +48,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var defaultFrame = null;
     var initialLoadingScreenElement = null;
     var tagAliases = {};
+    var remotePackages = {};
     // Globals for bindings
     var globals = {
         navigateBack: function () { return navigateBack(); },
@@ -76,6 +77,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         createView($(rootElement), options.startView, options.startParameters).done();
     }
     exports.initialize = initialize;
+    function registerRemotePackage(packageName, remoteUrl) {
+        if (remotePackages[packageName] !== undefined)
+            throw new Error("The remote package '" + packageName + "' is already registered.");
+        remotePackages[packageName] = remoteUrl;
+    }
+    exports.registerRemotePackage = registerRemotePackage;
+    function getBaseUrl(packageName) {
+        return remotePackages[packageName] !== undefined ? remotePackages[packageName] + "/" : "";
+    }
     /**
      * Registers an alias for a tag; specify the tag without 'vs-'.
      */
@@ -164,7 +174,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * [Replaceable] Loads the translated string for a given package and language.
      */
     exports.getLanguageStrings = function (packageName, lang, completed) {
-        var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
+        var url = getBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
         $.ajax({
             url: url,
             type: "get",
@@ -213,7 +223,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             loadLanguageStrings(packageName, function () { getStringForLanguage(lang, packageName, key, completed); });
             if (previousLanguage !== null)
                 return getStringForLanguage(previousLanguage, packageName, key);
-            return "";
+            return null;
         }
         else
             return getStringForLanguage(lang, packageName, key, completed);
@@ -1192,12 +1202,19 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.loadScriptsAndLanguageFile = function () {
             var _this = this;
             var count = 3;
-            tryRequire([this.viewLocator.package + "/views/" + this.viewLocator.view], function (m) {
+            var viewUrl = this.viewLocator.package + "/views/" + this.viewLocator.view;
+            var viewModelUrl = this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model";
+            var baseUrl = getBaseUrl(this.viewLocator.package);
+            if (baseUrl !== "") {
+                viewUrl = baseUrl + viewUrl + ".js";
+                viewModelUrl = baseUrl + viewModelUrl + ".js";
+            }
+            tryRequire([viewUrl], function (m) {
                 _this.viewModule = m;
                 if ((--count) === 0)
                     _this.loadHtml();
             });
-            tryRequire([this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model"], function (m) {
+            tryRequire([viewModelUrl], function (m) {
                 _this.viewModelModule = m;
                 if ((--count) === 0)
                     _this.loadHtml();
@@ -1228,9 +1245,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     callbacks: [function (data) { return _this.htmlLoaded(data); }]
                 };
                 log("Loading view from server: " + this.viewLocator.name);
+                var baseUrl = getBaseUrl(this.viewLocator.package);
                 $.ajax({
-                    url: "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
-                    dataType: "html"
+                    url: baseUrl + "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
+                    dataType: "html",
+                    global: false
                 }).done(function (data) {
                     data = _this.processCustomTags(data);
                     data = _this.processKnockoutAttributes(data);

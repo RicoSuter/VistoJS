@@ -54,6 +54,7 @@ var currentContext: ViewContext = null;
 var defaultFrame: JQuery = null;
 var initialLoadingScreenElement: JQuery = null;
 var tagAliases: { [key: string]: any } = {};
+var remotePackages: { [packageName: string]: string } = {};
 
 // Globals for bindings
 var globals = {
@@ -103,6 +104,17 @@ export interface IVistoOptions {
     registerEnterKeyFix: boolean;
     initialLoadingScreenElement: JQuery;
     loadingScreenElement: string;
+}
+
+export function registerRemotePackage(packageName: string, remoteUrl: string) {
+    if (remotePackages[packageName] !== undefined)
+        throw new Error("The remote package '" + packageName + "' is already registered.");
+
+    remotePackages[packageName] = remoteUrl;
+}
+
+function getBaseUrl(packageName: string) {
+    return remotePackages[packageName] !== undefined ? remotePackages[packageName] + "/" : "";
 }
 
 /**
@@ -201,7 +213,7 @@ export function getViewName(module: IModule, viewPath: string) {
  * [Replaceable] Loads the translated string for a given package and language. 
  */
 export var getLanguageStrings = (packageName: string, lang: string, completed: (languageStrings: { [key: string]: string }) => void) => {
-    var url = "Scripts/" + packageName + "/languages/" + lang + ".json";
+    var url = getBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
     $.ajax({
         url: url,
         type: "get",
@@ -252,7 +264,7 @@ function getString(key: string, packageName: string, completed?: (value: string)
         loadLanguageStrings(packageName, () => { getStringForLanguage(lang, packageName, key, completed); });
         if (previousLanguage !== null)
             return getStringForLanguage(previousLanguage, packageName, key);
-        return "";
+        return null;
     } else
         return getStringForLanguage(lang, packageName, key, completed);
 };
@@ -281,7 +293,7 @@ function getStringForLanguage(lang: string, packageName: string, key: string, co
 /**
  * Sets the language of the application. 
  */
-export function setLanguage(lang: string, supportedLangs: string[]) {
+export function setLanguage(lang: string, supportedLangs?: string[]) {
     if (language() !== lang) {
         previousLanguage = language();
         language(lang);
@@ -1417,13 +1429,22 @@ class ViewFactory {
     private loadScriptsAndLanguageFile() {
         var count = 3;
 
-        tryRequire([this.viewLocator.package + "/views/" + this.viewLocator.view], (m: any) => {
+        var viewUrl = this.viewLocator.package + "/views/" + this.viewLocator.view;
+        var viewModelUrl = this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model";
+
+        var baseUrl = getBaseUrl(this.viewLocator.package);
+        if (baseUrl !== "") {
+            viewUrl = baseUrl + viewUrl + ".js";
+            viewModelUrl = baseUrl + viewModelUrl + ".js";
+        }
+
+        tryRequire([viewUrl], (m: any) => {
             this.viewModule = m;
             if ((--count) === 0)
                 this.loadHtml();
         });
 
-        tryRequire([this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model"], (m: any) => {
+        tryRequire([viewModelUrl], (m: any) => {
             this.viewModelModule = m;
             if ((--count) === 0)
                 this.loadHtml();
@@ -1455,9 +1476,11 @@ class ViewFactory {
 
             log("Loading view from server: " + this.viewLocator.name);
 
+            var baseUrl = getBaseUrl(this.viewLocator.package);
             $.ajax({
-                url: "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
-                dataType: "html"
+                url: baseUrl + "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
+                dataType: "html",
+                global: false
             }).done((data: string) => {
                 data = this.processCustomTags(data);
                 data = this.processKnockoutAttributes(data);
