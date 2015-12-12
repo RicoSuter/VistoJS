@@ -161,28 +161,28 @@ function convertCamelCaseToDashed(data: string) {
 // Remoting
 // ----------------------------
 
-var remotePackages: { [packageName: string]: string } = {};
+var remotePaths: { [packageName: string]: string } = {};
 
-export function registerRemotePackage(packageName: string, remoteUrl: string) {
-    if (remotePackages[packageName.toLowerCase()] !== undefined)
-        throw new Error("The remote package '" + packageName + "' is already registered.");
+export function registerRemotePath(path: string, remoteUrl: string) {
+    if (remotePaths[path.toLowerCase()] !== undefined)
+        throw new Error("The remote path '" + path + "' is already registered.");
 
-    remotePackages[packageName.toLowerCase()] = remoteUrl;
+    remotePaths[path.toLowerCase()] = remoteUrl;
 }
 
-function getRemoteBaseUrl(packageName: string) {
-    return remotePackages[packageName.toLowerCase()] !== undefined ? remotePackages[packageName.toLowerCase()] + "/" : "";
+function getRemotePathBaseUrl(path: string) {
+    return remotePaths[path.toLowerCase()] !== undefined ? remotePaths[path.toLowerCase()] + "/" : "";
 }
 
 // Replace original RequireJS require function to fix remote dependency loading
 var originalDefine = <any>define;
 define = <any>((modules: string[], success: (...modules: any[]) => void, failed?: () => void) => {
     if ($.isArray(modules)) {
-        for (var packageName in remotePackages) {
-            if (remotePackages.hasOwnProperty(packageName)) {
+        for (var path in remotePaths) {
+            if (remotePaths.hasOwnProperty(path)) {
                 $.each(modules, (index, module) => {
-                    if (module.toLowerCase().indexOf(packageName + "/") === 0)
-                        modules[index] = remotePackages[packageName] + "/Scripts/" + module + ".js";
+                    if (module.toLowerCase().indexOf(path + "/") === 0)
+                        modules[index] = remotePaths[path] + "/Scripts/" + module + ".js";
                 });
             }
         }
@@ -235,7 +235,7 @@ export function getViewName(module: IModule, viewPath: string) {
  * [Replaceable] Loads the translated string for a given package and language. 
  */
 export var getLanguageStrings = (packageName: string, lang: string, completed: (languageStrings: { [key: string]: string }) => void) => {
-    var url = getRemoteBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
+    var url = getRemotePathBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
     $.ajax({
         url: url,
         type: "get",
@@ -747,16 +747,21 @@ ko.bindingHandlers["view"] = {
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
         var viewName = (<any>value).name; 
 
+
         // destroy if view is already loaded and only viewName has changed
         var viewId = $(element).attr(viewIdAttribute);
         if (viewId !== undefined) {
             var view = views[viewId];
-            if (view !== null && view !== undefined) {
-                if (view.viewName === viewName || view.viewName === defaultPackage + ":" + viewName)
-                    return; // only rebuild when viewName changed
+            if (view === undefined || view === null)
+                return; // already destroyed
+
+            if (view.viewName === viewName || view.viewName === defaultPackage + ":" + viewName)
+                return; // only rebuild when viewName changed
             
-                view.__destroyView();
-            }
+            console.log("Refreshing view '" + view.viewName + "' with new view '" +
+                viewName + "' (view ID: " + view.viewId + ")");
+
+            view.__destroyView();
         }
 
         var rootView: ViewBase = null;
@@ -829,7 +834,7 @@ function tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery
             // show next page by removing hiding css styles
             if (!isPageRestore)
                 pageContainer.removeAttr("style");
-
+            
             //pageContainer.replaceWith(view.element);
             //pageContainer = view.element;
 
@@ -1141,6 +1146,7 @@ export class ViewBase {
             if (this.viewParent != null)
                 this.viewParent.viewChildren.remove(this);
 
+            ko.cleanNode(this.element.get(0)); // unapply bindings
             this.isDestroyed = true;
         }
     }
@@ -1454,7 +1460,7 @@ class ViewFactory {
         var viewUrl = this.viewLocator.package + "/views/" + this.viewLocator.view;
         var viewModelUrl = this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model";
 
-        var baseUrl = getRemoteBaseUrl(this.viewLocator.package);
+        var baseUrl = getRemotePathBaseUrl(this.viewLocator.package);
         if (baseUrl !== "") {
             viewUrl = baseUrl + viewUrl + ".js";
             viewModelUrl = baseUrl + viewModelUrl + ".js";
@@ -1498,7 +1504,7 @@ class ViewFactory {
 
             log("Loading view from server: " + this.viewLocator.name);
 
-            var baseUrl = getRemoteBaseUrl(this.viewLocator.package);
+            var baseUrl = getRemotePathBaseUrl(this.viewLocator.package);
             $.ajax({
                 url: baseUrl + "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
                 dataType: "html",
@@ -1528,11 +1534,11 @@ class ViewFactory {
         this.viewId = "view_" + ++viewCount;
 
         htmlData =
-        "<!-- ko stopBinding -->" +
-        htmlData
-            .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
-            .replace(/\[\[viewid\]\]/gi, this.viewId) +
-        "<!-- /ko -->";
+            "<!-- ko stopBinding -->" +
+            htmlData
+                .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+                .replace(/\[\[viewid\]\]/gi, this.viewId) +
+            "<!-- /ko -->";
 
         var container = $(document.createElement("div"));
         container.html(htmlData);
@@ -1554,7 +1560,7 @@ class ViewFactory {
         var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
         if (lazySubviewLoading) {
             this.__setHtml();
-            ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            this.applyBindings();
             this.__raiseLoadedEvents();
         } else {
             this.context.factories.push(this);
@@ -1568,7 +1574,7 @@ class ViewFactory {
             this.context.parentPackage = this.viewLocator.package;
 
             currentContext = this.context;
-            ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            this.applyBindings();
             currentContext = null;
 
             this.context.loaded();
@@ -1576,6 +1582,20 @@ class ViewFactory {
 
         if ($.isFunction(this.completed))
             this.completed(this.view);
+    }
+
+    private applyBindings() {
+        try {
+            ko.applyBindings(this.viewModel, this.rootElement.get(0));
+        }
+        catch (err) {
+            console.error("Error applying bindings: \n" +
+                "View: " + this.viewLocator.name + "'\n " +
+                "View ID: " + this.viewId + "\n" +
+                "Class: " + this.viewLocator.className + "(Model)\n" +
+                "Check if view model could be loaded and bound property/expression is available/correct");
+            throw err;
+        }
     }
 
     private instantiateView() {
@@ -1800,7 +1820,8 @@ class ViewLocator {
             this.package = getPackageName(arr[0]);
             this.view = arr[1];
         } else {
-            this.package = parentView != null ? parentView.viewPackage : context.parentPackage;
+            // TODO: Is this correct?
+            this.package = parentView != null ? getViewForViewModel(<ViewModel>(<any>parentView).viewModel).viewPackage /*parentView.viewPackage*/ : context.parentPackage;
             this.view = fullViewName;
         }
 
