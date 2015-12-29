@@ -1,16 +1,19 @@
 import visto = require("libs/visto");
 
 export class LanguageSelectorModel extends visto.ViewModel {
-	language = ko.observable(visto.language());
-	supportedLanguages = visto.supportedLanguages;
+    language: KnockoutObservable<any>;
+    supportedLanguages: string[];
 
-	initialize() {
+    initialize() {
+        this.language = ko.observable(this.context.language());
+        this.supportedLanguages = this.context.supportedLanguages;
+
 		this.subscribe(this.language, () => {
-			visto.setLanguage(this.language(), this.supportedLanguages);
+            this.context.setLanguage(this.language(), this.supportedLanguages);
         });
 
-		this.subscribe(visto.language, () => {
-			this.language(visto.language());
+        this.subscribe(this.context.language, () => {
+            this.language(this.context.language());
 		});
 	}
 }

@@ -8,10 +8,10 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         __extends(Prompt, _super);
         function Prompt() {
             _super.apply(this, arguments);
-            this.language = visto.language;
         }
         Prompt.prototype.initialize = function () {
             var _this = this;
+            this.language = this.context.language;
             this.viewModel.onOkClicked = function () { _this.close(visto.DialogResult.Ok); };
             this.viewModel.onCancelClicked = function () { _this.close(visto.DialogResult.Cancel); };
         };

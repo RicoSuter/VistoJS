@@ -20,13 +20,13 @@ export class ListPageModel extends visto.ViewModel {
     }
 
     showItem(item: svc.ISampleItem) {
-        visto.navigateTo(pkg, "DetailsPage", { item: item });
+        this.context.navigateTo(pkg, "DetailsPage", { item: item });
     }
 
     addItem() {
-        common.prompt("Add Item", "Please enter the item name: ", "").then(title => {
+        common.prompt(this.context, "Add Item", "Please enter the item name: ", "").then(title => {
             if (title !== null) {
-                this.items.push({
+                this.items.push(<any>{
                     id: (Math.floor(Math.random() * 4294967296) + 1),
                     title: title
                 });

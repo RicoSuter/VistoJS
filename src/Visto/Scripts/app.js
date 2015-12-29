@@ -3,6 +3,6 @@ define(["require", "exports", "libs/visto", "common/main"], function (require, e
     visto.initialize({
         startView: "MainView",
         supportedLanguages: ["en", "de"]
-    });
+    }).done();
 });
 //# sourceMappingURL=app.js.map

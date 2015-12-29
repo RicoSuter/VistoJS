@@ -13,31 +13,31 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
             this.enablePageRestore();
         };
         HomePageModel.prototype.navigateToBindings = function () {
-            visto.navigateTo(pkg, "BindingsPage");
+            this.context.navigateTo(pkg, "BindingsPage").done();
         };
         HomePageModel.prototype.navigateToForm = function () {
-            visto.navigateTo(pkg, "FormPage");
+            this.context.navigateTo(pkg, "FormPage").done();
         };
         HomePageModel.prototype.navigateToRecursivePage = function () {
-            visto.navigateTo(pkg, "RecursivePage");
+            this.context.navigateTo(pkg, "RecursivePage").done();
         };
         HomePageModel.prototype.navigateToInternationalization = function () {
-            visto.navigateTo(pkg, "InternationalizationPage");
+            this.context.navigateTo(pkg, "InternationalizationPage").done();
         };
         HomePageModel.prototype.navigateToTabPage = function () {
-            visto.navigateTo(pkg, "TabPage");
+            this.context.navigateTo(pkg, "TabPage").done();
         };
         HomePageModel.prototype.navigateToListPage = function () {
-            visto.navigateTo(pkg, "ListPage");
+            this.context.navigateTo(pkg, "ListPage").done();
         };
         HomePageModel.prototype.navigateToWebViewPage = function () {
-            visto.navigateTo(pkg, "WebViewPage");
+            this.context.navigateTo(pkg, "WebViewPage").done();
         };
         HomePageModel.prototype.showAlert = function () {
-            common.alert(this.getString("notImplementedTitle"), this.getString("notImplementedMessage"));
+            common.alert(this.context, this.getString("notImplementedTitle"), this.getString("notImplementedMessage"));
         };
         HomePageModel.prototype.showCustomDialog = function () {
-            visto.showDialog(pkg, "SampleDialog");
+            this.context.showDialog(pkg, "SampleDialog").done();
         };
         return HomePageModel;
     })(visto.ViewModel);

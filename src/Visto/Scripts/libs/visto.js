@@ -7,55 +7,24 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/hashchange"], function (require, exports, __hashchange) {
-    /// <reference path="q.d.ts" />
-    /// <reference path="knockout.d.ts" />
     /// <reference path="jquery.d.ts" />
+    /// <reference path="knockout.d.ts" />
+    /// <reference path="q.d.ts" />
     /// <reference path="visto.modules.d.ts" />
     exports.__hashchange = __hashchange;
+    // ----------------------------
+    // Globals
+    // ----------------------------
+    var urlNavigationHistory = [];
     // ----------------------------
     // Constants
     // ----------------------------
     var viewIdAttribute = "visto-view-id";
     var pageStackAttribute = "page-stack";
     var lazyViewLoadingOption = "lazyLoading";
-    var defaultPackage = "app";
     var isPageParameter = "__isPage";
     var isDialogParameter = "__isDialog";
-    // ----------------------------
-    // Declarations
-    // ----------------------------
-    // Public
-    exports.loadingScreenDelay = 300;
-    exports.isLogging = true;
-    exports.canNavigateBack = ko.observable(false);
-    exports.pageStackSize = ko.observable(0);
-    // Variables
-    var views = {};
-    var viewCount = 0;
-    var navigationCount = 0;
-    var navigationHistory = new Array();
-    var loadedViews = ([]);
-    var isNavigating = false;
-    var openedDialogs = 0;
-    // Internationalization variables
-    exports.language = ko.observable(null);
-    exports.supportedLanguages = [];
-    var previousLanguage = null;
-    var languageStrings = ([]);
-    // Local variables
-    var currentNavigationPath = "";
-    var currentContext = null;
-    var defaultFrame = null;
-    var initialLoadingScreenElement = null;
-    var tagAliases = {};
-    var remotePackages = {};
-    // Globals for bindings
-    var globals = {
-        navigateBack: function () { return navigateBack(); },
-        navigateHome: function () { return navigateHome(); },
-        canNavigateBack: exports.canNavigateBack,
-        pageStackSize: exports.pageStackSize
-    };
+    var defaultPackage = "app";
     // ----------------------------
     // Initializer
     // ----------------------------
@@ -64,28 +33,474 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      */
     function initialize(options) {
         var rootElement = options.rootElement === undefined ? $("body") : options.rootElement;
-        defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-        defaultPackage = options.defaultPackage === undefined ? defaultPackage : options.defaultPackage;
-        initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $(rootElement).find("div") : options.initialLoadingScreenElement;
-        setUserLanguage(options.supportedLanguages);
+        var vistoContext = new VistoContext();
+        vistoContext.setUserLanguage(options.supportedLanguages);
+        vistoContext.resourceManager = options.resourceManager === undefined ? new ResourceManager() : options.resourceManager;
+        vistoContext.initialLoadingScreenElement = options.initialLoadingScreenElement === undefined ? $(rootElement).find("div") : options.initialLoadingScreenElement;
         if (options.registerEnterKeyFix === undefined || options.registerEnterKeyFix) {
             $(document).bind("keypress", function (ev) {
                 if (ev.keyCode === 13 && ev.target.localName === "input")
                     ev.preventDefault();
             });
         }
-        createView($(rootElement), options.startView, options.startParameters).done();
+        var factory = new ViewFactory();
+        return factory.create($(rootElement), options.startView, options.startParameters, vistoContext).then(function () {
+            return vistoContext;
+        });
     }
     exports.initialize = initialize;
-    function registerRemotePackage(packageName, remoteUrl) {
-        if (remotePackages[packageName] !== undefined)
-            throw new Error("The remote package '" + packageName + "' is already registered.");
-        remotePackages[packageName] = remoteUrl;
-    }
-    exports.registerRemotePackage = registerRemotePackage;
-    function getBaseUrl(packageName) {
-        return remotePackages[packageName] !== undefined ? remotePackages[packageName] + "/" : "";
-    }
+    // ----------------------------
+    // Context
+    // ----------------------------
+    var currentViewContext = null;
+    var currentContext = null;
+    var VistoContext = (function () {
+        function VistoContext() {
+            // ----------------------------
+            // Internationalization
+            // ----------------------------
+            this.language = ko.observable(null);
+            this.languageStrings = {};
+            this.languageLoadings = {};
+            this.previousLanguage = null;
+            this.supportedLanguages = [];
+            // ----------------------------
+            // Paging
+            // ----------------------------
+            this.frame = null;
+            this.isNavigating = false;
+            this.canNavigateBack = ko.observable(false);
+            this.pageStackSize = ko.observable(0);
+            this.currentNavigationPath = "";
+            this.navigationCount = 0;
+            this.isPageRestore = false;
+            this.backNavigationResolve = null;
+            this.backNavigationReject = null;
+            // ----------------------------
+            // Loading screen
+            // ----------------------------
+            this.initialLoadingScreenElement = null;
+            this.loadingCount = 0;
+            this.currentLoadingScreenElement = null;
+            this.loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>";
+        }
+        /**
+         * Loads a translated string as observable object which updates when the language changes.
+         */
+        VistoContext.prototype.getObservableString = function (key, packageName) {
+            var observable = ko.observable();
+            observable(this.getString(key, packageName, function (value) { observable(value); }));
+            return observable;
+        };
+        /**
+         * Sets the language of the application.
+         */
+        VistoContext.prototype.setLanguage = function (lang, supportedLangs) {
+            if (this.language() !== lang) {
+                if (supportedLangs !== null && supportedLangs !== undefined)
+                    this.supportedLanguages = supportedLangs;
+                if (this.supportedLanguages.indexOf(lang) === -1)
+                    throw "setLanguage: The provided language is not supported.";
+                this.previousLanguage = this.language();
+                this.language(lang);
+            }
+        };
+        /**
+         * Sets the language to the user preferred language.
+         */
+        VistoContext.prototype.setUserLanguage = function (supportedLangs) {
+            var newLanguage;
+            if (navigator.userLanguage !== undefined)
+                newLanguage = navigator.userLanguage.split("-")[0];
+            else
+                newLanguage = navigator.language.split("-")[0];
+            if (this.supportedLanguages.indexOf(newLanguage) !== -1)
+                this.setLanguage(newLanguage, supportedLangs);
+            else
+                this.setLanguage(supportedLangs[0], supportedLangs);
+        };
+        /**
+         * Loads a translated string for a given language.
+         */
+        VistoContext.prototype.getStringForLanguage = function (lang, packageName, key, completed) {
+            var value = this.languageStrings[lang][packageName][key];
+            if (value === undefined)
+                value = packageName + ":" + key;
+            if (completed !== undefined)
+                completed(value);
+            return value;
+        };
+        /**
+         * Loads the language file for the given package and current language with checking.
+         */
+        VistoContext.prototype.loadLanguageStrings = function (packageName) {
+            var _this = this;
+            var lang = this.language();
+            if (this.languageStrings[lang] === undefined)
+                this.languageStrings[lang] = ([]);
+            var key = packageName + ":" + lang;
+            if (this.languageStrings[lang][packageName] === undefined) {
+                if (this.languageLoadings[key] === undefined) {
+                    this.languageLoadings[key] = this.resourceManager.getLanguageStrings(packageName, lang).then(function (ls) {
+                        _this.languageStrings[lang][packageName] = ls;
+                        return ls;
+                    });
+                }
+            }
+            return this.languageLoadings[key];
+        };
+        /**
+         * Loads a translated string.
+         */
+        VistoContext.prototype.getString = function (key, packageName, completed) {
+            var _this = this;
+            packageName = getPackageName(packageName);
+            var lang = this.language();
+            if (this.languageStrings[lang] === undefined)
+                this.languageStrings[lang] = ([]);
+            if (this.languageStrings[lang][packageName] === undefined) {
+                this.loadLanguageStrings(packageName).done(function () {
+                    _this.getStringForLanguage(lang, packageName, key, completed);
+                });
+                // Not loaded yet
+                if (this.previousLanguage !== null)
+                    return this.getStringForLanguage(this.previousLanguage, packageName, key);
+                return null;
+            }
+            else
+                return this.getStringForLanguage(lang, packageName, key, completed);
+        };
+        VistoContext.prototype.showDialog = function (a, b, c) {
+            if (typeof a === "string")
+                return this.showDialogCore(a, b);
+            else
+                return this.showDialogCore(getViewName(a, b), c);
+        };
+        VistoContext.prototype.showDialogCore = function (fullViewName, parameters) {
+            var _this = this;
+            var container = $("<div style=\"display:none\" />");
+            $("body").append(container);
+            if (parameters === undefined)
+                parameters = {};
+            parameters[isDialogParameter] = true;
+            this.showLoadingScreen();
+            var factory = new ViewFactory();
+            return factory.create(container, fullViewName, parameters, this).then(function (view) {
+                openedDialogs++;
+                // Remove focus from element of the underlying page to avoid click events on enter press
+                var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+                if (focusable != null) {
+                    focusable.focus();
+                    focusable.blur();
+                }
+                exports.showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
+                    openedDialogs--;
+                    view.onClosed();
+                    view.__destroyView();
+                    container.remove();
+                });
+                container.removeAttr("style");
+                _this.hideLoadingScreen();
+            });
+        };
+        /**
+         * Gets the current page from the given frame or the default frame.
+         */
+        VistoContext.prototype.getCurrentPage = function () {
+            var description = this.getCurrentPageDescription();
+            if (description !== null && description !== undefined)
+                return description.view;
+            return null;
+        };
+        VistoContext.prototype.getCurrentPageDescription = function () {
+            var pageStack = this.getPageStack();
+            if (pageStack.length > 0)
+                return pageStack[pageStack.length - 1];
+            return null;
+        };
+        VistoContext.prototype.getPageStack = function () {
+            var pageStack = this.frame.data(pageStackAttribute);
+            if (pageStack === null || pageStack === undefined) {
+                pageStack = new Array();
+                this.frame.data(pageStackAttribute, pageStack);
+            }
+            return pageStack;
+        };
+        VistoContext.prototype.tryNavigateForward = function (fullViewName, parameters, frame, pageContainer, navigate, onHtmlLoaded) {
+            var _this = this;
+            if (navigate) {
+                if (parameters === undefined || parameters == null)
+                    parameters = {};
+                parameters[isPageParameter] = true;
+                var factory = new ViewFactory();
+                return factory.create(pageContainer, fullViewName, parameters, this, function (view) {
+                    var restoreQuery = view.parameters.getRestoreQuery();
+                    _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
+                    if (_this.frame !== null)
+                        window.location = "#" + _this.currentNavigationPath;
+                    urlNavigationHistory.push(view.context);
+                    // current page
+                    var currentPage = _this.getCurrentPageDescription();
+                    if (currentPage !== null && currentPage !== undefined) {
+                        // CUSTOM: Comment out
+                        currentPage.element.css("visibility", "hidden");
+                        currentPage.element.css("position", "absolute");
+                    }
+                    // show next page by removing hiding css styles
+                    if (!_this.isPageRestore)
+                        pageContainer.removeAttr("style");
+                    //// CUSTOM
+                    //view.element = $(view.element.children().get(0));
+                    //pageContainer.replaceWith(view.element);
+                    //pageContainer = view.element;
+                    //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
+                    //// CUSTOM
+                    var pageStack = _this.getPageStack();
+                    pageStack.push({
+                        view: view,
+                        hash: ++_this.navigationCount,
+                        element: pageContainer
+                    });
+                    _this.canNavigateBack(pageStack.length > 1);
+                    _this.pageStackSize(pageStack.length);
+                    log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
+                    if ($.isFunction(view.onNavigatedTo))
+                        view.onNavigatedTo("forward");
+                    if (currentPage !== null && currentPage !== undefined)
+                        currentPage.view.onNavigatedFrom("forward");
+                    if ($.isFunction(onHtmlLoaded))
+                        onHtmlLoaded(view);
+                    _this.isNavigating = false;
+                    return view;
+                });
+            }
+            else
+                return Q(null);
+        };
+        VistoContext.prototype.initializeDefaultFrame = function (frame, a, b, c) {
+            if (typeof a === "string")
+                return this.initializeDefaultFrameCore(frame, a, b);
+            else
+                return this.initializeDefaultFrameCore(frame, getViewName(a, b), c);
+        };
+        VistoContext.prototype.initializeDefaultFrameCore = function (frame, fullViewName, parameters) {
+            var _this = this;
+            if (this.frame !== null)
+                throw new Error("The default frame is already initialized.");
+            this.frame = frame;
+            var urlSegments = decodeURIComponent(window.location.hash).split("/");
+            if (urlSegments.length > 1) {
+                this.isPageRestore = true;
+                this.showLoadingScreen(false);
+                return this.navigateToNextSegment(urlSegments, 1).then(function (view) {
+                    _this.finishPageRestore(view);
+                });
+            }
+            else
+                return this.navigateTo(fullViewName, parameters);
+        };
+        VistoContext.prototype.navigateToNextSegment = function (urlSegments, currentSegmentIndex) {
+            var _this = this;
+            var segment = urlSegments[currentSegmentIndex];
+            if (segment != null) {
+                var segmentParts = segment.split(":");
+                var supportsPageRestore = segmentParts.length === 3;
+                if (supportsPageRestore) {
+                    var fullViewName = segmentParts[0] + ":" + segmentParts[1];
+                    var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
+                    return this.navigateTo(fullViewName, { restoreQuery: restoreQuery }).then(function (view) {
+                        _this.navigateToNextSegment(urlSegments, currentSegmentIndex + 1);
+                        return view;
+                    });
+                }
+            }
+            return null;
+        };
+        VistoContext.prototype.finishPageRestore = function (view) {
+            this.hideLoadingScreen();
+            this.isPageRestore = false;
+            var page = this.getCurrentPageDescription();
+            page.element.removeAttr("style");
+        };
+        VistoContext.prototype.navigateTo = function (a, b, c) {
+            if (typeof a === "string")
+                return this.navigateToCore(a, b);
+            else
+                return this.navigateToCore(getViewName(a, b), c);
+        };
+        VistoContext.prototype.navigateToCore = function (fullViewName, parameters) {
+            var _this = this;
+            if (this.isNavigating)
+                throw "Already navigating";
+            this.isNavigating = true;
+            // append new invisible page to DOM
+            var pageContainer = $(document.createElement("div"));
+            pageContainer.css("visibility", "hidden");
+            pageContainer.css("position", "absolute");
+            this.frame.append(pageContainer);
+            // load currently visible page
+            var currentPage = this.getCurrentPageDescription();
+            this.showLoadingScreen(currentPage !== null);
+            if (currentPage !== null && currentPage !== undefined) {
+                return currentPage.view.onNavigatingFrom("forward")
+                    .then(function (navigate) {
+                    return _this.tryNavigateForward(fullViewName, parameters, _this.frame, pageContainer, navigate, function (page) {
+                        _this.hideLoadingScreen();
+                        return page;
+                    });
+                });
+            }
+            else {
+                return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, true, function (page) {
+                    _this.hideLoadingScreen();
+                    return page;
+                });
+            }
+        };
+        /**
+         * Navigates back to the home page (first page in stack).
+         */
+        VistoContext.prototype.navigateHome = function () {
+            var _this = this;
+            if (this.navigationCount <= 1) {
+                return Q(null);
+            }
+            else {
+                return this.navigateBack().then(function () {
+                    return _this.navigateHome();
+                });
+            }
+        };
+        /**
+         * Navigates to the previous page.
+         */
+        VistoContext.prototype.navigateBack = function () {
+            var _this = this;
+            return Q.Promise(function (resolve, reject) {
+                if (_this.isNavigating)
+                    reject("Already navigating");
+                else {
+                    _this.backNavigationResolve = resolve;
+                    _this.backNavigationReject = reject;
+                    history.go(-1);
+                }
+            });
+        };
+        VistoContext.prototype.tryNavigateBack = function (navigate, currentPage, pageStack) {
+            if (navigate) {
+                urlNavigationHistory.pop();
+                this.navigationCount--;
+                var previousPage = pageStack[pageStack.length - 2];
+                currentPage.view.__destroyView();
+                pageStack.pop();
+                this.canNavigateBack(pageStack.length > 1);
+                this.pageStackSize(pageStack.length);
+                currentPage.element.remove();
+                previousPage.element.css("visibility", "visible");
+                previousPage.element.css("position", "");
+                log("Navigated back to " + previousPage.view.viewClass + ", page stack size: " + pageStack.length);
+                previousPage.view.onNavigatedTo("back");
+                currentPage.view.onNavigatedFrom("back");
+                if ($.isFunction(this.backNavigationResolve))
+                    this.backNavigationResolve();
+            }
+            else {
+                if (this.frame !== null)
+                    window.location = "#" + currentPage.hash;
+                if ($.isFunction(this.backNavigationReject))
+                    this.backNavigationReject("Cannot navigate back.");
+            }
+            this.isNavigating = false;
+            this.backNavigationResolve = null;
+            this.backNavigationReject = null;
+        };
+        /**
+         * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
+         */
+        VistoContext.prototype.showLoadingScreen = function (delayed) {
+            var _this = this;
+            if (this.initialLoadingScreenElement !== null) {
+                this.initialLoadingScreenElement.remove();
+                this.initialLoadingScreenElement = null;
+            }
+            if (this.loadingCount === 0) {
+                if (delayed == undefined || delayed) {
+                    setTimeout(function () {
+                        if (_this.loadingCount > 0)
+                            _this.appendLoadingElement();
+                    }, exports.loadingScreenDelay);
+                }
+                else
+                    this.appendLoadingElement();
+            }
+            this.loadingCount++;
+        };
+        VistoContext.prototype.appendLoadingElement = function () {
+            if (this.currentLoadingScreenElement === null) {
+                this.currentLoadingScreenElement = $(this.loadingScreenElement);
+                $("body").append(this.currentLoadingScreenElement);
+            }
+        };
+        /**
+         * Hides the loading screen.
+         */
+        VistoContext.prototype.hideLoadingScreen = function () {
+            this.loadingCount--;
+            if (this.loadingCount === 0) {
+                if (this.currentLoadingScreenElement !== null) {
+                    this.currentLoadingScreenElement.remove();
+                    this.currentLoadingScreenElement = null;
+                }
+            }
+        };
+        VistoContext.prototype.onUrlChanged = function () {
+            var _this = this;
+            if (this.isNavigating)
+                return; // TODO: What to do here? Go forward?
+            var pageStack = this.getPageStack();
+            if (pageStack.length > 1) {
+                var currentPage = pageStack[pageStack.length - 1];
+                if (currentPage !== null && currentPage !== undefined) {
+                    var count = 0, pos = 0;
+                    while ((pos = window.location.hash.indexOf("/", pos + 1)) !== -1)
+                        count++;
+                    if (currentPage.hash !== count) {
+                        this.currentNavigationPath = this.currentNavigationPath.substring(0, this.currentNavigationPath.lastIndexOf("/"));
+                        this.isNavigating = true;
+                        if (openedDialogs > 0)
+                            this.tryNavigateBack(false, currentPage, pageStack);
+                        else {
+                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
+                                _this.tryNavigateBack(navigate, currentPage, pageStack);
+                            }).done();
+                        }
+                    }
+                }
+            }
+        };
+        return VistoContext;
+    })();
+    exports.VistoContext = VistoContext;
+    (function (DialogResult) {
+        DialogResult[DialogResult["Undefined"] = 0] = "Undefined";
+        DialogResult[DialogResult["Ok"] = 1] = "Ok";
+        DialogResult[DialogResult["Cancel"] = 2] = "Cancel";
+        DialogResult[DialogResult["Yes"] = 3] = "Yes";
+        DialogResult[DialogResult["No"] = 4] = "No";
+    })(exports.DialogResult || (exports.DialogResult = {}));
+    var DialogResult = exports.DialogResult;
+    // Public
+    exports.loadingScreenDelay = 300;
+    exports.isLogging = true;
+    // Variables
+    var views = {};
+    var viewCount = 0;
+    var openedDialogs = 0;
+    // Local variables
+    var tagAliases = {};
+    // ----------------------------
+    // Tag aliases
+    // ----------------------------
     /**
      * Registers an alias for a tag; specify the tag without 'vs-'.
      */
@@ -112,8 +527,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     }
     ;
     // Tries to load a module using RequireJS
-    function tryRequire(moduleNames, completed) {
-        require(moduleNames, function (result) { completed(result); }, function () { completed(null); });
+    function tryRequire(moduleName) {
+        return Q.Promise(function (resolve) {
+            require([moduleName], function (module) { resolve(module); }, function () { resolve(null); });
+        });
     }
     ;
     // Checks whether a string ends with a given suffix
@@ -135,10 +552,45 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         return data.replace(/([A-Z])/g, function (g) { return "-" + g.toLowerCase(); });
     }
     // ----------------------------
-    // Internationalization
+    // Remoting
     // ----------------------------
-    // Contains the completion callbacks for language urls
-    var languageLoadings = ([]);
+    var remotePaths = {};
+    function registerRemotePath(path, remoteUrl) {
+        if (remotePaths[path.toLowerCase()] !== undefined)
+            throw new Error("The remote path '" + path + "' is already registered.");
+        remotePaths[path.toLowerCase()] = remoteUrl;
+    }
+    exports.registerRemotePath = registerRemotePath;
+    function getRemotePathBaseUrl(path) {
+        return remotePaths[path.toLowerCase()] !== undefined ? remotePaths[path.toLowerCase()] + "/" : "";
+    }
+    var originalDefine = define;
+    define = (function (modules, success, failed) {
+        if ($.isArray(modules)) {
+            for (var path in remotePaths) {
+                if (remotePaths.hasOwnProperty(path)) {
+                    $.each(modules, function (index, module) {
+                        if (module.toLowerCase().indexOf(path + "/") === 0)
+                            modules[index] = remotePaths[path] + "/Scripts/" + module + ".js";
+                    });
+                }
+            }
+        }
+        originalDefine(modules, success, failed);
+    });
+    // ----------------------------
+    // Package management
+    // ----------------------------
+    function getChildPackage(parentView, fallbackPackage) {
+        if (parentView.inheritPackageFromParent) {
+            var parent = parentView.viewParent;
+            while (parent !== undefined && parent !== null && parent.inheritPackageFromParent)
+                parent = parent.viewParent;
+            return parent !== undefined && parent !== null ? parent.viewPackage : fallbackPackage;
+        }
+        else
+            return parentView.viewPackage;
+    }
     /**
      * Gets the package name of the given path.
      */
@@ -154,7 +606,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Gets the package name where the given module is located.
      */
     function getPackageNameForModule(module) {
-        var modulePath = "/" + module.id;
+        var modulePath = "/" + module.id.replace("//Scripts/", "").replace("/Scripts/", "");
         var index = modulePath.lastIndexOf("/views/");
         if (index === -1)
             index = modulePath.lastIndexOf("/viewModels/");
@@ -170,116 +622,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         return getPackageNameForModule(module) + ":" + viewPath;
     }
     exports.getViewName = getViewName;
-    /**
-     * [Replaceable] Loads the translated string for a given package and language.
-     */
-    exports.getLanguageStrings = function (packageName, lang, completed) {
-        var url = getBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
-        $.ajax({
-            url: url,
-            type: "get",
-            dataType: "json",
-            global: false
-        }).done(function (result) {
-            completed(result);
-        }).fail(function (xhr, ajaxOptions) {
-            log("Error loading language JSON '" + url + "': " + ajaxOptions);
-            completed(([]));
-        });
-    };
-    /**
-     * Loads the language file for the given package and current language with checking.
-     */
-    function loadLanguageStrings(packageName, completed) {
-        var lang = exports.language();
-        if (languageStrings[lang] === undefined)
-            languageStrings[lang] = ([]);
-        if (languageStrings[lang][packageName] === undefined) {
-            var key = packageName + ":" + lang;
-            if (languageLoadings[key] === undefined) {
-                languageLoadings[key] = [completed];
-                exports.getLanguageStrings(packageName, lang, function (ls) {
-                    languageStrings[lang][packageName] = ls;
-                    $.each(languageLoadings[key], function (index, item) { item(); });
-                    delete languageLoadings[key];
-                });
-            }
-            else
-                languageLoadings[key].push(completed);
-        }
-        else
-            completed();
-    }
-    ;
-    /**
-     * Loads a translated string.
-     */
-    function getString(key, packageName, completed) {
-        packageName = getPackageName(packageName);
-        var lang = exports.language();
-        if (languageStrings[lang] === undefined)
-            languageStrings[lang] = ([]);
-        if (languageStrings[lang][packageName] === undefined) {
-            loadLanguageStrings(packageName, function () { getStringForLanguage(lang, packageName, key, completed); });
-            if (previousLanguage !== null)
-                return getStringForLanguage(previousLanguage, packageName, key);
-            return null;
-        }
-        else
-            return getStringForLanguage(lang, packageName, key, completed);
-    }
-    ;
-    /**
-     * Loads a translated string as observable object which updates when the language changes.
-     */
-    function getObservableString(key, packageName) {
-        var observable = ko.observable();
-        observable(getString(key, packageName, function (value) { observable(value); }));
-        return observable;
-    }
-    exports.getObservableString = getObservableString;
-    ;
-    /**
-     * Loads a translated string for a given language.
-     */
-    function getStringForLanguage(lang, packageName, key, completed) {
-        var value = languageStrings[lang][packageName][key];
-        if (value === undefined)
-            value = packageName + ":" + key;
-        if (completed !== undefined)
-            completed(value);
-        return value;
-    }
-    ;
-    /**
-     * Sets the language of the application.
-     */
-    function setLanguage(lang, supportedLangs) {
-        if (exports.language() !== lang) {
-            previousLanguage = exports.language();
-            exports.language(lang);
-            if (supportedLangs !== null && supportedLangs !== undefined)
-                exports.supportedLanguages = supportedLangs;
-        }
-    }
-    exports.setLanguage = setLanguage;
-    ;
-    /**
-     * Sets the language to the user preferred language.
-     */
-    function setUserLanguage(supportedLangs) {
-        var newLanguage;
-        if (navigator.userLanguage !== undefined)
-            newLanguage = navigator.userLanguage.split("-")[0];
-        else
-            newLanguage = navigator.language.split("-")[0];
-        if ($.inArray(newLanguage, exports.supportedLanguages))
-            setLanguage(newLanguage, supportedLangs);
-        else
-            setLanguage(supportedLangs[0], supportedLangs);
-    }
-    exports.setUserLanguage = setUserLanguage;
-    ;
     // ----------------------------
     // Events
     // ----------------------------
@@ -309,268 +651,70 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Views
     // ----------------------------
     /**
-     * Gets the parent view of the given element.
+     * Gets the view or parent view of the given element.
      */
     function getViewFromElement(element) {
         var viewId = element.attr(viewIdAttribute);
-        if (viewId !== undefined)
+        if (viewId !== undefined) {
+            if (views[viewId] == undefined)
+                throw "getViewFromElement: ViewID is set on element but view could not be found.";
             return views[viewId];
-        while ((element = element.parent()) != undefined) {
-            if (element.length === 0)
-                return null;
-            viewId = $(element[0]).attr(viewIdAttribute);
-            if (viewId !== undefined)
-                return views[viewId];
         }
-        return null;
+        return getParentViewFromElement(element);
     }
     exports.getViewFromElement = getViewFromElement;
     ;
     /**
+     * Gets the parent view of the given element.
+     */
+    function getParentViewFromElement(element) {
+        while ((element = element.parent()) != undefined) {
+            if (element.length === 0)
+                return null;
+            var viewId = $(element[0]).attr(viewIdAttribute);
+            if (viewId !== undefined) {
+                if (views[viewId] == undefined)
+                    throw "getViewFromElement: ViewID is set on element but view could not be found.";
+                return views[viewId];
+            }
+        }
+        return null;
+    }
+    exports.getParentViewFromElement = getParentViewFromElement;
+    ;
+    /**
      * Gets the parent view model of the given element.
      */
-    function getViewModelFromElement(element) {
+    function getViewModelForElement(element) {
         var view = getViewFromElement(element);
         if (view !== null && view !== undefined)
             return view.viewModel;
         return null;
     }
-    exports.getViewModelFromElement = getViewModelFromElement;
+    exports.getViewModelForElement = getViewModelForElement;
     /**
      * Registers an initializer which is called after the elements of the context are added to the DOM.
      * This is used for custom ko bindings so that they work correctly if they assume that an element is already in the DOM.
      * Call this in custom ko bindings to run code after element has been added to the DOM.
      */
     function addInitializer(completed) {
-        if (currentContext === null)
+        if (currentViewContext === null)
             completed();
         else
-            currentContext.initializers.push(completed);
+            currentViewContext.initializers.push(completed);
     }
     exports.addInitializer = addInitializer;
     ;
-    function initializeDefaultFrame(frame, a, b, c) {
-        if (typeof a === "string")
-            return initializeDefaultFrameCore(frame, a, b);
-        else
-            return initializeDefaultFrameCore(frame, getViewName(a, b), c);
-    }
-    exports.initializeDefaultFrame = initializeDefaultFrame;
-    function initializeDefaultFrameCore(frame, fullViewName, parameters) {
-        if (defaultFrame !== null)
-            throw new Error("The default frame is already initialized.");
-        defaultFrame = frame;
-        return Q.Promise(function (resolve, reject) {
-            var urlSegments = decodeURIComponent(window.location.hash).split("/");
-            if (urlSegments.length > 1) {
-                exports.isPageRestore = true;
-                showLoadingScreen(false);
-                var currentSegmentIndex = 1;
-                var navigateToNextSegment = function (view) {
-                    var segment = urlSegments[currentSegmentIndex];
-                    if (segment != null) {
-                        var segmentParts = segment.split(":");
-                        var supportsPageRestore = segmentParts.length === 3;
-                        if (supportsPageRestore) {
-                            currentSegmentIndex++;
-                            var fullViewName = segmentParts[0] + ":" + segmentParts[1];
-                            var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                            navigateTo(frame, fullViewName, { restoreQuery: restoreQuery }).then(function (view) {
-                                navigateToNextSegment(view);
-                            }).done();
-                        }
-                        else
-                            finishPageRestore(frame, view, resolve);
-                    }
-                    else
-                        finishPageRestore(frame, view, resolve);
-                };
-                navigateToNextSegment(null);
-            }
-            else {
-                navigateTo(frame, fullViewName, parameters)
-                    .then(function (view) { return resolve(view); })
-                    .fail(reject);
-            }
-        });
-    }
-    ;
-    exports.isPageRestore = false;
-    function finishPageRestore(frame, view, completed) {
-        hideLoadingScreen();
-        exports.isPageRestore = false;
-        var page = getCurrentPageDescription(frame);
-        page.element.removeAttr("style");
-        completed(view);
-    }
-    function navigateTo(a, b, c) {
-        if (typeof a === "string")
-            return navigateToCore(defaultFrame, a, b);
-        else if (a.uri !== undefined)
-            return navigateToCore(defaultFrame, getViewName(a, b), c);
-        else
-            return navigateToCore(a, b, c);
-    }
-    exports.navigateTo = navigateTo;
-    function navigateToCore(frame, fullViewName, parameters) {
-        if (isNavigating)
-            throw "Already navigating";
-        isNavigating = true;
-        // append new invisible page to DOM
-        var pageContainer = $(document.createElement("div"));
-        pageContainer.css("visibility", "hidden");
-        pageContainer.css("position", "absolute");
-        frame.append(pageContainer);
-        // load currently visible page
-        var currentPage = getCurrentPageDescription($(frame));
-        showLoadingScreen(currentPage !== null);
-        if (currentPage !== null && currentPage !== undefined) {
-            return currentPage.view.onNavigatingFrom("forward")
-                .then(function (navigate) { return tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate); })
-                .then(function (page) {
-                hideLoadingScreen();
-                return page;
-            });
-        }
-        else {
-            return tryNavigateForward(fullViewName, parameters, frame, pageContainer, true).then(function (page) {
-                hideLoadingScreen();
-                return page;
-            });
-        }
-    }
-    /**
-     * Navigates back to the home page (first page in stack).
-     */
-    function navigateHome() {
-        if (navigationCount <= 1) {
-            return Q(null);
-        }
-        else {
-            return navigateBack().then(function () {
-                return navigateHome();
-            });
-        }
-    }
-    exports.navigateHome = navigateHome;
-    /**
-     * Navigates to the previous page.
-     */
-    function navigateBack() {
-        return Q.Promise(function (resolve, reject) {
-            if (isNavigating)
-                reject("Already navigating");
-            else {
-                backNavigationResolve = resolve;
-                backNavigationReject = reject;
-                history.go(-1);
-            }
-        });
-    }
-    exports.navigateBack = navigateBack;
-    var backNavigationResolve = null;
-    var backNavigationReject = null;
-    function tryNavigateBack(navigate, currentPage, pageStack) {
-        if (navigate) {
-            navigationHistory.pop();
-            navigationCount--;
-            var previousPage = pageStack[pageStack.length - 2];
-            currentPage.view.__destroyView();
-            pageStack.pop();
-            globals.canNavigateBack(pageStack.length > 1);
-            globals.pageStackSize(pageStack.length);
-            currentPage.element.remove();
-            previousPage.element.css("visibility", "visible");
-            previousPage.element.css("position", "");
-            log("Navigated back to " + previousPage.view.viewClass + ", page stack size: " + pageStack.length);
-            previousPage.view.onNavigatedTo("back");
-            currentPage.view.onNavigatedFrom("back");
-            if ($.isFunction(backNavigationResolve))
-                backNavigationResolve();
-        }
-        else {
-            if (defaultFrame !== null)
-                window.location = "#" + currentPage.hash;
-            if ($.isFunction(backNavigationReject))
-                backNavigationReject("Cannot navigate back.");
-        }
-        isNavigating = false;
-        backNavigationResolve = null;
-        backNavigationReject = null;
-    }
-    // Register callback when user manually navigates back (back key)
+    //Register callback when user manually navigates back (back key)
     $(window).hashchange(function () {
-        if (isNavigating)
-            return;
-        if (navigationHistory.length > 1) {
-            var element = $(navigationHistory[navigationHistory.length - 1]);
-            var pageStack = getPageStack(element);
-            if (pageStack.length > 1) {
-                var currentPage = pageStack[pageStack.length - 1];
-                if (currentPage !== null && currentPage !== undefined) {
-                    var count = 0, pos = 0;
-                    while ((pos = window.location.hash.indexOf("/", pos + 1)) !== -1)
-                        count++;
-                    if (currentPage.hash !== count) {
-                        currentNavigationPath = currentNavigationPath.substring(0, currentNavigationPath.lastIndexOf("/"));
-                        isNavigating = true;
-                        if (openedDialogs > 0)
-                            tryNavigateBack(false, currentPage, pageStack);
-                        else {
-                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
-                                tryNavigateBack(navigate, currentPage, pageStack);
-                            }).done();
-                        }
-                    }
-                }
-            }
+        if (urlNavigationHistory.length > 1) {
+            var context = urlNavigationHistory[urlNavigationHistory.length - 1];
+            context.onUrlChanged();
         }
     });
-    function showDialog(a, b, c, d) {
-        if (typeof a === "string")
-            return showDialogCore(a, b, c);
-        else
-            return showDialogCore(getViewName(a, b), c, d);
-    }
-    exports.showDialog = showDialog;
-    function showDialogCore(fullViewName, parameters, onLoaded) {
-        return Q.Promise(function (resolve, reject) {
-            var container = $("<div style=\"display:none\" />");
-            $("body").append(container);
-            if (parameters === undefined)
-                parameters = {};
-            parameters[isDialogParameter] = true;
-            showLoadingScreen();
-            createView(container, fullViewName, parameters).then(function (view) {
-                openedDialogs++;
-                // Remove focus from element of the underlying page to avoid click events on enter press
-                var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-                if (focusable != null) {
-                    focusable.focus();
-                    focusable.blur();
-                }
-                exports.showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
-                    openedDialogs--;
-                    view.onClosed();
-                    view.__destroyView();
-                    container.remove();
-                    resolve(view);
-                });
-                container.removeAttr("style");
-                hideLoadingScreen();
-                if ($.isFunction(onLoaded))
-                    onLoaded(view);
-            }).fail(reject);
-        });
-    }
-    (function (DialogResult) {
-        DialogResult[DialogResult["Undefined"] = 0] = "Undefined";
-        DialogResult[DialogResult["Ok"] = 1] = "Ok";
-        DialogResult[DialogResult["Cancel"] = 2] = "Cancel";
-        DialogResult[DialogResult["Yes"] = 3] = "Yes";
-        DialogResult[DialogResult["No"] = 4] = "No";
-    })(exports.DialogResult || (exports.DialogResult = {}));
-    var DialogResult = exports.DialogResult;
+    // ----------------------------
+    // Dialogs
+    // ----------------------------
     /**
      * [Replaceable] Creates and shows a native dialog (supports Bootstrap and jQuery UI dialogs).
      */
@@ -624,149 +768,30 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var viewId = $(element).attr(viewIdAttribute);
             if (viewId !== undefined) {
                 var view = views[viewId];
-                if (view !== null && view !== undefined) {
-                    if (view.viewName === viewName || view.viewName === defaultPackage + ":" + viewName)
-                        return; // only rebuild when viewName changed
-                    view.__destroyView();
-                }
+                if (view === undefined || view === null)
+                    return; // already destroyed
+                if (view.viewName === viewName || view.viewName === view.viewPackage + ":" + viewName)
+                    return; // only rebuild when viewName changed
+                console.log("Refreshing view '" + view.viewName + "' with new view '" +
+                    viewName + "' (view ID: " + view.viewId + ")");
+                view.__destroyView();
             }
-            var rootView = null;
-            if (currentContext !== null)
-                rootView = currentContext.rootView;
+            var parentView = getParentViewFromElement($(element));
+            var context = parentView != null ? parentView.context : currentContext; // TODO: Check parentView != null
             var factory = new ViewFactory();
-            factory.create($(element), viewName, value, function (view) {
+            factory.create($(element), viewName, value, context, function (view) {
                 ko.utils.domNodeDisposal.addDisposeCallback(element, function () { view.__destroyView(); });
-                if (rootView !== null)
-                    rootView.__addSubView(view);
-            });
+                if (parentView !== null)
+                    parentView.__addSubView(view);
+            }).done();
         }
     };
-    // ----------------------------
-    // Paging
-    // ----------------------------
-    /**
-     * Gets the current page from the given frame or the default frame.
-     */
-    function getCurrentPage(frame) {
-        var description = getCurrentPageDescription(frame);
-        if (description !== null && description !== undefined)
-            return description.view;
-        return null;
-    }
-    exports.getCurrentPage = getCurrentPage;
-    function getCurrentPageDescription(frame) {
-        var pageStack = getPageStack(frame);
-        if (pageStack.length > 0)
-            return pageStack[pageStack.length - 1];
-        return null;
-    }
-    function getPageStack(element) {
-        var pageStack = element.data(pageStackAttribute);
-        if (pageStack === null || pageStack === undefined) {
-            pageStack = new Array();
-            element.data(pageStackAttribute, pageStack);
-        }
-        return pageStack;
-    }
-    function tryNavigateForward(fullViewName, parameters, frame, pageContainer, navigate) {
-        if (navigate) {
-            if (parameters === undefined || parameters == null)
-                parameters = {};
-            parameters[isPageParameter] = true;
-            return createView(pageContainer, fullViewName, parameters).then(function (view) {
-                var restoreQuery = view.parameters.getRestoreQuery();
-                currentNavigationPath = currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
-                if (defaultFrame !== null)
-                    window.location = "#" + currentNavigationPath;
-                navigationHistory.push(frame);
-                // current page
-                var currentPage = getCurrentPageDescription(frame);
-                if (currentPage !== null && currentPage !== undefined) {
-                    currentPage.element.css("visibility", "hidden");
-                    currentPage.element.css("position", "absolute");
-                }
-                // show next page by removing hiding css styles
-                if (!exports.isPageRestore)
-                    pageContainer.removeAttr("style");
-                //pageContainer.replaceWith(view.element);
-                //pageContainer = view.element;
-                var pageStack = getPageStack(frame);
-                pageStack.push({
-                    view: view,
-                    hash: ++navigationCount,
-                    element: pageContainer
-                });
-                globals.canNavigateBack(pageStack.length > 1);
-                globals.pageStackSize(pageStack.length);
-                log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
-                view.onNavigatedTo("forward");
-                if (currentPage !== null && currentPage !== undefined)
-                    currentPage.view.onNavigatedFrom("forward");
-                isNavigating = false;
-                return view;
-            });
-        }
-        else
-            return Q(null);
-    }
-    ;
-    // ----------------------------
-    // Loading screen
-    // ----------------------------
-    var loadingCount = 0;
-    var currentLoadingScreenElement = null;
-    var loadingScreenElement = "<div class=\"loading-screen\"><img src=\"Content/Images/loading.gif\" class=\"loading-screen-image\" alt=\"Loading...\" /></div>";
-    /**
-     * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call.
-     */
-    function showLoadingScreen(delayed) {
-        if (initialLoadingScreenElement !== null) {
-            initialLoadingScreenElement.remove();
-            initialLoadingScreenElement = null;
-        }
-        if (loadingCount === 0) {
-            if (delayed == undefined || delayed) {
-                setTimeout(function () {
-                    if (loadingCount > 0)
-                        appendLoadingElement();
-                }, exports.loadingScreenDelay);
-            }
-            else
-                appendLoadingElement();
-        }
-        loadingCount++;
-    }
-    exports.showLoadingScreen = showLoadingScreen;
-    ;
-    function appendLoadingElement() {
-        if (currentLoadingScreenElement === null) {
-            currentLoadingScreenElement = $(loadingScreenElement);
-            $("body").append(currentLoadingScreenElement);
-        }
-    }
-    /**
-     * Hides the loading screen.
-     */
-    function hideLoadingScreen() {
-        loadingCount--;
-        if (loadingCount === 0) {
-            if (currentLoadingScreenElement !== null) {
-                currentLoadingScreenElement.remove();
-                currentLoadingScreenElement = null;
-            }
-        }
-    }
-    exports.hideLoadingScreen = hideLoadingScreen;
-    ;
     // ----------------------------
     // View model
     // ----------------------------
     var ViewModel = (function () {
         function ViewModel(view, parameters) {
-            /**
-             * Gets some global objects to use in bindings.
-             */
-            this.globals = globals;
+            this.context = null;
             this.view = view;
             this.parameters = parameters;
         }
@@ -794,7 +819,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Loads a translated string which is internally observed (should only be called in a view, e.g. <vs-my-view my-text="translate('key')">).
          */
         ViewModel.prototype.translate = function (key) {
-            return getObservableString(key, this.view.viewPackage)();
+            return this.view.context.getObservableString(key, this.view.viewPackage)();
         };
         /**
          * [Virtual] Initializes the view before it is added to the DOM.
@@ -837,18 +862,23 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
              * Gets the view's direct child views.
              */
             this.viewChildren = ko.observableArray();
+            /**
+             * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated.
+             * The property must be set in the view's initialize() method.
+             * The view cannot have an own view model class.
+             */
+            this.inheritViewModelFromParent = false;
+            /**
+             * Gets or sets a value indicating whether the package scope for child views is inherited from the parent view.
+             * The property must be set in the view's initialize() method.
+             */
+            this.inheritPackageFromParent = false;
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
+            this.context = null;
             this.isViewLoaded = ko.observable(false);
         }
-        /**
-         * Sets the view model to the view model of the parent view (must be called in the view's initialize() method).
-         * The view cannot have an own view model class.
-         */
-        ViewBase.prototype.inheritViewModelFromParent = function () {
-            this.viewModel = this.viewParent.viewModel;
-        };
         /**
          * Enables page restoring for the current page.
          * This method must be called in the initialize() method.
@@ -869,7 +899,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Loads a translated string.
          */
         ViewBase.prototype.getString = function (key) {
-            return getString(key, this.viewPackage);
+            return this.context.getString(key, this.viewPackage);
         };
         /**
          * Finds elements inside this view with a selector.
@@ -925,6 +955,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
                 if (this.viewParent != null)
                     this.viewParent.viewChildren.remove(this);
+                ko.cleanNode(this.element.get(0)); // unapply bindings
                 this.isDestroyed = true;
             }
         };
@@ -1150,9 +1181,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             else {
                 var object = {};
-                object["html"] = element.get(0).innerHTML;
+                object["htmlElement"] = element;
                 $.each(element.get(0).attributes, function (index, attr) {
-                    object[attr.name] = attr.value; // TODO: Also evaluate bindings 
+                    object[convertDashedToCamelCase(attr.name)] = attr.value;
                 });
                 return object;
             }
@@ -1163,190 +1194,79 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // View factory
     // ----------------------------
-    function createView(element, fullViewName, parameters) {
-        return Q.Promise(function (resolve) {
-            var factory = new ViewFactory();
-            factory.create(element, fullViewName, parameters, function (view) {
-                resolve(view);
-            });
-        });
-    }
-    exports.createView = createView;
-    ;
-    var ViewFactory = (function () {
-        function ViewFactory() {
+    var ResourceManager = (function () {
+        function ResourceManager() {
+            this.loadedViews = ([]);
         }
-        ViewFactory.prototype.create = function (element, fullViewName, parameters, completed) {
-            this.element = element;
-            if (currentContext === undefined || currentContext === null) {
-                // from foreach, other late-bindings or root view
-                this.context = new ViewContext(completed);
-                this.parentView = getViewFromElement(element);
-                this.completed = null;
-                this.isRootView = true;
-            }
-            else {
-                this.context = currentContext;
-                this.parentView = currentContext.parentView;
-                this.completed = completed;
-                this.isRootView = false;
-            }
-            this.viewLocator = new ViewLocator(fullViewName, this.context, this.parentView);
-            this.parameters = new Parameters(fullViewName, parameters, element);
-            element.html("");
-            var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
-            if (!lazySubviewLoading)
-                this.context.viewCount++;
-            this.loadScriptsAndLanguageFile();
-        };
-        ViewFactory.prototype.loadScriptsAndLanguageFile = function () {
-            var _this = this;
-            var count = 3;
-            var viewUrl = this.viewLocator.package + "/views/" + this.viewLocator.view;
-            var viewModelUrl = this.viewLocator.package + "/viewModels/" + this.viewLocator.view + "Model";
-            var baseUrl = getBaseUrl(this.viewLocator.package);
+        ResourceManager.prototype.getViewModules = function (packageName, viewName) {
+            var viewModule = null;
+            var viewModelModule = null;
+            // CUSTOM
+            //var viewUrl = "/Scripts/" + packageName + "/views/" + viewName + ".js";
+            //var viewModelUrl = "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
+            var viewUrl = packageName + "/views/" + viewName;
+            var viewModelUrl = packageName + "/viewModels/" + viewName + "Model";
+            var baseUrl = getRemotePathBaseUrl(packageName);
             if (baseUrl !== "") {
-                viewUrl = baseUrl + viewUrl + ".js";
-                viewModelUrl = baseUrl + viewModelUrl + ".js";
+                viewUrl = baseUrl + viewUrl;
+                viewModelUrl = baseUrl + viewModelUrl;
             }
-            tryRequire([viewUrl], function (m) {
-                _this.viewModule = m;
-                if ((--count) === 0)
-                    _this.loadHtml();
-            });
-            tryRequire([viewModelUrl], function (m) {
-                _this.viewModelModule = m;
-                if ((--count) === 0)
-                    _this.loadHtml();
-            });
-            loadLanguageStrings(this.viewLocator.package, function () {
-                if ((--count) === 0)
-                    _this.loadHtml();
+            var promises = [
+                tryRequire(viewUrl).then(function (m) {
+                    viewModule = m;
+                }),
+                tryRequire(viewModelUrl).then(function (m) {
+                    viewModelModule = m;
+                })
+            ];
+            return Q.all(promises).then(function () {
+                return {
+                    'viewModule': viewModule,
+                    'viewModelModule': viewModelModule
+                };
             });
         };
-        ViewFactory.prototype.loadHtml = function () {
+        /**
+         * [Replaceable] Loads the translated string for a given package and language.
+         */
+        ResourceManager.prototype.getLanguageStrings = function (packageName, lang) {
+            var url = getRemotePathBaseUrl(packageName) + "Scripts/" + packageName + "/languages/" + lang + ".json";
+            return Q($.ajax({
+                url: url,
+                type: "get",
+                dataType: "json",
+                global: false
+            })).then(function (result) {
+                return result;
+            }).catch(function (reason) {
+                log("Error loading language strings '" + url + "' (" + reason + " )");
+                return {};
+            });
+        };
+        ResourceManager.prototype.getViewHtml = function (packageName, viewName) {
             var _this = this;
-            var isLoadingOrLoaded = loadedViews[this.viewLocator.name] !== undefined;
-            if (isLoadingOrLoaded) {
-                var isLoading = loadedViews[this.viewLocator.name].running;
-                if (isLoading) {
-                    log("Loading view from server [redundant call]: " + this.viewLocator.name);
-                    loadedViews[this.viewLocator.name].callbacks.push(function (data) { return _this.htmlLoaded(data); });
-                }
-                else {
-                    log("Loading view from cache: " + this.viewLocator.name);
-                    this.htmlLoaded(loadedViews[this.viewLocator.name].data);
-                }
-            }
-            else {
-                loadedViews[this.viewLocator.name] = {
-                    data: null,
-                    running: true,
-                    callbacks: [function (data) { return _this.htmlLoaded(data); }]
-                };
-                log("Loading view from server: " + this.viewLocator.name);
-                var baseUrl = getBaseUrl(this.viewLocator.package);
-                $.ajax({
-                    url: baseUrl + "Scripts/" + this.viewLocator.package + "/views/" + this.viewLocator.view + ".html",
+            var name = packageName + ":" + viewName;
+            var hasPromise = this.loadedViews[name] !== undefined;
+            if (!hasPromise) {
+                var baseUrl = getRemotePathBaseUrl(packageName);
+                this.loadedViews[name] = Q($.ajax({
+                    url: baseUrl + "Scripts/" + packageName + "/views/" + viewName + ".html",
                     dataType: "html",
                     global: false
-                }).done(function (data) {
+                })).then(function (data) {
                     data = _this.processCustomTags(data);
                     data = _this.processKnockoutAttributes(data);
-                    loadedViews[_this.viewLocator.name].data = data;
-                    loadedViews[_this.viewLocator.name].running = false;
-                    $.each(loadedViews[_this.viewLocator.name].callbacks, function (index, item) {
-                        item(data);
-                    });
-                }).fail(function () {
-                    var data = "<span>[View '" + _this.viewLocator.name + "' not found]</span>";
-                    loadedViews[_this.viewLocator.name].data = data;
-                    loadedViews[_this.viewLocator.name].running = false;
-                    $.each(loadedViews[_this.viewLocator.name].callbacks, function (index, item) {
-                        item(data);
-                    });
+                    return data;
+                }).catch(function () {
+                    return "<span>[View '" + name + "' not found]</span>";
                 });
             }
-        };
-        ViewFactory.prototype.htmlLoaded = function (htmlData) {
-            this.viewId = "view_" + ++viewCount;
-            htmlData =
-                "<!-- ko stopBinding -->" +
-                    htmlData
-                        .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
-                        .replace(/\[\[viewid\]\]/gi, this.viewId) +
-                    "<!-- /ko -->";
-            var container = $(document.createElement("div"));
-            container.html(htmlData);
-            this.rootElement = $(container.children()[0]);
-            this.element.attr(viewIdAttribute, this.viewId);
-            this.view = this.instantiateView();
-            this.viewModel = this.instantiateViewModel(this.view);
-            // initialize and retrieve restore query
-            this.view.initialize(this.parameters);
-            this.viewModel.initialize(this.parameters);
-            this.viewModel = this.view.viewModel; // may be changed by inheritViewModelFromParent()
-            if (this.isRootView)
-                this.context.restoreQuery = this.parameters.getRestoreQuery();
-            var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
-            if (lazySubviewLoading) {
-                this.__setHtml();
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
-                this.__raiseLoadedEvents();
-            }
-            else {
-                this.context.factories.push(this);
-                if (this.isRootView) {
-                    this.context.rootView = this.view;
-                    this.context.rootPackage = this.viewLocator.package;
-                }
-                this.context.parentView = this.view;
-                this.context.parentPackage = this.viewLocator.package;
-                currentContext = this.context;
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
-                currentContext = null;
-                this.context.loaded();
-            }
-            if ($.isFunction(this.completed))
-                this.completed(this.view);
-        };
-        ViewFactory.prototype.instantiateView = function () {
-            var view;
-            var hasView = this.viewModule !== undefined && this.viewModule !== null;
-            if (hasView)
-                view = (new this.viewModule[this.viewLocator.className]());
-            else {
-                if (this.parameters.getBoolean(isPageParameter, false))
-                    view = new Page();
-                else if (this.parameters.getBoolean(isDialogParameter, false))
-                    view = new Dialog();
-                else
-                    view = new View();
-            }
-            view.element = this.rootElement;
-            view.viewId = this.viewId;
-            view.viewName = this.viewLocator.name;
-            view.viewClass = this.viewLocator.className;
-            view.viewPackage = this.viewLocator.package;
-            view.parameters = this.parameters;
-            view.__setViewParent(this.parentView);
-            views[this.viewId] = view;
-            return view;
-        };
-        ViewFactory.prototype.instantiateViewModel = function (view) {
-            var viewModel;
-            var hasViewModel = this.viewModelModule !== undefined && this.viewModelModule !== null;
-            if (hasViewModel)
-                viewModel = (new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
-            else
-                viewModel = new ViewModel(view, this.parameters);
-            view.viewModel = viewModel;
-            return viewModel;
+            return this.loadedViews[name];
         };
         /**
          * Process custom tags in the given HTML data string.
          */
-        ViewFactory.prototype.processCustomTags = function (data) {
+        ResourceManager.prototype.processCustomTags = function (data) {
             data = data
                 .replace(/vs-translate="(.*?)"/g, function (match, key) { return 'vs-html="{translate(\'' + key + '\')}"'; })
                 .replace(/vs-bind="/g, "data-bind=\"")
@@ -1395,7 +1315,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         /**
          * Process Knockout attributes (vs-) in the given HTML data string (must be called after processCustomTags).
          */
-        ViewFactory.prototype.processKnockoutAttributes = function (data) {
+        ResourceManager.prototype.processKnockoutAttributes = function (data) {
             data = data.replace(/<([a-zA-Z0-9-]+?) ([^]*?)(\/>|>)/g, function (match, tagName, attributes, tagClosing) {
                 var existingDataBindValue = "";
                 var additionalDataBindValue = "";
@@ -1422,6 +1342,214 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             });
             return data.replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; });
         };
+        return ResourceManager;
+    })();
+    exports.ResourceManager = ResourceManager;
+    var BundledResourceManager = (function (_super) {
+        __extends(BundledResourceManager, _super);
+        function BundledResourceManager() {
+            _super.apply(this, arguments);
+            this.loadBundles = true;
+        }
+        BundledResourceManager.prototype.loadPackageBundle = function (packageName) {
+            var bundleModule = packageName + "/package";
+            var fullBundleModule = bundleModule;
+            var baseUrl = getRemotePathBaseUrl(packageName);
+            if (baseUrl !== "")
+                fullBundleModule = baseUrl + "Scripts/" + bundleModule + ".js";
+            return tryRequire(fullBundleModule).then(function (bundle) {
+                if (bundle === undefined && baseUrl !== "") {
+                    return tryRequire(bundleModule);
+                }
+                else
+                    return bundle;
+            });
+        };
+        BundledResourceManager.prototype.getViewModules = function (packageName, viewName) {
+            var _this = this;
+            if (!this.loadBundles)
+                return _super.prototype.getViewModules.call(this, packageName, viewName);
+            var viewUrl = packageName + "/views/" + viewName;
+            var viewModelUrl = packageName + "/viewModels/" + viewName + "Model";
+            return this.loadPackageBundle(packageName).then(function (bundle) {
+                if (bundle !== undefined && bundle !== null && bundle.views[viewName] !== undefined) {
+                    var viewModule = null;
+                    var viewModelModule = null;
+                    var promises = [];
+                    var view = bundle.views[viewName];
+                    if (view.hasView) {
+                        promises.push(tryRequire(viewUrl).then(function (m) {
+                            viewModule = m;
+                        }));
+                    }
+                    if (view.hasViewModel) {
+                        promises.push(tryRequire(viewModelUrl).then(function (m) {
+                            viewModelModule = m;
+                        }));
+                    }
+                    return Q.all(promises).then(function () {
+                        return {
+                            'viewModule': viewModule,
+                            'viewModelModule': viewModelModule
+                        };
+                    });
+                }
+                else
+                    return _super.prototype.getViewModules.call(_this, packageName, viewName);
+            });
+        };
+        BundledResourceManager.prototype.getViewHtml = function (packageName, viewName) {
+            var _this = this;
+            if (!this.loadBundles)
+                return _super.prototype.getViewHtml.call(this, packageName, viewName);
+            return this.loadPackageBundle(packageName).then(function (bundle) {
+                if (bundle !== null && bundle !== undefined && bundle.views[viewName] !== undefined) {
+                    var html = bundle.views[viewName].html;
+                    html = _this.processCustomTags(html);
+                    return _this.processKnockoutAttributes(html);
+                }
+                else
+                    return _super.prototype.getViewHtml.call(_this, packageName, viewName);
+            });
+        };
+        return BundledResourceManager;
+    })(ResourceManager);
+    exports.BundledResourceManager = BundledResourceManager;
+    var ViewFactory = (function () {
+        function ViewFactory() {
+        }
+        ViewFactory.prototype.create = function (element, fullViewName, parameters, context, onHtmlLoaded) {
+            var _this = this;
+            this.element = element;
+            this.context = context;
+            if (currentViewContext === undefined || currentViewContext === null) {
+                // from foreach, other late-bindings or root view
+                this.viewContext = new ViewFactoryContext();
+                this.viewContext.parentView = getParentViewFromElement(element);
+                this.isRootView = true;
+            }
+            else {
+                this.viewContext = currentViewContext;
+                this.viewContext.parentView = currentViewContext.parentView;
+                this.isRootView = false;
+            }
+            this.viewLocator = new ViewLocator(fullViewName, this.viewContext);
+            this.parameters = new Parameters(fullViewName, parameters, element);
+            element.html("");
+            var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
+            if (!lazySubviewLoading)
+                this.viewContext.viewCount++;
+            var moduleLoader = context.resourceManager.getViewModules(this.viewLocator.package, this.viewLocator.view);
+            var languageLoader = context.loadLanguageStrings(this.viewLocator.package);
+            return Q.all([moduleLoader, languageLoader]).spread(function (modules) {
+                _this.viewModule = modules.viewModule;
+                _this.viewModelModule = modules.viewModelModule;
+                return context.resourceManager.getViewHtml(_this.viewLocator.package, _this.viewLocator.view);
+            }).then(function (data) {
+                return _this.loadHtml(data, context, onHtmlLoaded);
+            }).then(function (view) {
+                return view;
+            });
+        };
+        ViewFactory.prototype.loadHtml = function (htmlData, context, onHtmlLoaded) {
+            var _this = this;
+            this.viewId = "view_" + ++viewCount;
+            htmlData =
+                "<!-- ko stopBinding -->" +
+                    htmlData
+                        .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+                        .replace(/\[\[viewid\]\]/gi, this.viewId) +
+                    "<!-- /ko -->";
+            var container = $(document.createElement("div"));
+            container.html(htmlData);
+            this.rootElement = $(container.children()[0]);
+            this.element.attr(viewIdAttribute, this.viewId);
+            this.view = this.instantiateView();
+            this.viewModel = this.instantiateViewModel(this.view);
+            this.view.context = context;
+            this.viewModel.context = context;
+            // initialize and retrieve restore query
+            this.view.initialize(this.parameters);
+            this.viewModel.initialize(this.parameters);
+            if (this.view.inheritViewModelFromParent) {
+                this.viewModel = this.view.viewParent.viewModel;
+                this.view.viewModel = this.viewModel;
+            }
+            if (this.isRootView)
+                this.viewContext.restoreQuery = this.parameters.getRestoreQuery();
+            var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
+            if (lazySubviewLoading) {
+                this.__setHtml();
+                this.applyBindings();
+                this.__raiseLoadedEvents();
+                return Q(this.view);
+            }
+            else {
+                this.viewContext.factories.push(this);
+                if (this.isRootView) {
+                    this.viewContext.rootView = this.view;
+                    this.viewContext.rootPackage = this.viewLocator.package;
+                }
+                this.viewContext.parentView = this.view;
+                this.viewContext.parentPackage = this.viewLocator.package;
+                currentContext = context;
+                currentViewContext = this.viewContext;
+                this.applyBindings();
+                currentViewContext = null;
+                currentContext = null;
+                if ($.isFunction(onHtmlLoaded))
+                    onHtmlLoaded(this.view);
+                return this.viewContext.finalizeView().then(function () {
+                    return _this.view;
+                });
+            }
+        };
+        ViewFactory.prototype.applyBindings = function () {
+            try {
+                ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            }
+            catch (err) {
+                console.error("Error applying bindings: \n" +
+                    "View: " + this.viewLocator.name + "'\n " +
+                    "View ID: " + this.viewId + "\n" +
+                    "Class: " + this.viewLocator.className + "(Model)\n" +
+                    "Check if view model could be loaded and bound property/expression is available/correct");
+                throw err;
+            }
+        };
+        ViewFactory.prototype.instantiateView = function () {
+            var view;
+            var hasView = this.viewModule !== undefined && this.viewModule !== null;
+            if (hasView)
+                view = (new this.viewModule[this.viewLocator.className]());
+            else {
+                if (this.parameters.getBoolean(isPageParameter, false))
+                    view = new Page();
+                else if (this.parameters.getBoolean(isDialogParameter, false))
+                    view = new Dialog();
+                else
+                    view = new View();
+            }
+            view.element = this.rootElement;
+            view.viewId = this.viewId;
+            view.viewName = this.viewLocator.name;
+            view.viewClass = this.viewLocator.className;
+            view.viewPackage = this.viewLocator.package;
+            view.parameters = this.parameters;
+            view.__setViewParent(this.viewContext.parentView);
+            views[this.viewId] = view;
+            return view;
+        };
+        ViewFactory.prototype.instantiateViewModel = function (view) {
+            var viewModel;
+            var hasViewModel = this.viewModelModule !== undefined && this.viewModelModule !== null;
+            if (hasViewModel)
+                viewModel = (new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
+            else
+                viewModel = new ViewModel(view, this.parameters);
+            view.viewModel = viewModel;
+            return viewModel;
+        };
         // ReSharper disable InconsistentNaming
         ViewFactory.prototype.__raiseLoadedEvents = function () {
             this.view.onLoaded();
@@ -1429,14 +1557,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.view.isViewLoaded(true);
         };
         ViewFactory.prototype.__setHtml = function () {
-            //this.element.replaceWith(this.rootElement);
-            //this.rootElement = this.element;
             this.element.html(this.rootElement);
         };
         return ViewFactory;
     })();
-    var ViewContext = (function () {
-        function ViewContext(completed) {
+    var ViewFactoryContext = (function () {
+        function ViewFactoryContext() {
             this.factories = [];
             this.initializers = [];
             this.rootPackage = defaultPackage;
@@ -1446,52 +1572,58 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.viewCount = 0;
             this.restoreQuery = undefined;
             this.loadedViewCount = 0;
-            this.completed = completed;
         }
-        ViewContext.prototype.loaded = function () {
+        ViewFactoryContext.prototype.finalizeView = function (onHtmlLoaded) {
             var _this = this;
-            this.loadedViewCount++;
-            if (this.loadedViewCount === this.viewCount) {
-                this.loadedViewCount = 0;
-                $.each(this.factories, function (index, context) {
-                    context.view.onLoading().then(function () {
-                        _this.loadedViewCount++;
-                        if (_this.loadedViewCount === _this.viewCount) {
-                            _this.loadedViewCount = 0;
-                            $.each(_this.factories, function (index, context) {
-                                context.viewModel.onLoading().then(function () {
-                                    _this.loadedViewCount++;
-                                    if (_this.loadedViewCount === _this.viewCount) {
-                                        $.each(_this.factories.reverse(), function (index, factory) {
-                                            factory.__setHtml();
-                                        });
-                                        if ($.isFunction(_this.completed))
-                                            _this.completed(_this.rootView, _this.rootView.viewModel, _this.restoreQuery);
-                                        $.each(_this.factories, function (index, factory) {
-                                            factory.__raiseLoadedEvents();
-                                        });
-                                        $.each(_this.initializers, function (index, initializer) {
-                                            initializer();
-                                        });
-                                    }
-                                }).done();
-                            });
-                        }
-                    }).done();
-                });
-            }
+            // TODO: Refactor this!
+            return Q.Promise(function (resolve, reject) {
+                _this.loadedViewCount++;
+                if (_this.loadedViewCount === _this.viewCount) {
+                    _this.loadedViewCount = 0;
+                    $.each(_this.factories, function (index, context) {
+                        context.view.onLoading().then(function () {
+                            _this.loadedViewCount++;
+                            if (_this.loadedViewCount === _this.viewCount) {
+                                _this.loadedViewCount = 0;
+                                $.each(_this.factories, function (index, context) {
+                                    context.viewModel.onLoading().then(function () {
+                                        _this.loadedViewCount++;
+                                        if (_this.loadedViewCount === _this.viewCount) {
+                                            $.each(_this.factories.reverse(), function (index, factory) {
+                                                factory.__setHtml();
+                                            });
+                                            if ($.isFunction(onHtmlLoaded))
+                                                onHtmlLoaded(context.view);
+                                            $.each(_this.factories, function (index, factory) {
+                                                factory.__raiseLoadedEvents();
+                                            });
+                                            $.each(_this.initializers, function (index, initializer) {
+                                                initializer();
+                                            });
+                                            resolve(_this);
+                                        }
+                                    }).done();
+                                });
+                            }
+                        }).done();
+                    });
+                }
+            });
         };
-        return ViewContext;
+        return ViewFactoryContext;
     })();
     var ViewLocator = (function () {
-        function ViewLocator(fullViewName, context, parentView) {
+        function ViewLocator(fullViewName, context) {
             if (fullViewName.indexOf(":") !== -1) {
                 var arr = fullViewName.split(":");
                 this.package = getPackageName(arr[0]);
                 this.view = arr[1];
             }
             else {
-                this.package = parentView != null ? parentView.viewPackage : context.parentPackage;
+                if (context.parentView != null)
+                    this.package = getChildPackage(context.parentView, context.parentPackage);
+                else
+                    this.package = context.parentPackage;
                 this.view = fullViewName;
             }
             this.name = this.package + ":" + this.view;

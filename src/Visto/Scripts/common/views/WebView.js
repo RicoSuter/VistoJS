@@ -63,13 +63,13 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             var _this = this;
             if (settings.url.indexOf("://") === -1)
                 settings.url = this.currentBaseUrl + "/" + settings.url;
-            visto.showLoadingScreen();
+            this.context.showLoadingScreen();
             Q($.ajax(settings)).then(function (data) {
                 _this.setHtml(data, _this.getBaseUrl(settings.url));
-                visto.hideLoadingScreen();
+                _this.context.hideLoadingScreen();
             }).catch(function (exception) {
-                visto.hideLoadingScreen();
-                common.alert("HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
+                _this.context.hideLoadingScreen();
+                common.alert(_this.context, "HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
             });
         };
         WebView.prototype.setHtml = function (data, baseUrl) {

@@ -11,7 +11,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
         }
         MainView.prototype.onLoading = function () {
             var frame = this.getViewElement("frame");
-            return visto.initializeDefaultFrame(frame, pkg, "HomePage");
+            return this.context.initializeDefaultFrame(frame, pkg, "HomePage");
         };
         return MainView;
     })(visto.ViewBase);

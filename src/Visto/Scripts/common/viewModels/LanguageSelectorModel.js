@@ -8,16 +8,16 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         __extends(LanguageSelectorModel, _super);
         function LanguageSelectorModel() {
             _super.apply(this, arguments);
-            this.language = ko.observable(visto.language());
-            this.supportedLanguages = visto.supportedLanguages;
         }
         LanguageSelectorModel.prototype.initialize = function () {
             var _this = this;
+            this.language = ko.observable(this.context.language());
+            this.supportedLanguages = this.context.supportedLanguages;
             this.subscribe(this.language, function () {
-                visto.setLanguage(_this.language(), _this.supportedLanguages);
+                _this.context.setLanguage(_this.language(), _this.supportedLanguages);
             });
-            this.subscribe(visto.language, function () {
-                _this.language(visto.language());
+            this.subscribe(this.context.language, function () {
+                _this.language(_this.context.language());
             });
         };
         return LanguageSelectorModel;

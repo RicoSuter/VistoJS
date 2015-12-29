@@ -2,9 +2,11 @@ import visto = require("libs/visto");
 import ns = require("../../viewModels/dialogs/PromptModel");
 
 export class Prompt extends visto.Dialog<ns.PromptModel>  {
-    language = visto.language;
+    language: KnockoutObservable<any>;
 
     initialize() {
+        this.language = this.context.language; 
+
         this.viewModel.onOkClicked = () => { this.close(visto.DialogResult.Ok); };
         this.viewModel.onCancelClicked = () => { this.close(visto.DialogResult.Cancel); };
     }

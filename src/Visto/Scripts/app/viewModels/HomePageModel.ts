@@ -8,38 +8,38 @@ export class HomePageModel extends visto.ViewModel {
     }
 
     navigateToBindings() {
-        visto.navigateTo(pkg, "BindingsPage");
+        this.context.navigateTo(pkg, "BindingsPage").done();
     }
 
     navigateToForm() {
-        visto.navigateTo(pkg, "FormPage");
+        this.context.navigateTo(pkg, "FormPage").done();
     }
 
     navigateToRecursivePage() {
-        visto.navigateTo(pkg, "RecursivePage");
+        this.context.navigateTo(pkg, "RecursivePage").done();
     }
 
     navigateToInternationalization() {
-        visto.navigateTo(pkg, "InternationalizationPage");
+        this.context.navigateTo(pkg, "InternationalizationPage").done();
     }
 
     navigateToTabPage() {
-        visto.navigateTo(pkg, "TabPage");
+        this.context.navigateTo(pkg, "TabPage").done();
     }
 
 	navigateToListPage() {
-        visto.navigateTo(pkg, "ListPage");
+        this.context.navigateTo(pkg, "ListPage").done();
     }
 
     navigateToWebViewPage() {
-        visto.navigateTo(pkg, "WebViewPage");
+        this.context.navigateTo(pkg, "WebViewPage").done();
     }
 
 	showAlert() {
-        common.alert(this.getString("notImplementedTitle"), this.getString("notImplementedMessage"));
+        common.alert(this.context, this.getString("notImplementedTitle"), this.getString("notImplementedMessage"));
 	}
 
 	showCustomDialog() {
-        visto.showDialog(pkg, "SampleDialog");
+        this.context.showDialog(pkg, "SampleDialog").done();
 	}
 };

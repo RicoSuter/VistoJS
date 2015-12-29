@@ -64,13 +64,13 @@ export class WebView extends visto.ViewBase {
         if (settings.url.indexOf("://") === -1)
             settings.url = this.currentBaseUrl + "/" + settings.url;
 
-        visto.showLoadingScreen();
+        this.context.showLoadingScreen();
         Q($.ajax(settings)).then((data: string) => {
             this.setHtml(data, this.getBaseUrl(settings.url));
-            visto.hideLoadingScreen();
+            this.context.hideLoadingScreen();
         }).catch((exception: any) => {
-            visto.hideLoadingScreen();
-            common.alert("HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
+            this.context.hideLoadingScreen();
+            common.alert(this.context, "HTTP Request failed", "HTTP Error " + exception.status + ": " + exception.statusText);
         });
     }
 

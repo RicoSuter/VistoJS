@@ -18,7 +18,7 @@ export function registerTagAliases() {
 /**
  * Shows a confirm dialog box with with various buttons.
  */
-export function confirm(title: string, message: string, buttons: Buttons) {
+export function confirm(context: visto.VistoContext, title: string, message: string, buttons: Buttons) {
     var buttonCollection: IDialogButton[] = [];
     if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
         buttonCollection.push({
@@ -56,7 +56,7 @@ export function confirm(title: string, message: string, buttons: Buttons) {
         });
     }
 
-    return visto.showDialog(visto.getViewName(pkg, "dialogs/Confirm"), {
+    return context.showDialog(visto.getViewName(pkg, "dialogs/Confirm"), {
         title: title,
         message: message,
         buttons: buttonCollection
@@ -80,16 +80,16 @@ export enum Buttons {
 /**
  * Shows a progress bar in a dialog. The dialog can be controlled using the dialog instance in the completed callback. 
  */
-export function progressDialog(title: string) {
-    return Q.Promise<IProgressDialog>((resolve) => {
-        visto.showDialog(pkg, "dialogs/ProgressDialog", {
+export function progressDialog(context: visto.VistoContext, title: string) {
+    return Q.Promise<IProgressDialog>((resolve: any) => {
+        context.showDialog(pkg, "dialogs/ProgressDialog", {
             title: title,
             resizable: false,
             draggable: true,
             dialogClass: "box no-close",
             modal: true,
             closeOnEscape: false
-        }, view => {
+        }).done(view => {
             var progress: any = {
                 maximum: null,
                 value: 0,
@@ -128,16 +128,16 @@ export interface IProgressDialog {
 /**
  * Shows an alert dialog box. 
  */
-export function alert(title: string, message: string) {
-    return confirm(title, message, Buttons.Ok);
+export function alert(context: visto.VistoContext, title: string, message: string) {
+    return confirm(context, title, message, Buttons.Ok);
 };
 
 /**
  * Shows an prompt dialog box to enter a string value. The promise value will be null if the user pressed the cancel button. 
  */
-export function prompt(title: string, message: string, defaultText: string) {
+export function prompt(context: visto.VistoContext, title: string, message: string, defaultText: string) {
     var output = ko.observable(defaultText);
-    return visto.showDialog(pkg, "dialogs/Prompt", {
+    return context.showDialog(pkg, "dialogs/Prompt", {
         message: message,
         output: output,
         title: title
@@ -152,8 +152,8 @@ export function prompt(title: string, message: string, defaultText: string) {
 /**
  * Shows a dialog with a list picker. 
  */
-export function listPicker<TItem>(header: string, label: string, items: any[], selectedItem: TItem, optionsText: string) {
-    return visto.showDialog(pkg, "dialogs/ListPicker", {
+export function listPicker<TItem>(context: visto.VistoContext, header: string, label: string, items: any[], selectedItem: TItem, optionsText: string) {
+    return context.showDialog(pkg, "dialogs/ListPicker", {
         title: header,
         label: label,
         items: items,

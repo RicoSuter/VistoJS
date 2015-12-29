@@ -13,7 +13,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             this.enablePageRestore();
         };
         RecursivePageModel.prototype.navigate = function () {
-            visto.navigateTo(pkg, "RecursivePage");
+            this.context.navigateTo(pkg, "RecursivePage").done();
         };
         return RecursivePageModel;
     })(visto.ViewModel);

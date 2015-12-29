@@ -23,11 +23,11 @@ define(["require", "exports", "libs/visto", "common/main", "SampleService", "mod
             }).done();
         };
         ListPageModel.prototype.showItem = function (item) {
-            visto.navigateTo(pkg, "DetailsPage", { item: item });
+            this.context.navigateTo(pkg, "DetailsPage", { item: item });
         };
         ListPageModel.prototype.addItem = function () {
             var _this = this;
-            common.prompt("Add Item", "Please enter the item name: ", "").then(function (title) {
+            common.prompt(this.context, "Add Item", "Please enter the item name: ", "").then(function (title) {
                 if (title !== null) {
                     _this.items.push({
                         id: (Math.floor(Math.random() * 4294967296) + 1),

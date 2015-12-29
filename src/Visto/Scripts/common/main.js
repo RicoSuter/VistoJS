@@ -14,7 +14,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
     /**
      * Shows a confirm dialog box with with various buttons.
      */
-    function confirm(title, message, buttons) {
+    function confirm(context, title, message, buttons) {
         var buttonCollection = [];
         if (buttons === Buttons.YesNoCancel || buttons === Buttons.YesNo) {
             buttonCollection.push({
@@ -48,7 +48,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
                 }
             });
         }
-        return visto.showDialog(visto.getViewName(pkg, "dialogs/Confirm"), {
+        return context.showDialog(visto.getViewName(pkg, "dialogs/Confirm"), {
             title: title,
             message: message,
             buttons: buttonCollection
@@ -68,16 +68,16 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
     /**
      * Shows a progress bar in a dialog. The dialog can be controlled using the dialog instance in the completed callback.
      */
-    function progressDialog(title) {
+    function progressDialog(context, title) {
         return Q.Promise(function (resolve) {
-            visto.showDialog(pkg, "dialogs/ProgressDialog", {
+            context.showDialog(pkg, "dialogs/ProgressDialog", {
                 title: title,
                 resizable: false,
                 draggable: true,
                 dialogClass: "box no-close",
                 modal: true,
                 closeOnEscape: false
-            }, function (view) {
+            }).done(function (view) {
                 var progress = {
                     maximum: null,
                     value: 0,
@@ -109,17 +109,17 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
     /**
      * Shows an alert dialog box.
      */
-    function alert(title, message) {
-        return confirm(title, message, Buttons.Ok);
+    function alert(context, title, message) {
+        return confirm(context, title, message, Buttons.Ok);
     }
     exports.alert = alert;
     ;
     /**
      * Shows an prompt dialog box to enter a string value. The promise value will be null if the user pressed the cancel button.
      */
-    function prompt(title, message, defaultText) {
+    function prompt(context, title, message, defaultText) {
         var output = ko.observable(defaultText);
-        return visto.showDialog(pkg, "dialogs/Prompt", {
+        return context.showDialog(pkg, "dialogs/Prompt", {
             message: message,
             output: output,
             title: title
@@ -135,8 +135,8 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
     /**
      * Shows a dialog with a list picker.
      */
-    function listPicker(header, label, items, selectedItem, optionsText) {
-        return visto.showDialog(pkg, "dialogs/ListPicker", {
+    function listPicker(context, header, label, items, selectedItem, optionsText) {
+        return context.showDialog(pkg, "dialogs/ListPicker", {
             title: header,
             label: label,
             items: items,

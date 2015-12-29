@@ -6,4 +6,4 @@ common.registerTagAliases();
 visto.initialize(<visto.IVistoOptions>{
     startView: "MainView",
     supportedLanguages: ["en", "de"]
-});
+}).done();

@@ -7,6 +7,6 @@ export class RecursivePageModel extends visto.ViewModel {
     }
 
     navigate() {
-        visto.navigateTo(pkg, "RecursivePage");
+        this.context.navigateTo(pkg, "RecursivePage").done();
     }
 } 
