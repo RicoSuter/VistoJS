@@ -79,6 +79,22 @@ export interface IVistoOptions {
 // ----------------------------
 // Context
 // ----------------------------
+export var showNewPage = (currentPageDescription: IPage, nextPageView: ViewBase, nextPageContainer: JQuery) => {
+    // current page
+    if (currentPageDescription !== null && currentPageDescription !== undefined) {
+        // CUSTOM: Comment out
+        currentPageDescription.element.css("visibility", "hidden");
+        currentPageDescription.element.css("position", "absolute");
+    }
+
+    //// CUSTOM
+    //nextPage.element = $(nextPage.element.children().get(0));
+    //nextPageContainer.replaceWith(nextPage.element);
+    //nextPageContainer = nextPage.element;
+
+    //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
+    //// CUSTOM
+}
 
 var currentViewContext: ViewFactoryContext = null;
 var currentContext: VistoContext = null;
@@ -308,25 +324,12 @@ export class VistoContext {
 
             urlNavigationHistory.push(view.context);
 
-            // current page
             var currentPage = this.getCurrentPageDescription();
-            if (currentPage !== null && currentPage !== undefined) {
-                // CUSTOM: Comment out
-                currentPage.element.css("visibility", "hidden");
-                currentPage.element.css("position", "absolute");
-            }
+            showNewPage(currentPage, view, pageContainer);
 
             // show next page by removing hiding css styles
             if (!this.isPageRestore)
                 pageContainer.removeAttr("style");
-
-            //// CUSTOM
-            //view.element = $(view.element.children().get(0));
-            //pageContainer.replaceWith(view.element);
-            //pageContainer = view.element;
-
-            //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
-            //// CUSTOM
 
             var pageStack = this.getPageStack();
             pageStack.push(<IPage>{
@@ -1455,11 +1458,8 @@ export class ResourceManager {
         var viewModule: any = null;
         var viewModelModule: any = null;
 
-        // CUSTOM
-        //var viewUrl = "/Scripts/" + packageName + "/views/" + viewName + ".js";
-        //var viewModelUrl = "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
-        var viewUrl = packageName + "/views/" + viewName;
-        var viewModelUrl = packageName + "/viewModels/" + viewName + "Model";
+        var viewUrl = this.getViewModuleUrl(packageName, viewName);
+        var viewModelUrl = this.getViewModelModuleUrl(packageName, viewName);
 
         var baseUrl = getRemotePathBaseUrl(packageName);
         if (baseUrl !== "") {
@@ -1484,6 +1484,23 @@ export class ResourceManager {
         });
     }
 
+    getViewModuleUrl(packageName: string, viewName: string) {
+        return packageName + "/views/" + viewName;
+    }
+
+    getViewModelModuleUrl(packageName: string, viewName: string) {
+        return packageName + "/viewModels/" + viewName + "Model";
+    }
+
+    // CUSTOM
+    //getViewModuleUrl(packageName: string, viewName: string) {
+    //    return "/Scripts/" + packageName + "/views/" + viewName + ".js";
+    //}
+
+    //getViewModelModuleUrl(packageName: string, viewName: string) {
+    //    return "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
+    //}
+    
     /**
      * [Replaceable] Loads the translated string for a given package and language. 
      */
@@ -1979,7 +1996,7 @@ export interface IModule {
     uri: string;
 }
 
-interface IPage {
+export interface IPage {
     view: PageBase;
     hash: number;
     element: JQuery;

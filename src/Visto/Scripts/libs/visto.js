@@ -52,6 +52,20 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // Context
     // ----------------------------
+    exports.showNewPage = function (currentPageDescription, nextPageView, nextPageContainer) {
+        // current page
+        if (currentPageDescription !== null && currentPageDescription !== undefined) {
+            // CUSTOM: Comment out
+            currentPageDescription.element.css("visibility", "hidden");
+            currentPageDescription.element.css("position", "absolute");
+        }
+        //// CUSTOM
+        //nextPage.element = $(nextPage.element.children().get(0));
+        //nextPageContainer.replaceWith(nextPage.element);
+        //nextPageContainer = nextPage.element;
+        //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
+        //// CUSTOM
+    };
     var currentViewContext = null;
     var currentContext = null;
     var VistoContext = (function () {
@@ -241,22 +255,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (_this.frame !== null)
                     window.location = "#" + _this.currentNavigationPath;
                 urlNavigationHistory.push(view.context);
-                // current page
                 var currentPage = _this.getCurrentPageDescription();
-                if (currentPage !== null && currentPage !== undefined) {
-                    // CUSTOM: Comment out
-                    currentPage.element.css("visibility", "hidden");
-                    currentPage.element.css("position", "absolute");
-                }
+                exports.showNewPage(currentPage, view, pageContainer);
                 // show next page by removing hiding css styles
                 if (!_this.isPageRestore)
                     pageContainer.removeAttr("style");
-                //// CUSTOM
-                //view.element = $(view.element.children().get(0));
-                //pageContainer.replaceWith(view.element);
-                //pageContainer = view.element;
-                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
-                //// CUSTOM
                 var pageStack = _this.getPageStack();
                 pageStack.push({
                     view: view,
@@ -1212,11 +1215,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ResourceManager.prototype.getViewModules = function (packageName, viewName) {
             var viewModule = null;
             var viewModelModule = null;
-            // CUSTOM
-            //var viewUrl = "/Scripts/" + packageName + "/views/" + viewName + ".js";
-            //var viewModelUrl = "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
-            var viewUrl = packageName + "/views/" + viewName;
-            var viewModelUrl = packageName + "/viewModels/" + viewName + "Model";
+            var viewUrl = this.getViewModuleUrl(packageName, viewName);
+            var viewModelUrl = this.getViewModelModuleUrl(packageName, viewName);
             var baseUrl = getRemotePathBaseUrl(packageName);
             if (baseUrl !== "") {
                 viewUrl = baseUrl + viewUrl;
@@ -1237,6 +1237,19 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 };
             });
         };
+        ResourceManager.prototype.getViewModuleUrl = function (packageName, viewName) {
+            return packageName + "/views/" + viewName;
+        };
+        ResourceManager.prototype.getViewModelModuleUrl = function (packageName, viewName) {
+            return packageName + "/viewModels/" + viewName + "Model";
+        };
+        // CUSTOM
+        //getViewModuleUrl(packageName: string, viewName: string) {
+        //    return "/Scripts/" + packageName + "/views/" + viewName + ".js";
+        //}
+        //getViewModelModuleUrl(packageName: string, viewName: string) {
+        //    return "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
+        //}
         /**
          * [Replaceable] Loads the translated string for a given package and language.
          */
