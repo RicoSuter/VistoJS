@@ -285,70 +285,68 @@ export class VistoContext {
         return <IPage[]>pageStack;
     }
 
-    private tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery, navigate: boolean, onHtmlLoaded?: (view: ViewBase) => void): Q.Promise<ViewBase> {
-        if (navigate) {
-            if (parameters === undefined || parameters == null)
-                parameters = {};
+    private tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery,
+        onHtmlLoaded?: (view: ViewBase) => void, onDomUpdated?: (view: ViewBase) => void): Q.Promise<ViewBase> {
 
-            parameters[isPageParameter] = true;
+        if (parameters === undefined || parameters == null)
+            parameters = {};
 
-            var factory = new ViewFactory();
-            return factory.create(pageContainer, fullViewName, parameters, this, (view: ViewBase) => {
-                var restoreQuery = view.parameters.getRestoreQuery();
-                this.currentNavigationPath = this.currentNavigationPath + "/" + encodeURIComponent(
-                    view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
+        parameters[isPageParameter] = true;
 
-                if (this.frame !== null)
-                    (<any>window).location = "#" + this.currentNavigationPath;
+        var factory = new ViewFactory();
+        return factory.create(pageContainer, fullViewName, parameters, this, (view: ViewBase) => {
+            var restoreQuery = view.parameters.getRestoreQuery();
+            this.currentNavigationPath = this.currentNavigationPath + "/" + encodeURIComponent(
+                view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
-                urlNavigationHistory.push(view.context);
+            if (this.frame !== null)
+                (<any>window).location = "#" + this.currentNavigationPath;
 
-                // current page
-                var currentPage = this.getCurrentPageDescription();
-                if (currentPage !== null && currentPage !== undefined) {
-                    // CUSTOM: Comment out
-                    currentPage.element.css("visibility", "hidden");
-                    currentPage.element.css("position", "absolute");
-                }
+            urlNavigationHistory.push(view.context);
 
-                // show next page by removing hiding css styles
-                if (!this.isPageRestore)
-                    pageContainer.removeAttr("style");
+            // current page
+            var currentPage = this.getCurrentPageDescription();
+            if (currentPage !== null && currentPage !== undefined) {
+                // CUSTOM: Comment out
+                currentPage.element.css("visibility", "hidden");
+                currentPage.element.css("position", "absolute");
+            }
 
-                //// CUSTOM
-                //view.element = $(view.element.children().get(0));
-                //pageContainer.replaceWith(view.element);
-                //pageContainer = view.element;
+            // show next page by removing hiding css styles
+            if (!this.isPageRestore)
+                pageContainer.removeAttr("style");
 
-                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
-                //// CUSTOM
+            //// CUSTOM
+            //view.element = $(view.element.children().get(0));
+            //pageContainer.replaceWith(view.element);
+            //pageContainer = view.element;
 
-                var pageStack = this.getPageStack();
-                pageStack.push(<IPage>{
-                    view: view,
-                    hash: ++this.navigationCount,
-                    element: pageContainer
-                });
+            //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
+            //// CUSTOM
 
-                this.canNavigateBack(pageStack.length > 1);
-                this.pageStackSize(pageStack.length);
-
-                log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
-
-                if ($.isFunction((<any>view).onNavigatedTo))
-                    (<any>view).onNavigatedTo("forward");
-
-                if (currentPage !== null && currentPage !== undefined)
-                    currentPage.view.onNavigatedFrom("forward");
-
-                if ($.isFunction(onHtmlLoaded))
-                    onHtmlLoaded(view);
-
-                this.isNavigating = false;
-                return view;
+            var pageStack = this.getPageStack();
+            pageStack.push(<IPage>{
+                view: view,
+                hash: ++this.navigationCount,
+                element: pageContainer
             });
-        } else
-            return Q<PageBase>(null);
+
+            this.canNavigateBack(pageStack.length > 1);
+            this.pageStackSize(pageStack.length);
+
+            log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
+
+            if ($.isFunction((<any>view).onNavigatedTo))
+                (<any>view).onNavigatedTo("forward");
+
+            if (currentPage !== null && currentPage !== undefined)
+                currentPage.view.onNavigatedFrom("forward");
+
+            if ($.isFunction(onHtmlLoaded))
+                onHtmlLoaded(view);
+
+            return view;
+        }, onDomUpdated);
     }
 
     isPageRestore = false;
@@ -366,37 +364,43 @@ export class VistoContext {
     }
 
     private initializeDefaultFrameCore(frame: JQuery, fullViewName: string, parameters?: {}) {
-        if (this.frame !== null)
-            throw new Error("The default frame is already initialized.");
+        return Q.Promise<void>((resolve, reject) => {
+            if (this.frame !== null)
+                throw new Error("The default frame is already initialized.");
 
-        this.frame = frame;
+            this.frame = frame;
+            
+            var urlSegments = decodeURIComponent(window.location.hash).split("/");
+            if (urlSegments.length > 1) {
+                this.isPageRestore = true;
+                this.showLoadingScreen(false);
+                var currentSegmentIndex = 1;
 
-        var urlSegments = decodeURIComponent(window.location.hash).split("/");
-        if (urlSegments.length > 1) {
-            this.isPageRestore = true;
-            this.showLoadingScreen(false);
-            return this.navigateToNextSegment(urlSegments, 1).then(view => {
-                this.finishPageRestore(view);
-            });
-        } else
-            return <any>this.navigateTo(fullViewName, parameters);
-    }
-
-    private navigateToNextSegment(urlSegments: string[], currentSegmentIndex: number) {
-        var segment = urlSegments[currentSegmentIndex];
-        if (segment != null) {
-            var segmentParts = segment.split(":");
-            var supportsPageRestore = segmentParts.length === 3;
-            if (supportsPageRestore) {
-                var fullViewName = segmentParts[0] + ":" + segmentParts[1];
-                var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                return this.navigateTo(fullViewName, { restoreQuery: restoreQuery }).then((view: ViewBase) => {
-                    this.navigateToNextSegment(urlSegments, currentSegmentIndex + 1);
-                    return view;
-                });
-            }
-        }
-        return null;
+                var navigateToNextSegment = (view: ViewBase) => {
+                    var segment = urlSegments[currentSegmentIndex];
+                    if (segment != null) {
+                        var segmentParts = segment.split(":");
+                        var supportsPageRestore = segmentParts.length === 3;
+                        if (supportsPageRestore) {
+                            currentSegmentIndex++;
+                            var fullViewName = segmentParts[0] + ":" + segmentParts[1];
+                            var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
+                            this.navigateTo(fullViewName, { restoreQuery: restoreQuery }, (view: ViewBase) => {
+                                navigateToNextSegment(view);
+                            }).done();
+                        } else {
+                            this.finishPageRestore(view);
+                            resolve(null);
+                        }
+                    } else {
+                        this.finishPageRestore(view);
+                        resolve(null);
+                    }
+                };
+                navigateToNextSegment(null);
+            } else
+                this.navigateTo(fullViewName, parameters).then(() => resolve(null), reject);
+        });
     }
 
     private finishPageRestore(view: ViewBase) {
@@ -410,16 +414,16 @@ export class VistoContext {
     /**
      * Navigates to a given page using in the default frame.
      */
-    navigateTo(fullViewName: string, parameters?: {}): Q.Promise<PageBase>;
-    navigateTo(modulePackage: IModule, viewName: string, parameters?: {}): Q.Promise<PageBase>;
-    navigateTo(a: any, b: any, c?: any): Q.Promise<PageBase> {
+    navigateTo(fullViewName: string, parameters?: {}, onDomUpdated?: (view: ViewBase) => void): Q.Promise<PageBase>;
+    navigateTo(modulePackage: IModule, viewName: string, parameters?: {}, onDomUpdated?: (view: ViewBase) => void): Q.Promise<PageBase>;
+    navigateTo(a: any, b: any, c?: any, d?: any): Q.Promise<PageBase> {
         if (typeof a === "string")
-            return <any>this.navigateToCore(a, b);
+            return <any>this.navigateToCore(a, b, c);
         else
-            return <any>this.navigateToCore(getViewName(a, b), c);
+            return <any>this.navigateToCore(getViewName(a, b), c, d);
     }
 
-    private navigateToCore(fullViewName: string, parameters: {}): Q.Promise<ViewBase> {
+    private navigateToCore(fullViewName: string, parameters: {}, onDomUpdated?: (view: ViewBase) => void): Q.Promise<ViewBase> {
         if (this.isNavigating)
             throw "Already navigating";
 
@@ -433,20 +437,26 @@ export class VistoContext {
 
         // load currently visible page
         var currentPage = this.getCurrentPageDescription();
+
         this.showLoadingScreen(currentPage !== null);
         if (currentPage !== null && currentPage !== undefined) {
-            return currentPage.view.onNavigatingFrom("forward")
-                .then<PageBase>((navigate) => {
-                    return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, navigate, (page) => {
+            return currentPage.view.onNavigatingFrom("forward").then<PageBase>((navigate) => {
+                if (navigate) {
+                    return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, (page) => {
                         this.hideLoadingScreen();
+                        this.isNavigating = false;
                         return page;
-                    });
-                });
-        } else {
-            return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, true, (page) => {
-                this.hideLoadingScreen();
-                return page;
+                    }, onDomUpdated);
+                } else
+                    this.isNavigating = false;
+                return null;
             });
+        } else {
+            return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, (page) => {
+                this.hideLoadingScreen();
+                this.isNavigating = false;
+                return page;
+            }, onDomUpdated);
         }
     }
 
@@ -480,6 +490,33 @@ export class VistoContext {
 
     private backNavigationResolve: () => void = null;
     private backNavigationReject: (reason: any) => void = null;
+
+    private onUrlChanged() {
+        if (this.isNavigating)
+            return; // TODO: What to do here? Go forward?
+
+        var pageStack = this.getPageStack();
+        if (pageStack.length > 1) {
+            var currentPage = pageStack[pageStack.length - 1];
+            if (currentPage !== null && currentPage !== undefined) {
+                var count = 0, pos = 0;
+                while ((pos = window.location.hash.indexOf("/", pos + 1)) !== -1)
+                    count++;
+
+                if (currentPage.hash !== count) {
+                    this.currentNavigationPath = this.currentNavigationPath.substring(0, this.currentNavigationPath.lastIndexOf("/"));
+                    this.isNavigating = true;
+                    if (openedDialogs > 0)
+                        this.tryNavigateBack(false, currentPage, pageStack);
+                    else {
+                        currentPage.view.onNavigatingFrom("back").then((navigate: boolean) => {
+                            this.tryNavigateBack(navigate, currentPage, pageStack);
+                        }).done();
+                    }
+                }
+            }
+        }
+    }
 
     private tryNavigateBack(navigate: boolean, currentPage: IPage, pageStack: IPage[]) {
         if (navigate) {
@@ -567,33 +604,6 @@ export class VistoContext {
             if (this.currentLoadingScreenElement !== null) {
                 this.currentLoadingScreenElement.remove();
                 this.currentLoadingScreenElement = null;
-            }
-        }
-    }
-
-    private onUrlChanged() {
-        if (this.isNavigating)
-            return; // TODO: What to do here? Go forward?
-
-        var pageStack = this.getPageStack();
-        if (pageStack.length > 1) {
-            var currentPage = pageStack[pageStack.length - 1];
-            if (currentPage !== null && currentPage !== undefined) {
-                var count = 0, pos = 0;
-                while ((pos = window.location.hash.indexOf("/", pos + 1)) !== -1)
-                    count++;
-
-                if (currentPage.hash !== count) {
-                    this.currentNavigationPath = this.currentNavigationPath.substring(0, this.currentNavigationPath.lastIndexOf("/"));
-                    this.isNavigating = true;
-                    if (openedDialogs > 0)
-                        this.tryNavigateBack(false, currentPage, pageStack);
-                    else {
-                        currentPage.view.onNavigatingFrom("back").then((navigate: boolean) => {
-                            this.tryNavigateBack(navigate, currentPage, pageStack);
-                        }).done();
-                    }
-                }
             }
         }
     }
@@ -1445,8 +1455,8 @@ export class ResourceManager {
         //var viewUrl = "/Scripts/" + packageName + "/views/" + viewName + ".js";
         //var viewModelUrl = "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
         var viewUrl = packageName + "/views/" + viewName;
-        var viewModelUrl = packageName + "/viewModels/" + viewName + "Model"; 
-        
+        var viewModelUrl = packageName + "/viewModels/" + viewName + "Model";
+
         var baseUrl = getRemotePathBaseUrl(packageName);
         if (baseUrl !== "") {
             viewUrl = baseUrl + viewUrl;
@@ -1692,7 +1702,7 @@ class ViewFactory {
     view: ViewBase;
     viewModel: ViewModel;
 
-    create(element: JQuery, fullViewName: string, parameters: any, context: VistoContext, onHtmlLoaded?: (view: ViewBase) => void) {
+    create(element: JQuery, fullViewName: string, parameters: any, context: VistoContext, onHtmlLoaded?: (view: ViewBase) => void, onDomUpdated?: (view: ViewBase) => void) {
         this.element = element;
         this.context = context;
 
@@ -1723,13 +1733,13 @@ class ViewFactory {
             this.viewModelModule = modules.viewModelModule;
             return context.resourceManager.getViewHtml(this.viewLocator.package, this.viewLocator.view);
         }).then((data: string) => {
-            return this.loadHtml(data, context, onHtmlLoaded);
+            return this.loadHtml(data, context, onHtmlLoaded, onDomUpdated);
         }).then((view) => {
             return view;
         });
     }
 
-    private loadHtml(htmlData: string, context: VistoContext, onHtmlLoaded?: (view: ViewBase) => void) {
+    private loadHtml(htmlData: string, context: VistoContext, onHtmlLoaded: (view: ViewBase) => void, onDomUpdated: (view: ViewBase) => void) {
         this.viewId = "view_" + ++viewCount;
 
         htmlData =
@@ -1789,8 +1799,8 @@ class ViewFactory {
 
             if ($.isFunction(onHtmlLoaded))
                 onHtmlLoaded(this.view);
-            
-            return this.viewContext.finalizeView(/*onHtmlLoaded*/).then(() => {
+
+            return this.viewContext.finalizeView(onDomUpdated).then(() => {
                 return this.view;
             });
         }
@@ -1884,7 +1894,7 @@ class ViewFactoryContext {
     restoreQuery: string = undefined;
     loadedViewCount = 0;
 
-    finalizeView(onHtmlLoaded?: (view: ViewBase) => void) {
+    finalizeView(onDomUpdated?: (view: ViewBase) => void) {
         // TODO: Refactor this!
         return Q.Promise<ViewFactoryContext>((resolve, reject) => {
             this.loadedViewCount++;
@@ -1903,8 +1913,8 @@ class ViewFactoryContext {
                                             factory.__setHtml();
                                         });
 
-                                        if ($.isFunction(onHtmlLoaded))
-                                            onHtmlLoaded(context.view);
+                                        if ($.isFunction(onDomUpdated))
+                                            onDomUpdated(context.view);
 
                                         $.each(this.factories, (index: number, factory: ViewFactory) => {
                                             factory.__raiseLoadedEvents();

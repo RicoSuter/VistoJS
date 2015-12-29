@@ -226,56 +226,51 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             return pageStack;
         };
-        VistoContext.prototype.tryNavigateForward = function (fullViewName, parameters, frame, pageContainer, navigate, onHtmlLoaded) {
+        VistoContext.prototype.tryNavigateForward = function (fullViewName, parameters, frame, pageContainer, onHtmlLoaded, onDomUpdated) {
             var _this = this;
-            if (navigate) {
-                if (parameters === undefined || parameters == null)
-                    parameters = {};
-                parameters[isPageParameter] = true;
-                var factory = new ViewFactory();
-                return factory.create(pageContainer, fullViewName, parameters, this, function (view) {
-                    var restoreQuery = view.parameters.getRestoreQuery();
-                    _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
-                    if (_this.frame !== null)
-                        window.location = "#" + _this.currentNavigationPath;
-                    urlNavigationHistory.push(view.context);
-                    // current page
-                    var currentPage = _this.getCurrentPageDescription();
-                    if (currentPage !== null && currentPage !== undefined) {
-                        // CUSTOM: Comment out
-                        currentPage.element.css("visibility", "hidden");
-                        currentPage.element.css("position", "absolute");
-                    }
-                    // show next page by removing hiding css styles
-                    if (!_this.isPageRestore)
-                        pageContainer.removeAttr("style");
-                    //// CUSTOM
-                    //view.element = $(view.element.children().get(0));
-                    //pageContainer.replaceWith(view.element);
-                    //pageContainer = view.element;
-                    //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
-                    //// CUSTOM
-                    var pageStack = _this.getPageStack();
-                    pageStack.push({
-                        view: view,
-                        hash: ++_this.navigationCount,
-                        element: pageContainer
-                    });
-                    _this.canNavigateBack(pageStack.length > 1);
-                    _this.pageStackSize(pageStack.length);
-                    log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
-                    if ($.isFunction(view.onNavigatedTo))
-                        view.onNavigatedTo("forward");
-                    if (currentPage !== null && currentPage !== undefined)
-                        currentPage.view.onNavigatedFrom("forward");
-                    if ($.isFunction(onHtmlLoaded))
-                        onHtmlLoaded(view);
-                    _this.isNavigating = false;
-                    return view;
+            if (parameters === undefined || parameters == null)
+                parameters = {};
+            parameters[isPageParameter] = true;
+            var factory = new ViewFactory();
+            return factory.create(pageContainer, fullViewName, parameters, this, function (view) {
+                var restoreQuery = view.parameters.getRestoreQuery();
+                _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
+                if (_this.frame !== null)
+                    window.location = "#" + _this.currentNavigationPath;
+                urlNavigationHistory.push(view.context);
+                // current page
+                var currentPage = _this.getCurrentPageDescription();
+                if (currentPage !== null && currentPage !== undefined) {
+                    // CUSTOM: Comment out
+                    currentPage.element.css("visibility", "hidden");
+                    currentPage.element.css("position", "absolute");
+                }
+                // show next page by removing hiding css styles
+                if (!_this.isPageRestore)
+                    pageContainer.removeAttr("style");
+                //// CUSTOM
+                //view.element = $(view.element.children().get(0));
+                //pageContainer.replaceWith(view.element);
+                //pageContainer = view.element;
+                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
+                //// CUSTOM
+                var pageStack = _this.getPageStack();
+                pageStack.push({
+                    view: view,
+                    hash: ++_this.navigationCount,
+                    element: pageContainer
                 });
-            }
-            else
-                return Q(null);
+                _this.canNavigateBack(pageStack.length > 1);
+                _this.pageStackSize(pageStack.length);
+                log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
+                if ($.isFunction(view.onNavigatedTo))
+                    view.onNavigatedTo("forward");
+                if (currentPage !== null && currentPage !== undefined)
+                    currentPage.view.onNavigatedFrom("forward");
+                if ($.isFunction(onHtmlLoaded))
+                    onHtmlLoaded(view);
+                return view;
+            }, onDomUpdated);
         };
         VistoContext.prototype.initializeDefaultFrame = function (frame, a, b, c) {
             if (typeof a === "string")
@@ -285,36 +280,43 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         VistoContext.prototype.initializeDefaultFrameCore = function (frame, fullViewName, parameters) {
             var _this = this;
-            if (this.frame !== null)
-                throw new Error("The default frame is already initialized.");
-            this.frame = frame;
-            var urlSegments = decodeURIComponent(window.location.hash).split("/");
-            if (urlSegments.length > 1) {
-                this.isPageRestore = true;
-                this.showLoadingScreen(false);
-                return this.navigateToNextSegment(urlSegments, 1).then(function (view) {
-                    _this.finishPageRestore(view);
-                });
-            }
-            else
-                return this.navigateTo(fullViewName, parameters);
-        };
-        VistoContext.prototype.navigateToNextSegment = function (urlSegments, currentSegmentIndex) {
-            var _this = this;
-            var segment = urlSegments[currentSegmentIndex];
-            if (segment != null) {
-                var segmentParts = segment.split(":");
-                var supportsPageRestore = segmentParts.length === 3;
-                if (supportsPageRestore) {
-                    var fullViewName = segmentParts[0] + ":" + segmentParts[1];
-                    var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                    return this.navigateTo(fullViewName, { restoreQuery: restoreQuery }).then(function (view) {
-                        _this.navigateToNextSegment(urlSegments, currentSegmentIndex + 1);
-                        return view;
-                    });
+            return Q.Promise(function (resolve, reject) {
+                if (_this.frame !== null)
+                    throw new Error("The default frame is already initialized.");
+                _this.frame = frame;
+                var urlSegments = decodeURIComponent(window.location.hash).split("/");
+                if (urlSegments.length > 1) {
+                    _this.isPageRestore = true;
+                    _this.showLoadingScreen(false);
+                    var currentSegmentIndex = 1;
+                    var navigateToNextSegment = function (view) {
+                        var segment = urlSegments[currentSegmentIndex];
+                        if (segment != null) {
+                            var segmentParts = segment.split(":");
+                            var supportsPageRestore = segmentParts.length === 3;
+                            if (supportsPageRestore) {
+                                currentSegmentIndex++;
+                                var fullViewName = segmentParts[0] + ":" + segmentParts[1];
+                                var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
+                                _this.navigateTo(fullViewName, { restoreQuery: restoreQuery }, function (view) {
+                                    navigateToNextSegment(view);
+                                }).done();
+                            }
+                            else {
+                                _this.finishPageRestore(view);
+                                resolve(null);
+                            }
+                        }
+                        else {
+                            _this.finishPageRestore(view);
+                            resolve(null);
+                        }
+                    };
+                    navigateToNextSegment(null);
                 }
-            }
-            return null;
+                else
+                    _this.navigateTo(fullViewName, parameters).then(function () { return resolve(null); }, reject);
+            });
         };
         VistoContext.prototype.finishPageRestore = function (view) {
             this.hideLoadingScreen();
@@ -322,13 +324,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var page = this.getCurrentPageDescription();
             page.element.removeAttr("style");
         };
-        VistoContext.prototype.navigateTo = function (a, b, c) {
+        VistoContext.prototype.navigateTo = function (a, b, c, d) {
             if (typeof a === "string")
-                return this.navigateToCore(a, b);
+                return this.navigateToCore(a, b, c);
             else
-                return this.navigateToCore(getViewName(a, b), c);
+                return this.navigateToCore(getViewName(a, b), c, d);
         };
-        VistoContext.prototype.navigateToCore = function (fullViewName, parameters) {
+        VistoContext.prototype.navigateToCore = function (fullViewName, parameters, onDomUpdated) {
             var _this = this;
             if (this.isNavigating)
                 throw "Already navigating";
@@ -342,19 +344,25 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var currentPage = this.getCurrentPageDescription();
             this.showLoadingScreen(currentPage !== null);
             if (currentPage !== null && currentPage !== undefined) {
-                return currentPage.view.onNavigatingFrom("forward")
-                    .then(function (navigate) {
-                    return _this.tryNavigateForward(fullViewName, parameters, _this.frame, pageContainer, navigate, function (page) {
-                        _this.hideLoadingScreen();
-                        return page;
-                    });
+                return currentPage.view.onNavigatingFrom("forward").then(function (navigate) {
+                    if (navigate) {
+                        return _this.tryNavigateForward(fullViewName, parameters, _this.frame, pageContainer, function (page) {
+                            _this.hideLoadingScreen();
+                            _this.isNavigating = false;
+                            return page;
+                        }, onDomUpdated);
+                    }
+                    else
+                        _this.isNavigating = false;
+                    return null;
                 });
             }
             else {
-                return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, true, function (page) {
+                return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, function (page) {
                     _this.hideLoadingScreen();
+                    _this.isNavigating = false;
                     return page;
-                });
+                }, onDomUpdated);
             }
         };
         /**
@@ -385,6 +393,31 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     history.go(-1);
                 }
             });
+        };
+        VistoContext.prototype.onUrlChanged = function () {
+            var _this = this;
+            if (this.isNavigating)
+                return; // TODO: What to do here? Go forward?
+            var pageStack = this.getPageStack();
+            if (pageStack.length > 1) {
+                var currentPage = pageStack[pageStack.length - 1];
+                if (currentPage !== null && currentPage !== undefined) {
+                    var count = 0, pos = 0;
+                    while ((pos = window.location.hash.indexOf("/", pos + 1)) !== -1)
+                        count++;
+                    if (currentPage.hash !== count) {
+                        this.currentNavigationPath = this.currentNavigationPath.substring(0, this.currentNavigationPath.lastIndexOf("/"));
+                        this.isNavigating = true;
+                        if (openedDialogs > 0)
+                            this.tryNavigateBack(false, currentPage, pageStack);
+                        else {
+                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
+                                _this.tryNavigateBack(navigate, currentPage, pageStack);
+                            }).done();
+                        }
+                    }
+                }
+            }
         };
         VistoContext.prototype.tryNavigateBack = function (navigate, currentPage, pageStack) {
             if (navigate) {
@@ -450,31 +483,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (this.currentLoadingScreenElement !== null) {
                     this.currentLoadingScreenElement.remove();
                     this.currentLoadingScreenElement = null;
-                }
-            }
-        };
-        VistoContext.prototype.onUrlChanged = function () {
-            var _this = this;
-            if (this.isNavigating)
-                return; // TODO: What to do here? Go forward?
-            var pageStack = this.getPageStack();
-            if (pageStack.length > 1) {
-                var currentPage = pageStack[pageStack.length - 1];
-                if (currentPage !== null && currentPage !== undefined) {
-                    var count = 0, pos = 0;
-                    while ((pos = window.location.hash.indexOf("/", pos + 1)) !== -1)
-                        count++;
-                    if (currentPage.hash !== count) {
-                        this.currentNavigationPath = this.currentNavigationPath.substring(0, this.currentNavigationPath.lastIndexOf("/"));
-                        this.isNavigating = true;
-                        if (openedDialogs > 0)
-                            this.tryNavigateBack(false, currentPage, pageStack);
-                        else {
-                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
-                                _this.tryNavigateBack(navigate, currentPage, pageStack);
-                            }).done();
-                        }
-                    }
                 }
             }
         };
@@ -1418,7 +1426,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewFactory = (function () {
         function ViewFactory() {
         }
-        ViewFactory.prototype.create = function (element, fullViewName, parameters, context, onHtmlLoaded) {
+        ViewFactory.prototype.create = function (element, fullViewName, parameters, context, onHtmlLoaded, onDomUpdated) {
             var _this = this;
             this.element = element;
             this.context = context;
@@ -1446,12 +1454,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 _this.viewModelModule = modules.viewModelModule;
                 return context.resourceManager.getViewHtml(_this.viewLocator.package, _this.viewLocator.view);
             }).then(function (data) {
-                return _this.loadHtml(data, context, onHtmlLoaded);
+                return _this.loadHtml(data, context, onHtmlLoaded, onDomUpdated);
             }).then(function (view) {
                 return view;
             });
         };
-        ViewFactory.prototype.loadHtml = function (htmlData, context, onHtmlLoaded) {
+        ViewFactory.prototype.loadHtml = function (htmlData, context, onHtmlLoaded, onDomUpdated) {
             var _this = this;
             this.viewId = "view_" + ++viewCount;
             htmlData =
@@ -1499,7 +1507,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 currentContext = null;
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(this.view);
-                return this.viewContext.finalizeView().then(function () {
+                return this.viewContext.finalizeView(onDomUpdated).then(function () {
                     return _this.view;
                 });
             }
@@ -1573,7 +1581,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.restoreQuery = undefined;
             this.loadedViewCount = 0;
         }
-        ViewFactoryContext.prototype.finalizeView = function (onHtmlLoaded) {
+        ViewFactoryContext.prototype.finalizeView = function (onDomUpdated) {
             var _this = this;
             // TODO: Refactor this!
             return Q.Promise(function (resolve, reject) {
@@ -1592,8 +1600,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                                             $.each(_this.factories.reverse(), function (index, factory) {
                                                 factory.__setHtml();
                                             });
-                                            if ($.isFunction(onHtmlLoaded))
-                                                onHtmlLoaded(context.view);
+                                            if ($.isFunction(onDomUpdated))
+                                                onDomUpdated(context.view);
                                             $.each(_this.factories, function (index, factory) {
                                                 factory.__raiseLoadedEvents();
                                             });
