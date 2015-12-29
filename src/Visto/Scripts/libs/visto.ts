@@ -79,22 +79,6 @@ export interface IVistoOptions {
 // ----------------------------
 // Context
 // ----------------------------
-export var showNewPage = (currentPageDescription: IPage, nextPageView: ViewBase, nextPageContainer: JQuery) => {
-    // current page
-    if (currentPageDescription !== null && currentPageDescription !== undefined) {
-        // CUSTOM: Comment out
-        currentPageDescription.element.css("visibility", "hidden");
-        currentPageDescription.element.css("position", "absolute");
-    }
-
-    //// CUSTOM
-    //nextPage.element = $(nextPage.element.children().get(0));
-    //nextPageContainer.replaceWith(nextPage.element);
-    //nextPageContainer = nextPage.element;
-
-    //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
-    //// CUSTOM
-}
 
 var currentViewContext: ViewFactoryContext = null;
 var currentContext: VistoContext = null;
@@ -325,7 +309,19 @@ export class VistoContext {
             urlNavigationHistory.push(view.context);
 
             var currentPage = this.getCurrentPageDescription();
-            showNewPage(currentPage, view, pageContainer);
+            if (currentPage !== null && currentPage !== undefined) {
+                // CUSTOM: Comment out
+                currentPage.element.css("visibility", "hidden");
+                currentPage.element.css("position", "absolute");
+            }
+
+            //// CUSTOM
+            //nextPage.element = $(nextPage.element.children().get(0));
+            //nextPageContainer.replaceWith(nextPage.element);
+            //nextPageContainer = nextPage.element;
+
+            //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
+            //// CUSTOM
 
             // show next page by removing hiding css styles
             if (!this.isPageRestore)
@@ -577,11 +573,6 @@ export class VistoContext {
      * Shows the loading screen. Always call hideLoadingScreen() for each showLoadingScreen() call. 
      */
     showLoadingScreen(delayed?: boolean) {
-        if (this.initialLoadingScreenElement !== null) {
-            this.initialLoadingScreenElement.remove();
-            this.initialLoadingScreenElement = null;
-        }
-
         if (this.loadingCount === 0) {
             if (delayed == undefined || delayed) {
                 setTimeout(() => {
@@ -596,6 +587,11 @@ export class VistoContext {
     }
 
     private appendLoadingElement() {
+        if (this.initialLoadingScreenElement !== null) {
+            this.initialLoadingScreenElement.remove();
+            this.initialLoadingScreenElement = null;
+        }
+        
         if (this.currentLoadingScreenElement === null) {
             this.currentLoadingScreenElement = $(this.loadingScreenElement);
             $("body").append(this.currentLoadingScreenElement);

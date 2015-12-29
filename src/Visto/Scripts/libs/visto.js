@@ -52,20 +52,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // Context
     // ----------------------------
-    exports.showNewPage = function (currentPageDescription, nextPageView, nextPageContainer) {
-        // current page
-        if (currentPageDescription !== null && currentPageDescription !== undefined) {
-            // CUSTOM: Comment out
-            currentPageDescription.element.css("visibility", "hidden");
-            currentPageDescription.element.css("position", "absolute");
-        }
-        //// CUSTOM
-        //nextPage.element = $(nextPage.element.children().get(0));
-        //nextPageContainer.replaceWith(nextPage.element);
-        //nextPageContainer = nextPage.element;
-        //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
-        //// CUSTOM
-    };
     var currentViewContext = null;
     var currentContext = null;
     var VistoContext = (function () {
@@ -256,7 +242,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     window.location = "#" + _this.currentNavigationPath;
                 urlNavigationHistory.push(view.context);
                 var currentPage = _this.getCurrentPageDescription();
-                exports.showNewPage(currentPage, view, pageContainer);
+                if (currentPage !== null && currentPage !== undefined) {
+                    // CUSTOM: Comment out
+                    currentPage.element.css("visibility", "hidden");
+                    currentPage.element.css("position", "absolute");
+                }
+                //// CUSTOM
+                //nextPage.element = $(nextPage.element.children().get(0));
+                //nextPageContainer.replaceWith(nextPage.element);
+                //nextPageContainer = nextPage.element;
+                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
+                //// CUSTOM
                 // show next page by removing hiding css styles
                 if (!_this.isPageRestore)
                     pageContainer.removeAttr("style");
@@ -458,10 +454,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         VistoContext.prototype.showLoadingScreen = function (delayed) {
             var _this = this;
-            if (this.initialLoadingScreenElement !== null) {
-                this.initialLoadingScreenElement.remove();
-                this.initialLoadingScreenElement = null;
-            }
             if (this.loadingCount === 0) {
                 if (delayed == undefined || delayed) {
                     setTimeout(function () {
@@ -475,6 +467,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.loadingCount++;
         };
         VistoContext.prototype.appendLoadingElement = function () {
+            if (this.initialLoadingScreenElement !== null) {
+                this.initialLoadingScreenElement.remove();
+                this.initialLoadingScreenElement = null;
+            }
             if (this.currentLoadingScreenElement === null) {
                 this.currentLoadingScreenElement = $(this.loadingScreenElement);
                 $("body").append(this.currentLoadingScreenElement);
