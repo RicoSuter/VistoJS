@@ -211,38 +211,42 @@ export class VistoContext {
     }
 
     private showDialogCore(fullViewName: string, parameters: { [key: string]: any }) {
-        var container = $("<div style=\"display:none\" />");
-        $("body").append(container);
+        return Q.Promise<DialogBase>((resolve, reject) => {
+            var container = $("<div style=\"display:none\" />");
+            $("body").append(container);
 
-        if (parameters === undefined)
-            parameters = {};
-        parameters[isDialogParameter] = true;
+            if (parameters === undefined)
+                parameters = {};
+            parameters[isDialogParameter] = true;
 
-        this.showLoadingScreen();
+            this.showLoadingScreen();
 
-        var factory = new ViewFactory();
-        return factory.create(container, fullViewName, <any>parameters, this).then((view: DialogBase) => {
-            openedDialogs++;
+            var factory = new ViewFactory();
+            return factory.create(container, fullViewName, <any>parameters, this).then((view: DialogBase) => {
+                openedDialogs++;
 
-            // Remove focus from element of the underlying page to avoid click events on enter press
-            var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-            if (focusable != null) {
-                focusable.focus();
-                focusable.blur();
-            }
+                // Remove focus from element of the underlying page to avoid click events on enter press
+                var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+                if (focusable != null) {
+                    focusable.focus();
+                    focusable.blur();
+                }
 
-            showNativeDialog($(container.children().get(0)), view, parameters,
-                () => { view.onShown(); },
-                () => {
-                    openedDialogs--;
+                showNativeDialog($(container.children().get(0)), view, parameters,
+                    () => { view.onShown(); },
+                    () => {
+                        openedDialogs--;
 
-                    view.onClosed();
-                    view.__destroyView();
-                    container.remove();
-                });
-            container.removeAttr("style");
+                        view.onClosed();
+                        view.__destroyView();
+                        container.remove();
 
-            this.hideLoadingScreen();
+                        resolve(view);
+                    });
+                container.removeAttr("style");
+
+                this.hideLoadingScreen();
+            }, reject);
         });
     }
 
@@ -354,16 +358,16 @@ export class VistoContext {
     /**
      * Restores the page stack on the body element as frame. 
      */
-    initializeDefaultFrame(frame: JQuery, viewName: string, parameters?: {}): Q.Promise<void>;
-    initializeDefaultFrame(frame: JQuery, module: IModule, viewName: string, parameters?: {}): Q.Promise<void>;
-    initializeDefaultFrame(frame: JQuery, a: any, b?: any, c?: any): Q.Promise<void> {
+    initializeFrame(frame: JQuery, viewName: string, parameters?: {}): Q.Promise<void>;
+    initializeFrame(frame: JQuery, module: IModule, viewName: string, parameters?: {}): Q.Promise<void>;
+    initializeFrame(frame: JQuery, a: any, b?: any, c?: any): Q.Promise<void> {
         if (typeof a === "string")
-            return this.initializeDefaultFrameCore(frame, a, b);
+            return this.initializeFrameCore(frame, a, b);
         else
-            return this.initializeDefaultFrameCore(frame, getViewName(a, b), c);
+            return this.initializeFrameCore(frame, getViewName(a, b), c);
     }
 
-    private initializeDefaultFrameCore(frame: JQuery, fullViewName: string, parameters?: {}) {
+    private initializeFrameCore(frame: JQuery, fullViewName: string, parameters?: {}) {
         return Q.Promise<void>((resolve, reject) => {
             if (this.frame !== null)
                 throw new Error("The default frame is already initialized.");

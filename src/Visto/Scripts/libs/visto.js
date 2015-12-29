@@ -178,29 +178,32 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         VistoContext.prototype.showDialogCore = function (fullViewName, parameters) {
             var _this = this;
-            var container = $("<div style=\"display:none\" />");
-            $("body").append(container);
-            if (parameters === undefined)
-                parameters = {};
-            parameters[isDialogParameter] = true;
-            this.showLoadingScreen();
-            var factory = new ViewFactory();
-            return factory.create(container, fullViewName, parameters, this).then(function (view) {
-                openedDialogs++;
-                // Remove focus from element of the underlying page to avoid click events on enter press
-                var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
-                if (focusable != null) {
-                    focusable.focus();
-                    focusable.blur();
-                }
-                exports.showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
-                    openedDialogs--;
-                    view.onClosed();
-                    view.__destroyView();
-                    container.remove();
-                });
-                container.removeAttr("style");
-                _this.hideLoadingScreen();
+            return Q.Promise(function (resolve, reject) {
+                var container = $("<div style=\"display:none\" />");
+                $("body").append(container);
+                if (parameters === undefined)
+                    parameters = {};
+                parameters[isDialogParameter] = true;
+                _this.showLoadingScreen();
+                var factory = new ViewFactory();
+                return factory.create(container, fullViewName, parameters, _this).then(function (view) {
+                    openedDialogs++;
+                    // Remove focus from element of the underlying page to avoid click events on enter press
+                    var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
+                    if (focusable != null) {
+                        focusable.focus();
+                        focusable.blur();
+                    }
+                    exports.showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
+                        openedDialogs--;
+                        view.onClosed();
+                        view.__destroyView();
+                        container.remove();
+                        resolve(view);
+                    });
+                    container.removeAttr("style");
+                    _this.hideLoadingScreen();
+                }, reject);
             });
         };
         /**
@@ -272,13 +275,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 return view;
             }, onDomUpdated);
         };
-        VistoContext.prototype.initializeDefaultFrame = function (frame, a, b, c) {
+        VistoContext.prototype.initializeFrame = function (frame, a, b, c) {
             if (typeof a === "string")
-                return this.initializeDefaultFrameCore(frame, a, b);
+                return this.initializeFrameCore(frame, a, b);
             else
-                return this.initializeDefaultFrameCore(frame, getViewName(a, b), c);
+                return this.initializeFrameCore(frame, getViewName(a, b), c);
         };
-        VistoContext.prototype.initializeDefaultFrameCore = function (frame, fullViewName, parameters) {
+        VistoContext.prototype.initializeFrameCore = function (frame, fullViewName, parameters) {
             var _this = this;
             return Q.Promise(function (resolve, reject) {
                 if (_this.frame !== null)
