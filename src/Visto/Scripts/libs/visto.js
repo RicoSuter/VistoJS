@@ -1239,13 +1239,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ResourceManager.prototype.getViewModelModuleUrl = function (packageName, viewName) {
             return packageName + "/viewModels/" + viewName + "Model";
         };
-        // CUSTOM
-        //getViewModuleUrl(packageName: string, viewName: string) {
-        //    return "/Scripts/" + packageName + "/views/" + viewName + ".js";
-        //}
-        //getViewModelModuleUrl(packageName: string, viewName: string) {
-        //    return "/Scripts/" + packageName + "/viewModels/" + viewName + "Model.js";
-        //}
         /**
          * [Replaceable] Loads the translated string for a given package and language.
          */
