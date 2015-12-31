@@ -238,7 +238,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return factory.create(pageContainer, fullViewName, parameters, this, function (view) {
                 var restoreQuery = view.parameters.getRestoreQuery();
                 _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
-                //// CUSTOM
+                // CUSTOM
                 if (_this.frame !== null)
                     window.location = "#" + _this.currentNavigationPath;
                 urlNavigationHistory.push(view.context);
@@ -786,7 +786,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         update: function (elem, valueAccessor) {
             var value = ko.utils.unwrapObservable(valueAccessor());
             var viewName = value.name;
-            var html = elem.parentNode.innerHTML;
+            var html = elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
             var element = $("<div>" + html + "</div>");
             ko.virtualElements.emptyNode(elem);
             // destroy if view is already loaded and only viewName has changed
@@ -810,7 +810,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 ko.utils.domNodeDisposal.addDisposeCallback(elem, function () { view.__destroyView(); });
                 if (parentView !== null)
                     parentView.__addSubView(view);
-                ko.virtualElements.setDomNodeChildren(elem, view.element.get(0).childNodes);
+                var children = view.element.get(0).childNodes;
+                for (var i = children.length - 1; i >= 0; i--) {
+                    var child = children[i];
+                    ko.virtualElements.prepend(elem, child);
+                }
             }).done();
         }
     };
@@ -1098,7 +1102,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.fullViewName = fullViewName;
             if (parameters !== undefined && parameters !== null)
                 this.originalParameters = (parameters);
-            this.tagContentHtml = element.get(0).innerHTML;
+            // TODO: Improve this
+            var html = element.get(0).innerHTML;
+            var index = html.indexOf(">");
+            if (index >= 0) {
+                html = html.substr(index + 1);
+                index = html.lastIndexOf("<");
+                html = html.substr(0, index);
+            }
+            this.tagContentHtml = html;
             var content = $(document.createElement("div"));
             content.html(this.tagContentHtml);
             this.tagContent = content;
@@ -1552,7 +1564,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     "  View: " + this.view.viewName + "'\n" +
                     "  View Model: " + this.viewModel.view.viewName + "'\n" +
                     "  View ID: " + this.viewId + "\n" +
-                    "  Check if view model could be loaded and bound property/expression is available/correct\nBound HTML:");
+                    "  Check if view model could be loaded and bound property/expression is available/correct\n" +
+                    err.stack + "\nBound HTML:");
                 console.warn(this.rootElement.get(0).innerHTML);
                 throw err;
             }
@@ -1598,9 +1611,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         ViewFactory.prototype.__setHtml = function () {
             this.element.html(this.rootElement);
-            //this.element.empty();
-            //this.element.append(this.rootElement);
-            //this.rootElement = this.element;
         };
         return ViewFactory;
     })();

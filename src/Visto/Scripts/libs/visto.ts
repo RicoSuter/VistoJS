@@ -302,7 +302,7 @@ export class VistoContext {
             this.currentNavigationPath = this.currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
-            //// CUSTOM
+            // CUSTOM
             if (this.frame !== null)
                 (<any>window).location = "#" + this.currentNavigationPath;
 
@@ -942,7 +942,7 @@ ko.bindingHandlers["view"] = {
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
         var viewName = (<any>value).name;
 
-        var html = <string>elem.parentNode.innerHTML;
+        var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
         var element = $("<div>" + html + "</div>");
         ko.virtualElements.emptyNode(elem);
         
@@ -974,7 +974,11 @@ ko.bindingHandlers["view"] = {
             if (parentView !== null)
                 parentView.__addSubView(view);
 
-            ko.virtualElements.setDomNodeChildren(elem, view.element.get(0).childNodes);
+            var children = view.element.get(0).childNodes;
+            for (var i = children.length - 1; i >= 0; i--) {
+                var child = children[i];
+                ko.virtualElements.prepend(elem, child);
+            }
         }).done();
     }
 };
@@ -1333,7 +1337,16 @@ export class Parameters {
         if (parameters !== undefined && parameters !== null)
             this.originalParameters = <any>(parameters);
 
-        this.tagContentHtml = element.get(0).innerHTML;
+        // TODO: Improve this
+        var html = element.get(0).innerHTML;
+        var index = html.indexOf(">");
+        if (index >= 0) {
+            html = html.substr(index + 1);
+            index = html.lastIndexOf("<");
+            html = html.substr(0, index);
+        }
+
+        this.tagContentHtml = html;
         var content = $(document.createElement("div"));
         content.html(this.tagContentHtml);
         this.tagContent = content;
@@ -1857,7 +1870,8 @@ class ViewFactory {
                 "  View: " + this.view.viewName + "'\n" +
                 "  View Model: " + (<any>this.viewModel).view.viewName + "'\n" +
                 "  View ID: " + this.viewId + "\n" +
-                "  Check if view model could be loaded and bound property/expression is available/correct\nBound HTML:");
+                "  Check if view model could be loaded and bound property/expression is available/correct\n" +
+                err.stack + "\nBound HTML:");
 
             console.warn(this.rootElement.get(0).innerHTML);
             throw err;
@@ -1919,9 +1933,6 @@ class ViewFactory {
 
     __setHtml() {
         this.element.html(<any>this.rootElement);
-        //this.element.empty();
-        //this.element.append(this.rootElement);
-        //this.rootElement = this.element;
     }
 
     // ReSharper restore InconsistentNaming

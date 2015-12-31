@@ -79,6 +79,8 @@
     <Content Include="Scripts\app.js">
       <DependentUpon>app.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\app\views\A.html" />
+    <Content Include="Scripts\app\views\B.html" />
     <Content Include="Scripts\app\viewModels\BindingsPageModel.js">
       <DependentUpon>BindingsPageModel.ts</DependentUpon>
     </Content>

@@ -1,28 +1,28 @@
 import visto = require("libs/visto");
 
 export interface ITab {
-    title: string; 
-    view: string; 
-    click: () => void; 
+	title: string; 
+	view: string; 
+	click: () => void; 
 }
 
 export class TabControlModel extends visto.ViewModel {
-    tabs: KnockoutObservableArray<ITab>;
+	tabs: KnockoutObservableArray<ITab>;
 	selectedTab = ko.observable<string>(null);
-    showBackButton: boolean;
-    tabsChanged: () => void;
+	showBackButton: boolean;
+	tabsChanged: () => void;
 
-    initialize() {
-        this.tabs = this.parameters.getObservableArray<ITab>("tabs");
-        this.showBackButton = this.parameters.getBoolean("showBackButton", true);
+	initialize() {
+		this.tabs = this.parameters.getObservableArray<ITab>("tabs");
+		this.showBackButton = this.parameters.getBoolean("showBackButton", true);
 
-        this.tabsChanged();
+		this.tabsChanged();
 
-        this.subscribe(this.tabs, this.tabsChanged);
-        this.selectedTab(this.tabs()[0].view);
+		this.subscribe(this.tabs, this.tabsChanged);
+		this.selectedTab(this.tabs()[0].view);
 	}
-    
-    changeTab(tab: ITab) {
+	
+	changeTab(tab: ITab) {
 		this.selectedTab(tab.view.toString());
 	}
 }
