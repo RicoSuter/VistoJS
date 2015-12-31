@@ -238,6 +238,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return factory.create(pageContainer, fullViewName, parameters, this, function (view) {
                 var restoreQuery = view.parameters.getRestoreQuery();
                 _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
+                //// CUSTOM
                 if (_this.frame !== null)
                     window.location = "#" + _this.currentNavigationPath;
                 urlNavigationHistory.push(view.context);
@@ -248,10 +249,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     currentPage.element.css("position", "absolute");
                 }
                 //// CUSTOM
-                //nextPage.element = $(nextPage.element.children().get(0));
-                //nextPageContainer.replaceWith(nextPage.element);
-                //nextPageContainer = nextPage.element;
-                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', nextPageContainer);
+                //view.element = $(view.element.children().get(0));
+                //pageContainer.replaceWith(view.element);
+                //pageContainer = view.element;
+                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
                 //// CUSTOM
                 // show next page by removing hiding css styles
                 if (!_this.isPageRestore)
@@ -264,7 +265,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
                 _this.canNavigateBack(pageStack.length > 1);
                 _this.pageStackSize(pageStack.length);
-                log("Navigated to new page " + view.viewClass + ", page stack size: " + pageStack.length);
+                log("Navigated to\n" +
+                    "  New page: " + view.viewClass + "\n" +
+                    "  Page stack size: " + pageStack.length);
                 if ($.isFunction(view.onNavigatedTo))
                     view.onNavigatedTo("forward");
                 if (currentPage !== null && currentPage !== undefined)
@@ -286,6 +289,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (_this.frame !== null)
                     throw new Error("The default frame is already initialized.");
                 _this.frame = frame;
+                // CUSTOM
                 var urlSegments = decodeURIComponent(window.location.hash).split("/");
                 if (urlSegments.length > 1) {
                     _this.isPageRestore = true;
@@ -334,6 +338,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         VistoContext.prototype.navigateToCore = function (fullViewName, parameters, onDomUpdated) {
             var _this = this;
+            if (this.frame === null)
+                throw "Frame is not set";
             if (this.isNavigating)
                 throw "Already navigating";
             this.isNavigating = true;
@@ -433,13 +439,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 currentPage.element.remove();
                 previousPage.element.css("visibility", "visible");
                 previousPage.element.css("position", "");
-                log("Navigated back to " + previousPage.view.viewClass + ", page stack size: " + pageStack.length);
+                log("Navigated back to\n" +
+                    "  Page: " + previousPage.view.viewClass + "\n" +
+                    "  Page stack size: " + pageStack.length);
                 previousPage.view.onNavigatedTo("back");
                 currentPage.view.onNavigatedFrom("back");
                 if ($.isFunction(this.backNavigationResolve))
                     this.backNavigationResolve();
             }
             else {
+                // CUSTOM
                 if (this.frame !== null)
                     window.location = "#" + currentPage.hash;
                 if ($.isFunction(this.backNavigationReject))
@@ -533,7 +542,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Logs the string to the console if logging is enabled
     function log(value) {
         if (exports.isLogging)
-            console.log(value);
+            console.log(new Date().toLocaleTimeString() + ": " + value);
     }
     ;
     // Tries to load a module using RequireJS
@@ -771,9 +780,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     ko.virtualElements.allowedBindings["stopBinding"] = true;
     // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
     ko.bindingHandlers["view"] = {
-        update: function (element, valueAccessor) {
+        init: function () {
+            return { controlsDescendantBindings: true };
+        },
+        update: function (elem, valueAccessor) {
             var value = ko.utils.unwrapObservable(valueAccessor());
             var viewName = value.name;
+            var html = elem.parentNode.innerHTML;
+            var element = $("<div>" + html + "</div>");
+            ko.virtualElements.emptyNode(elem);
             // destroy if view is already loaded and only viewName has changed
             var viewId = $(element).attr(viewIdAttribute);
             if (viewId !== undefined) {
@@ -782,20 +797,24 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     return; // already destroyed
                 if (view.viewName === viewName || view.viewName === view.viewPackage + ":" + viewName)
                     return; // only rebuild when viewName changed
-                console.log("Refreshing view '" + view.viewName + "' with new view '" +
-                    viewName + "' (view ID: " + view.viewId + ")");
+                log("Refreshing view: \n" +
+                    "  Old view: " + view.viewName + "\n" +
+                    "  New view '" + viewName + "\n" +
+                    "  View ID: " + view.viewId);
                 view.__destroyView();
             }
             var parentView = getParentViewFromElement($(element));
-            var context = parentView != null ? parentView.context : currentContext; // TODO: Check parentView != null
+            var context = parentView != null ? parentView.context : currentContext;
             var factory = new ViewFactory();
             factory.create($(element), viewName, value, context, function (view) {
-                ko.utils.domNodeDisposal.addDisposeCallback(element, function () { view.__destroyView(); });
+                ko.utils.domNodeDisposal.addDisposeCallback(elem, function () { view.__destroyView(); });
                 if (parentView !== null)
                     parentView.__addSubView(view);
+                ko.virtualElements.setDomNodeChildren(elem, view.element.get(0).childNodes);
             }).done();
         }
     };
+    ko.virtualElements.allowedBindings["view"] = true;
     // ----------------------------
     // View model
     // ----------------------------
@@ -955,8 +974,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 view.__destroyView();
             });
             if (!this.isDestroyed) {
-                log("Destroying view '" + this.viewId + "' (" + this.viewClass + ") with " +
-                    this.subViews.length + " subviews");
+                log("Destroying view\n" +
+                    "  View: " + this.viewId + "' (" + this.viewClass + ")\n" +
+                    "  # of subviews: " + this.subViews.length);
                 delete views[this.viewId];
                 this.viewModel.destroy();
                 this.destroy();
@@ -1294,7 +1314,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 var htmlAttributes = "";
                 attributes.replace(/([a-zA-Z0-9-]*?)="([^]*?)"/g, function (match, attributeName, attributeValue) {
                     if (attributeName.indexOf("vs-") === 0) {
-                        htmlAttributes += " " + match;
+                        htmlAttributes += " " + match; // TODO: Why?
                         return match;
                     }
                     else {
@@ -1321,9 +1341,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     bindings += "name: '" + tagAliases[tagName] + "'";
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
-                return '<span data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
+                return '<!-- ko view: { ' + bindings + ' } -->' + htmlAttributes + (tagClosing === "/>" ? "<!-- /ko -->" : "");
+                //return '<span data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
-            return data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "</span>");
+            data = data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "<!-- /ko -->");
+            return data;
         };
         /**
          * Process Knockout attributes (vs-) in the given HTML data string (must be called after processCustomTags).
@@ -1438,14 +1460,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (currentViewContext === undefined || currentViewContext === null) {
                 // from foreach, other late-bindings or root view
                 this.viewContext = new ViewFactoryContext();
-                this.viewContext.parentView = getParentViewFromElement(element);
+                this.viewContext.viewParent = getParentViewFromElement(element);
                 this.isRootView = true;
             }
             else {
                 this.viewContext = currentViewContext;
-                this.viewContext.parentView = currentViewContext.parentView;
                 this.isRootView = false;
             }
+            this.viewParent = this.viewContext.viewParent;
             this.viewLocator = new ViewLocator(fullViewName, this.viewContext);
             this.parameters = new Parameters(fullViewName, parameters, element);
             element.html("");
@@ -1468,15 +1490,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var _this = this;
             this.viewId = "view_" + ++viewCount;
             htmlData =
-                "<!-- ko stopBinding -->" +
-                    htmlData
-                        .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
-                        .replace(/\[\[viewid\]\]/gi, this.viewId) +
-                    "<!-- /ko -->";
+                //"<!-- ko stopBinding -->" +
+                htmlData
+                    .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+                    .replace(/\[\[viewid\]\]/gi, this.viewId);
+            //"<!-- /ko -->";
             var container = $(document.createElement("div"));
             container.html(htmlData);
-            this.rootElement = $(container.children()[0]);
-            this.element.attr(viewIdAttribute, this.viewId);
+            $(container.children()[0]).attr(viewIdAttribute, this.viewId);
+            //this.rootElement = $(container.children()[0]);
+            this.rootElement = container;
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
             this.view.context = context;
@@ -1499,17 +1522,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             else {
                 this.viewContext.factories.push(this);
-                if (this.isRootView) {
-                    this.viewContext.rootView = this.view;
-                    this.viewContext.rootPackage = this.viewLocator.package;
-                }
-                this.viewContext.parentView = this.view;
+                this.viewContext.viewParent = this.view;
                 this.viewContext.parentPackage = this.viewLocator.package;
-                currentContext = context;
-                currentViewContext = this.viewContext;
-                this.applyBindings();
-                currentViewContext = null;
-                currentContext = null;
+                try {
+                    currentContext = context;
+                    currentViewContext = this.viewContext;
+                    this.applyBindings();
+                }
+                finally {
+                    currentViewContext = null;
+                    currentContext = null;
+                }
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(this.view);
                 return this.viewContext.finalizeView(onDomUpdated).then(function () {
@@ -1519,14 +1542,18 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         ViewFactory.prototype.applyBindings = function () {
             try {
+                log("Apply bindings: \n" +
+                    "  View: " + this.view.viewName + " (parent: " + (this.view.viewParent != null ? this.view.viewParent.viewName : "n/a") + ")\n" +
+                    "  View Model: " + this.viewModel.view.viewName);
                 ko.applyBindings(this.viewModel, this.rootElement.get(0));
             }
             catch (err) {
                 console.error("Error applying bindings: \n" +
-                    "View: " + this.viewLocator.name + "'\n " +
-                    "View ID: " + this.viewId + "\n" +
-                    "Class: " + this.viewLocator.className + "(Model)\n" +
-                    "Check if view model could be loaded and bound property/expression is available/correct");
+                    "  View: " + this.view.viewName + "'\n" +
+                    "  View Model: " + this.viewModel.view.viewName + "'\n" +
+                    "  View ID: " + this.viewId + "\n" +
+                    "  Check if view model could be loaded and bound property/expression is available/correct\nBound HTML:");
+                console.warn(this.rootElement.get(0).innerHTML);
                 throw err;
             }
         };
@@ -1549,7 +1576,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             view.viewClass = this.viewLocator.className;
             view.viewPackage = this.viewLocator.package;
             view.parameters = this.parameters;
-            view.__setViewParent(this.viewContext.parentView);
+            view.__setViewParent(this.viewParent);
             views[this.viewId] = view;
             return view;
         };
@@ -1571,6 +1598,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         ViewFactory.prototype.__setHtml = function () {
             this.element.html(this.rootElement);
+            //this.element.empty();
+            //this.element.append(this.rootElement);
+            //this.rootElement = this.element;
         };
         return ViewFactory;
     })();
@@ -1578,10 +1608,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         function ViewFactoryContext() {
             this.factories = [];
             this.initializers = [];
-            this.rootPackage = defaultPackage;
-            this.rootView = null;
             this.parentPackage = defaultPackage;
-            this.parentView = null;
+            this.viewParent = null;
             this.viewCount = 0;
             this.restoreQuery = undefined;
             this.loadedViewCount = 0;
@@ -1633,8 +1661,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.view = arr[1];
             }
             else {
-                if (context.parentView != null)
-                    this.package = getChildPackage(context.parentView, context.parentPackage);
+                if (context.viewParent != null)
+                    this.package = getChildPackage(context.viewParent, context.parentPackage);
                 else
                     this.package = context.parentPackage;
                 this.view = fullViewName;
