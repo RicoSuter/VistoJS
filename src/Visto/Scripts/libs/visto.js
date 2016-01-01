@@ -201,7 +201,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         container.remove();
                         resolve(view);
                     });
-                    container.removeAttr("style");
+                    container.css("visibility", "");
+                    container.css("position", "");
                     _this.hideLoadingScreen();
                 }, reject);
             });
@@ -229,13 +230,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             return pageStack;
         };
-        VistoContext.prototype.tryNavigateForward = function (fullViewName, parameters, frame, pageContainer, onHtmlLoaded, onDomUpdated) {
+        VistoContext.prototype.tryNavigateForward = function (element, fullViewName, parameters, frame, onHtmlLoaded, onDomUpdated) {
             var _this = this;
             if (parameters === undefined || parameters == null)
                 parameters = {};
             parameters[isPageParameter] = true;
             var factory = new ViewFactory();
-            return factory.create(pageContainer, fullViewName, parameters, this, function (view) {
+            return factory.create(element, fullViewName, parameters, this, function (view) {
                 var restoreQuery = view.parameters.getRestoreQuery();
                 _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
                 // CUSTOM
@@ -248,20 +249,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     currentPage.element.css("visibility", "hidden");
                     currentPage.element.css("position", "absolute");
                 }
-                //// CUSTOM
-                //view.element = $(view.element.children().get(0));
-                //pageContainer.replaceWith(view.element);
-                //pageContainer = view.element;
-                //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
-                //// CUSTOM
                 // show next page by removing hiding css styles
-                if (!_this.isPageRestore)
-                    pageContainer.removeAttr("style");
+                if (!_this.isPageRestore) {
+                    element.css("visibility", "");
+                    element.css("position", "");
+                }
                 var pageStack = _this.getPageStack();
                 pageStack.push({
                     view: view,
                     hash: ++_this.navigationCount,
-                    element: pageContainer
+                    element: element
                 });
                 _this.canNavigateBack(pageStack.length > 1);
                 _this.pageStackSize(pageStack.length);
@@ -328,7 +325,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.hideLoadingScreen();
             this.isPageRestore = false;
             var page = this.getCurrentPageDescription();
-            page.element.removeAttr("style");
+            page.element.css("visibility", "");
+            page.element.css("position", "");
         };
         VistoContext.prototype.navigateTo = function (a, b, c, d) {
             if (typeof a === "string")
@@ -345,8 +343,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.isNavigating = true;
             // append new invisible page to DOM
             var pageContainer = $(document.createElement("div"));
+            //pageContainer.css("display", "table"); // CUSTOM
             pageContainer.css("visibility", "hidden");
             pageContainer.css("position", "absolute");
+            pageContainer.attr("visto-page", fullViewName);
             this.frame.append(pageContainer);
             // load currently visible page
             var currentPage = this.getCurrentPageDescription();
@@ -354,7 +354,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (currentPage !== null && currentPage !== undefined) {
                 return currentPage.view.onNavigatingFrom("forward").then(function (navigate) {
                     if (navigate) {
-                        return _this.tryNavigateForward(fullViewName, parameters, _this.frame, pageContainer, function (page) {
+                        return _this.tryNavigateForward(pageContainer, fullViewName, parameters, _this.frame, function (page) {
                             _this.hideLoadingScreen();
                             _this.isNavigating = false;
                             return page;
@@ -366,7 +366,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
             }
             else {
-                return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, function (page) {
+                return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, function (page) {
                     _this.hideLoadingScreen();
                     _this.isNavigating = false;
                     return page;
@@ -1147,13 +1147,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var func = this.getObject("click", null);
             if (func === null)
                 return null;
-            return function () {
-                if (func.caller !== undefined && func.caller !== null)
-                    return func;
-                var parentElement = viewModel.view.element.parent()[0];
-                var parentViewModel = ko.contextFor(parentElement).$data;
-                return func.apply(parentViewModel, arguments);
-            };
+            return func;
+            // TODO: Fix this
+            //return function () {
+            //    if (func.caller !== undefined && func.caller !== null)
+            //        return func;
+            //    var parentElement = (<any>viewModel).view.element.parent()[0];
+            //    var parentViewModel = ko.contextFor(parentElement).$data;
+            //    return func.apply(parentViewModel, arguments);
+            //};
         };
         Parameters.prototype.setValue = function (key, value) {
             var observable = this.getObservableObject(key, value);
@@ -1502,17 +1504,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.loadHtml = function (htmlData, context, onHtmlLoaded, onDomUpdated) {
             var _this = this;
             this.viewId = "view_" + ++viewCount;
-            htmlData =
-                //"<!-- ko stopBinding -->" +
-                htmlData
-                    .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
-                    .replace(/\[\[viewid\]\]/gi, this.viewId);
-            //"<!-- /ko -->";
+            htmlData = htmlData
+                .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+                .replace(/\[\[viewid\]\]/gi, this.viewId);
             var container = $(document.createElement("div"));
             container.html(htmlData);
             $(container.children()[0]).attr(viewIdAttribute, this.viewId);
-            //this.rootElement = $(container.children()[0]);
-            this.rootElement = container;
+            this.containerElement = container;
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
             this.view.context = context;
@@ -1558,7 +1556,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 log("Apply bindings: \n" +
                     "  View: " + this.view.viewName + " (parent: " + (this.view.viewParent != null ? this.view.viewParent.viewName : "n/a") + ")\n" +
                     "  View Model: " + this.viewModel.view.viewName);
-                ko.applyBindings(this.viewModel, this.rootElement.get(0));
+                ko.applyBindings(this.viewModel, this.containerElement.get(0));
             }
             catch (err) {
                 console.error("Error applying bindings: \n" +
@@ -1567,7 +1565,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     "  View ID: " + this.viewId + "\n" +
                     "  Check if view model could be loaded and bound property/expression is available/correct\n" +
                     err.stack + "\nBound HTML:");
-                console.warn(this.rootElement.get(0).innerHTML);
+                console.warn(this.containerElement.get(0).innerHTML);
                 throw err;
             }
         };
@@ -1584,7 +1582,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else
                     view = new View();
             }
-            view.element = this.rootElement;
+            view.element = this.containerElement;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;
             view.viewClass = this.viewLocator.className;
@@ -1611,7 +1609,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.view.isViewLoaded(true);
         };
         ViewFactory.prototype.__setHtml = function () {
-            this.element.html(this.rootElement);
+            this.element.empty();
+            this.element.append(this.containerElement.children());
+            // Updated element only if not already changed (in bindinghandler)
+            if (this.view.element === this.containerElement)
+                this.view.element = this.element;
         };
         return ViewFactory;
     })();

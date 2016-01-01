@@ -242,7 +242,9 @@ export class VistoContext {
 
                         resolve(view);
                     });
-                container.removeAttr("style");
+
+                container.css("visibility", "");
+                container.css("position", "");
 
                 this.hideLoadingScreen();
             }, reject);
@@ -288,7 +290,7 @@ export class VistoContext {
         return <IPage[]>pageStack;
     }
 
-    private tryNavigateForward(fullViewName: string, parameters: any, frame: JQuery, pageContainer: JQuery,
+    private tryNavigateForward(element: JQuery, fullViewName: string, parameters: any, frame: JQuery,
         onHtmlLoaded?: (view: ViewBase) => void, onDomUpdated?: (view: ViewBase) => void): Q.Promise<ViewBase> {
 
         if (parameters === undefined || parameters == null)
@@ -297,7 +299,7 @@ export class VistoContext {
         parameters[isPageParameter] = true;
 
         var factory = new ViewFactory();
-        return factory.create(pageContainer, fullViewName, parameters, this, (view: ViewBase) => {
+        return factory.create(element, fullViewName, parameters, this, (view: ViewBase) => {
             var restoreQuery = view.parameters.getRestoreQuery();
             this.currentNavigationPath = this.currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
@@ -315,23 +317,17 @@ export class VistoContext {
                 currentPage.element.css("position", "absolute");
             }
 
-            //// CUSTOM
-            //view.element = $(view.element.children().get(0));
-            //pageContainer.replaceWith(view.element);
-            //pageContainer = view.element;
-
-            //(<any>$('#pc')).scrollX('scrollIntoViewLeft', pageContainer);
-            //// CUSTOM
-
             // show next page by removing hiding css styles
-            if (!this.isPageRestore)
-                pageContainer.removeAttr("style");
+            if (!this.isPageRestore) {
+                element.css("visibility", "");
+                element.css("position", "");
+            }
 
             var pageStack = this.getPageStack();
             pageStack.push(<IPage>{
                 view: view,
                 hash: ++this.navigationCount,
-                element: pageContainer
+                element: element
             });
 
             this.canNavigateBack(pageStack.length > 1);
@@ -414,7 +410,8 @@ export class VistoContext {
         this.isPageRestore = false;
 
         var page = this.getCurrentPageDescription();
-        page.element.removeAttr("style");
+        page.element.css("visibility", "");
+        page.element.css("position", "");
     }
 
     /**
@@ -440,8 +437,11 @@ export class VistoContext {
 
         // append new invisible page to DOM
         var pageContainer = $(document.createElement("div"));
+        //pageContainer.css("display", "table"); // CUSTOM
         pageContainer.css("visibility", "hidden");
         pageContainer.css("position", "absolute");
+        pageContainer.attr("visto-page", fullViewName);
+
         this.frame.append(pageContainer);
 
         // load currently visible page
@@ -451,7 +451,7 @@ export class VistoContext {
         if (currentPage !== null && currentPage !== undefined) {
             return currentPage.view.onNavigatingFrom("forward").then<PageBase>((navigate) => {
                 if (navigate) {
-                    return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, (page) => {
+                    return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, (page) => {
                         this.hideLoadingScreen();
                         this.isNavigating = false;
                         return page;
@@ -461,7 +461,7 @@ export class VistoContext {
                 return null;
             });
         } else {
-            return this.tryNavigateForward(fullViewName, parameters, this.frame, pageContainer, (page) => {
+            return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, (page) => {
                 this.hideLoadingScreen();
                 this.isNavigating = false;
                 return page;
@@ -1393,15 +1393,17 @@ export class Parameters {
         var func = this.getObject<any>("click", null);
         if (func === null)
             return null;
+        return func; 
 
-        return function () {
-            if (func.caller !== undefined && func.caller !== null)
-                return func;
+        // TODO: Fix this
+        //return function () {
+        //    if (func.caller !== undefined && func.caller !== null)
+        //        return func;
 
-            var parentElement = (<any>viewModel).view.element.parent()[0];
-            var parentViewModel = ko.contextFor(parentElement).$data;
-            return func.apply(parentViewModel, arguments);
-        };
+        //    var parentElement = (<any>viewModel).view.element.parent()[0];
+        //    var parentViewModel = ko.contextFor(parentElement).$data;
+        //    return func.apply(parentViewModel, arguments);
+        //};
     }
 
     setValue<T>(key: string, value: T) {
@@ -1739,7 +1741,7 @@ export class BundledResourceManager extends ResourceManager {
 
 class ViewFactory {
     private element: JQuery;
-    private rootElement: JQuery;
+    private containerElement: JQuery;
     private parameters: Parameters;
 
     private viewId: string;
@@ -1757,7 +1759,9 @@ class ViewFactory {
 
     viewParent: ViewBase;
 
-    create(element: JQuery, fullViewName: string, parameters: any, context: VistoContext, onHtmlLoaded?: (view: ViewBase) => void, onDomUpdated?: (view: ViewBase) => void) {
+    create(element: JQuery, fullViewName: string, parameters: any, context: VistoContext,
+        onHtmlLoaded?: (view: ViewBase) => void, onDomUpdated?: (view: ViewBase) => void) {
+
         this.element = element;
         this.context = context;
 
@@ -1797,19 +1801,15 @@ class ViewFactory {
     private loadHtml(htmlData: string, context: VistoContext, onHtmlLoaded: (view: ViewBase) => void, onDomUpdated: (view: ViewBase) => void) {
         this.viewId = "view_" + ++viewCount;
 
-        htmlData =
-            //"<!-- ko stopBinding -->" +
-            htmlData
-                .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
-                .replace(/\[\[viewid\]\]/gi, this.viewId);
-        //"<!-- /ko -->";
+        htmlData = htmlData
+            .replace(/vs-id="/g, "id=\"" + this.viewId + "_")
+            .replace(/\[\[viewid\]\]/gi, this.viewId);
 
         var container = $(document.createElement("div"));
         container.html(htmlData);
         $(container.children()[0]).attr(viewIdAttribute, this.viewId);
 
-        //this.rootElement = $(container.children()[0]);
-        this.rootElement = container;
+        this.containerElement = container;
 
         this.view = this.instantiateView();
         this.viewModel = this.instantiateViewModel(this.view);
@@ -1866,7 +1866,7 @@ class ViewFactory {
                 "  View: " + this.view.viewName + " (parent: " + (this.view.viewParent != null ? this.view.viewParent.viewName : "n/a") + ")\n" +
                 "  View Model: " + (<any>this.viewModel).view.viewName);
 
-            ko.applyBindings(this.viewModel, this.rootElement.get(0));
+            ko.applyBindings(this.viewModel, this.containerElement.get(0));
         } catch (err) {
             console.error("Error applying bindings: \n" +
                 "  View: " + this.view.viewName + "'\n" +
@@ -1875,7 +1875,7 @@ class ViewFactory {
                 "  Check if view model could be loaded and bound property/expression is available/correct\n" +
                 err.stack + "\nBound HTML:");
 
-            console.warn(this.rootElement.get(0).innerHTML);
+            console.warn(this.containerElement.get(0).innerHTML);
             throw err;
         }
     }
@@ -1895,7 +1895,7 @@ class ViewFactory {
                 view = new View();
         }
 
-        view.element = this.rootElement;
+        view.element = this.containerElement;
         view.viewId = this.viewId;
 
         view.viewName = this.viewLocator.name;
@@ -1934,7 +1934,12 @@ class ViewFactory {
     }
 
     __setHtml() {
-        this.element.html(<any>this.rootElement);
+        this.element.empty();
+        this.element.append(this.containerElement.children());
+
+        // Updated element only if not already changed (in bindinghandler)
+        if (this.view.element === this.containerElement)
+            this.view.element = this.element;
     }
 
     // ReSharper restore InconsistentNaming
