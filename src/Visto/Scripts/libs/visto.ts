@@ -979,6 +979,8 @@ ko.bindingHandlers["view"] = {
                 var child = children[i];
                 ko.virtualElements.prepend(elem, child);
             }
+
+            view.element = $(elem.parentNode);
         }).done();
     }
 };

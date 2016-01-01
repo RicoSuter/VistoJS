@@ -815,6 +815,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     var child = children[i];
                     ko.virtualElements.prepend(elem, child);
                 }
+                view.element = $(elem.parentNode);
             }).done();
         }
     };
