@@ -41,7 +41,7 @@ export class WebView extends visto.ViewBase {
     }
 
     private registerSubmitEvent() {
-        this.element.submit(e => {
+        this.elementContainer.submit(e => {
             e.preventDefault();
             var form = $(e.target);
             this.loadHtml({
@@ -53,7 +53,7 @@ export class WebView extends visto.ViewBase {
     }
 
     private registerLinkEvents() {
-        this.element.find("a").click(args => {
+        this.elementContainer.find("a").click(args => {
             var url = $(args.target).attr("href");
             this.navigateToUrl(url);
             return false;
@@ -76,7 +76,7 @@ export class WebView extends visto.ViewBase {
 
     private setHtml(data: string, baseUrl: string) {
         this.currentBaseUrl = baseUrl;
-        this.element.html(data);
+        this.elementContainer.html(data);
         this.registerLinkEvents();
     }
 }

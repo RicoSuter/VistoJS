@@ -810,12 +810,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 ko.utils.domNodeDisposal.addDisposeCallback(elem, function () { view.__destroyView(); });
                 if (parentView !== null)
                     parentView.__addSubView(view);
-                var children = view.element.get(0).childNodes;
+                var children = view.elementContainer.get(0).childNodes;
                 for (var i = children.length - 1; i >= 0; i--) {
                     var child = children[i];
                     ko.virtualElements.prepend(elem, child);
                 }
-                view.element = $(elem.parentNode);
+                view.elementContainer = $(elem.parentNode);
             }).done();
         }
     };
@@ -939,7 +939,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Finds elements inside this view with a selector.
          */
         ViewBase.prototype.findElements = function (selector) {
-            return this.element.find(selector);
+            return this.elementContainer.find(selector);
         };
         /**
          * Gets an element by ID (defined using the "vs-id" attribute) inside this view.
@@ -990,8 +990,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
                 if (this.viewParent != null)
                     this.viewParent.viewChildren.remove(this);
-                ko.cleanNode(this.element.get(0)); // unapply bindings
                 this.isDestroyed = true;
+                ko.cleanNode(this.elementContainer.get(0)); // unapply bindings
             }
         };
         ViewBase.prototype.__setViewParent = function (viewParent) {
@@ -1070,7 +1070,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         Dialog.prototype.close = function (result) {
             this.result = result;
-            exports.closeNativeDialog(this.element);
+            exports.closeNativeDialog(this.elementContainer);
         };
         /**
          * [Virtual] Called when the dialog is shown and all animations have finished.
@@ -1582,7 +1582,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else
                     view = new View();
             }
-            view.element = this.containerElement;
+            view.elementContainer = this.containerElement;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;
             view.viewClass = this.viewLocator.className;
@@ -1612,8 +1612,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.element.empty();
             this.element.append(this.containerElement.children());
             // Updated element only if not already changed (in bindinghandler)
-            if (this.view.element === this.containerElement)
-                this.view.element = this.element;
+            if (this.view.elementContainer === this.containerElement)
+                this.view.elementContainer = this.element;
         };
         return ViewFactory;
     })();

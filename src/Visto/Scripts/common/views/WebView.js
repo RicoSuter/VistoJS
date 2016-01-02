@@ -41,7 +41,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
         };
         WebView.prototype.registerSubmitEvent = function () {
             var _this = this;
-            this.element.submit(function (e) {
+            this.elementContainer.submit(function (e) {
                 e.preventDefault();
                 var form = $(e.target);
                 _this.loadHtml({
@@ -53,7 +53,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
         };
         WebView.prototype.registerLinkEvents = function () {
             var _this = this;
-            this.element.find("a").click(function (args) {
+            this.elementContainer.find("a").click(function (args) {
                 var url = $(args.target).attr("href");
                 _this.navigateToUrl(url);
                 return false;
@@ -74,7 +74,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
         };
         WebView.prototype.setHtml = function (data, baseUrl) {
             this.currentBaseUrl = baseUrl;
-            this.element.html(data);
+            this.elementContainer.html(data);
             this.registerLinkEvents();
         };
         return WebView;

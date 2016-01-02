@@ -974,13 +974,13 @@ ko.bindingHandlers["view"] = {
             if (parentView !== null)
                 parentView.__addSubView(view);
 
-            var children = view.element.get(0).childNodes;
+            var children = view.elementContainer.get(0).childNodes;
             for (var i = children.length - 1; i >= 0; i--) {
                 var child = children[i];
                 ko.virtualElements.prepend(elem, child);
             }
 
-            view.element = $(elem.parentNode);
+            view.elementContainer = $(elem.parentNode);
         }).done();
     }
 };
@@ -1092,9 +1092,9 @@ export class ViewBase {
     viewPackage: string;
 
     /**
-     * Gets the view element which originally was the custom tag (not available in ctor, initialize() and onLoading()). 
+     * Gets the element container which contains the view HTML markup (not available in ctor, initialize() and onLoading()). 
      */
-    element: JQuery; 
+    elementContainer: JQuery; 
 
     /**
      * Gets the parameters provided by the creator of the view (e.g. attributes on the custom tag). 
@@ -1159,7 +1159,7 @@ export class ViewBase {
      * Finds elements inside this view with a selector. 
      */
     findElements(selector: string) {
-        return this.element.find(selector);
+        return this.elementContainer.find(selector);
     }
 
     /**
@@ -1226,8 +1226,8 @@ export class ViewBase {
             if (this.viewParent != null)
                 this.viewParent.viewChildren.remove(this);
 
-            ko.cleanNode(this.element.get(0)); // unapply bindings
             this.isDestroyed = true;
+            ko.cleanNode(this.elementContainer.get(0)); // unapply bindings
         }
     }
 
@@ -1299,7 +1299,7 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
      */
     close(result?: DialogResult) {
         this.result = result;
-        closeNativeDialog(this.element);
+        closeNativeDialog(this.elementContainer);
     }
 
     /**
@@ -1895,7 +1895,7 @@ class ViewFactory {
                 view = new View();
         }
 
-        view.element = this.containerElement;
+        view.elementContainer = this.containerElement;
         view.viewId = this.viewId;
 
         view.viewName = this.viewLocator.name;
@@ -1938,8 +1938,8 @@ class ViewFactory {
         this.element.append(this.containerElement.children());
 
         // Updated element only if not already changed (in bindinghandler)
-        if (this.view.element === this.containerElement)
-            this.view.element = this.element;
+        if (this.view.elementContainer === this.containerElement)
+            this.view.elementContainer = this.element;
     }
 
     // ReSharper restore InconsistentNaming
