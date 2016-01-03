@@ -19,7 +19,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // Constants
     // ----------------------------
-    var viewIdAttribute = "visto-view-id";
+    //var viewIdAttribute = "visto-view-id";
     var pageStackAttribute = "page-stack";
     var lazyViewLoadingOption = "lazyLoading";
     var isPageParameter = "__isPage";
@@ -237,6 +237,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             parameters[isPageParameter] = true;
             var factory = new ViewFactory();
             return factory.create(element, fullViewName, parameters, this, function (view) {
+                element.get(0).vistoView = view;
                 var restoreQuery = view.parameters.getRestoreQuery();
                 _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
                 // CUSTOM
@@ -343,7 +344,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.isNavigating = true;
             // append new invisible page to DOM
             var pageContainer = $(document.createElement("div"));
-            //pageContainer.css("display", "table"); // CUSTOM
+            //pageContainer.css("display", "table-cell"); // CUSTOM
             pageContainer.css("visibility", "hidden");
             pageContainer.css("position", "absolute");
             pageContainer.attr("visto-page", fullViewName);
@@ -673,13 +674,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Gets the view or parent view of the given element.
      */
     function getViewFromElement(element) {
-        var viewId = element.attr(viewIdAttribute);
-        if (viewId !== undefined) {
-            if (views[viewId] == undefined)
-                throw "getViewFromElement: ViewID is set on element but view could not be found.";
-            return views[viewId];
-        }
-        return getParentViewFromElement(element);
+        var context = ko.contextFor(element);
+        if (context !== undefined && context !== null && context.$parent !== undefined && context.$parent !== null)
+            return context.$parent.view;
+        return null;
     }
     exports.getViewFromElement = getViewFromElement;
     ;
@@ -687,15 +685,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Gets the parent view of the given element.
      */
     function getParentViewFromElement(element) {
-        while ((element = element.parent()) != undefined) {
-            if (element.length === 0)
-                return null;
-            var viewId = $(element[0]).attr(viewIdAttribute);
-            if (viewId !== undefined) {
-                if (views[viewId] == undefined)
-                    throw "getViewFromElement: ViewID is set on element but view could not be found.";
-                return views[viewId];
-            }
+        var parent = element.parentNode;
+        if (parent !== undefined && parent !== null) {
+            var context = ko.contextFor(parent);
+            if (context !== undefined && context !== null && context.$parent !== undefined && context.$parent !== null)
+                return context.$parent.view;
         }
         return null;
     }
@@ -705,7 +699,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
      * Gets the parent view model of the given element.
      */
     function getViewModelForElement(element) {
-        var view = getViewFromElement(element);
+        var view = getViewFromElement(element.get(0));
         if (view !== null && view !== undefined)
             return view.viewModel;
         return null;
@@ -786,15 +780,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         update: function (elem, valueAccessor) {
             var value = ko.utils.unwrapObservable(valueAccessor());
             var viewName = value.name;
-            var html = elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
-            var element = $("<div>" + html + "</div>");
-            ko.virtualElements.emptyNode(elem);
             // destroy if view is already loaded and only viewName has changed
-            var viewId = $(element).attr(viewIdAttribute);
-            if (viewId !== undefined) {
-                var view = views[viewId];
-                if (view === undefined || view === null)
-                    return; // already destroyed
+            var view = elem.vistoView;
+            if (view !== undefined && view !== null) {
                 if (view.viewName === viewName || view.viewName === view.viewPackage + ":" + viewName)
                     return; // only rebuild when viewName changed
                 log("Refreshing view: \n" +
@@ -803,10 +791,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     "  View ID: " + view.viewId);
                 view.__destroyView();
             }
-            var parentView = getParentViewFromElement($(element));
+            var html = elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
+            var element = $("<div>" + html + "</div>");
+            ko.virtualElements.emptyNode(elem);
+            var parentView = getParentViewFromElement(elem);
             var context = parentView != null ? parentView.context : currentContext;
+            if (context === null)
+                throw "Could not find Visto context.";
             var factory = new ViewFactory();
             factory.create($(element), viewName, value, context, function (view) {
+                elem.vistoView = view;
                 ko.utils.domNodeDisposal.addDisposeCallback(elem, function () { view.__destroyView(); });
                 if (parentView !== null)
                     parentView.__addSubView(view);
@@ -1475,7 +1469,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (currentViewContext === undefined || currentViewContext === null) {
                 // from foreach, other late-bindings or root view
                 this.viewContext = new ViewFactoryContext();
-                this.viewContext.viewParent = getParentViewFromElement(element);
+                this.viewContext.viewParent = getParentViewFromElement(element.get(0));
                 this.isRootView = true;
             }
             else {
@@ -1509,7 +1503,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 .replace(/\[\[viewid\]\]/gi, this.viewId);
             var container = $(document.createElement("div"));
             container.html(htmlData);
-            $(container.children()[0]).attr(viewIdAttribute, this.viewId);
+            //$(container.children()[0]).attr(viewIdAttribute, this.viewId);
             this.containerElement = container;
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
@@ -1610,8 +1604,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         };
         ViewFactory.prototype.__setHtml = function () {
             this.element.empty();
-            this.element.append(this.containerElement.children());
-            // Updated element only if not already changed (in bindinghandler)
+            var childNodesCopy = [];
+            var childNodes = this.containerElement.get(0).childNodes;
+            for (var j = 0; j < childNodes.length; j++)
+                childNodesCopy.push(childNodes[j]);
+            for (var i = 0; i < childNodesCopy.length; i++) {
+                var child = childNodesCopy[i];
+                this.element.get(0).appendChild(child);
+            }
             if (this.view.elementContainer === this.containerElement)
                 this.view.elementContainer = this.element;
         };

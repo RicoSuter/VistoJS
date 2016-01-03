@@ -22,7 +22,7 @@ var urlNavigationHistory: VistoContext[] = [];
 // Constants
 // ----------------------------
 
-var viewIdAttribute = "visto-view-id";
+//var viewIdAttribute = "visto-view-id";
 var pageStackAttribute = "page-stack";
 var lazyViewLoadingOption = "lazyLoading";
 
@@ -300,6 +300,8 @@ export class VistoContext {
 
         var factory = new ViewFactory();
         return factory.create(element, fullViewName, parameters, this, (view: ViewBase) => {
+            (<any>element.get(0)).vistoView = view;
+
             var restoreQuery = view.parameters.getRestoreQuery();
             this.currentNavigationPath = this.currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
@@ -437,7 +439,7 @@ export class VistoContext {
 
         // append new invisible page to DOM
         var pageContainer = $(document.createElement("div"));
-        //pageContainer.css("display", "table"); // CUSTOM
+        //pageContainer.css("display", "table-cell"); // CUSTOM
         pageContainer.css("visibility", "hidden");
         pageContainer.css("position", "absolute");
         pageContainer.attr("visto-page", fullViewName);
@@ -818,33 +820,22 @@ export class Event<TSender, TArgs> {
 /**
  * Gets the view or parent view of the given element.
  */
-export function getViewFromElement(element: JQuery): ViewBase {
-    var viewId = element.attr(viewIdAttribute);
-    if (viewId !== undefined) {
-        if (views[viewId] == undefined)
-            throw "getViewFromElement: ViewID is set on element but view could not be found.";
-
-        return views[viewId];
-    }
-
-    return getParentViewFromElement(element);
+export function getViewFromElement(element: Node): ViewBase {
+    var context = ko.contextFor(element);
+    if (context !== undefined && context !== null && context.$parent !== undefined && context.$parent !== null)
+        return context.$parent.view;
+    return null;
 };
 
 /**
  * Gets the parent view of the given element.
  */
-export function getParentViewFromElement(element: JQuery): ViewBase {
-    while ((element = element.parent()) != undefined) {
-        if (element.length === 0)
-            return null;
-
-        var viewId = $(element[0]).attr(viewIdAttribute);
-        if (viewId !== undefined) {
-            if (views[viewId] == undefined)
-                throw "getViewFromElement: ViewID is set on element but view could not be found.";
-
-            return views[viewId];
-        }
+export function getParentViewFromElement(element: Node): ViewBase {
+    var parent = element.parentNode;
+    if (parent !== undefined && parent !== null) {
+        var context = ko.contextFor(parent);
+        if (context !== undefined && context !== null && context.$parent !== undefined && context.$parent !== null)
+            return context.$parent.view;
     }
     return null;
 };
@@ -853,7 +844,7 @@ export function getParentViewFromElement(element: JQuery): ViewBase {
  * Gets the parent view model of the given element.
  */
 export function getViewModelForElement(element: JQuery): ViewModel {
-    var view = <View<any>>getViewFromElement(element);
+    var view = <View<any>>getViewFromElement(element.get(0));
     if (view !== null && view !== undefined)
         return view.viewModel;
     return null;
@@ -942,17 +933,9 @@ ko.bindingHandlers["view"] = {
         var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
         var viewName = (<any>value).name;
 
-        var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
-        var element = $("<div>" + html + "</div>");
-        ko.virtualElements.emptyNode(elem);
-        
         // destroy if view is already loaded and only viewName has changed
-        var viewId = $(element).attr(viewIdAttribute);
-        if (viewId !== undefined) {
-            var view = views[viewId];
-            if (view === undefined || view === null)
-                return; // already destroyed
-
+        var view = elem.vistoView;
+        if (view !== undefined && view !== null) {
             if (view.viewName === viewName || view.viewName === view.viewPackage + ":" + viewName)
                 return; // only rebuild when viewName changed
             
@@ -964,11 +947,20 @@ ko.bindingHandlers["view"] = {
             view.__destroyView();
         }
 
-        var parentView = getParentViewFromElement($(element));
+        var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
+        var element = $("<div>" + html + "</div>");
+        ko.virtualElements.emptyNode(elem);
+
+        var parentView = getParentViewFromElement(elem);
         var context = parentView != null ? parentView.context : currentContext;
+
+        if (context === null)
+            throw "Could not find Visto context.";
 
         var factory = new ViewFactory();
         factory.create($(element), viewName, value, context, view => {
+            elem.vistoView = view;
+
             ko.utils.domNodeDisposal.addDisposeCallback(elem, () => { view.__destroyView(); });
 
             if (parentView !== null)
@@ -1768,7 +1760,7 @@ class ViewFactory {
         if (currentViewContext === undefined || currentViewContext === null) {
             // from foreach, other late-bindings or root view
             this.viewContext = new ViewFactoryContext();
-            this.viewContext.viewParent = getParentViewFromElement(element);
+            this.viewContext.viewParent = getParentViewFromElement(element.get(0));
             this.isRootView = true;
         } else {
             this.viewContext = currentViewContext;
@@ -1807,7 +1799,7 @@ class ViewFactory {
 
         var container = $(document.createElement("div"));
         container.html(htmlData);
-        $(container.children()[0]).attr(viewIdAttribute, this.viewId);
+        //$(container.children()[0]).attr(viewIdAttribute, this.viewId);
 
         this.containerElement = container;
 
@@ -1935,9 +1927,17 @@ class ViewFactory {
 
     __setHtml() {
         this.element.empty();
-        this.element.append(this.containerElement.children());
 
-        // Updated element only if not already changed (in bindinghandler)
+        var childNodesCopy: Node[] = [];
+        var childNodes = this.containerElement.get(0).childNodes;
+        for (var j = 0; j < childNodes.length; j++)
+            childNodesCopy.push(childNodes[j]);
+
+        for (var i = 0; i < childNodesCopy.length; i++) {
+            var child = childNodesCopy[i];
+            this.element.get(0).appendChild(child);
+        }
+
         if (this.view.elementContainer === this.containerElement)
             this.view.elementContainer = this.element;
     }
