@@ -1143,7 +1143,9 @@ export class ViewBase {
      * The property must be set in the view's initialize() method. 
      * The view cannot have an own view model class. 
      */
-    inheritViewModelFromParent = false; 
+    inheritViewModelFromParent() {
+        (<any>this).viewModel = (<any>this.viewParent).viewModel;
+    }
 
     /**
      * Gets or sets a value indicating whether the package scope for child views is inherited from the parent view. 
@@ -1834,7 +1836,6 @@ class ViewFactory {
 
         var container = $(document.createElement("div"));
         container.html(htmlData);
-        //$(container.children()[0]).attr(viewIdAttribute, this.viewId);
 
         this.containerElement = container;
 
@@ -1847,11 +1848,7 @@ class ViewFactory {
         // initialize and retrieve restore query
         this.view.initialize(this.parameters);
         this.viewModel.initialize(this.parameters);
-
-        if (this.view.inheritViewModelFromParent) {
-            this.viewModel = (<any>this.view.viewParent).viewModel;
-            (<any>this.view).viewModel = this.viewModel;
-        }
+        this.viewModel = (<any>this.view).viewModel; // may have changed in view.initialize()
 
         if (this.isRootView)
             this.viewContext.restoreQuery = this.parameters.getRestoreQuery();

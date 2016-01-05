@@ -918,12 +918,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
              */
             this.viewChildren = ko.observableArray();
             /**
-             * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated.
-             * The property must be set in the view's initialize() method.
-             * The view cannot have an own view model class.
-             */
-            this.inheritViewModelFromParent = false;
-            /**
              * Gets or sets a value indicating whether the package scope for child views is inherited from the parent view.
              * The property must be set in the view's initialize() method.
              */
@@ -935,6 +929,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.isViewLoaded = ko.observable(false);
             this.__setHtml = true;
         }
+        /**
+         * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated.
+         * The property must be set in the view's initialize() method.
+         * The view cannot have an own view model class.
+         */
+        ViewBase.prototype.inheritViewModelFromParent = function () {
+            this.viewModel = this.viewParent.viewModel;
+        };
         /**
          * Enables page restoring for the current page.
          * This method must be called in the initialize() method.
@@ -1527,7 +1529,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 .replace(/\[\[viewid\]\]/gi, this.viewId);
             var container = $(document.createElement("div"));
             container.html(htmlData);
-            //$(container.children()[0]).attr(viewIdAttribute, this.viewId);
             this.containerElement = container;
             this.view = this.instantiateView();
             this.viewModel = this.instantiateViewModel(this.view);
@@ -1536,10 +1537,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);
-            if (this.view.inheritViewModelFromParent) {
-                this.viewModel = this.view.viewParent.viewModel;
-                this.view.viewModel = this.viewModel;
-            }
+            this.viewModel = this.view.viewModel; // may have changed in view.initialize()
             if (this.isRootView)
                 this.viewContext.restoreQuery = this.parameters.getRestoreQuery();
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
