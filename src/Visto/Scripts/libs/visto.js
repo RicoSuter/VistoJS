@@ -273,7 +273,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(view);
                 return view;
-            }, onDomUpdated);
+            }, onDomUpdated).then(function (view) {
+                return view;
+            });
         };
         VistoContext.prototype.initializeFrame = function (frame, a, b, c) {
             if (typeof a === "string")
@@ -371,7 +373,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     _this.hideLoadingScreen();
                     _this.isNavigating = false;
                     return page;
-                }, onDomUpdated);
+                }, onDomUpdated).then(function (view) {
+                    return view;
+                });
             }
         };
         /**
@@ -791,9 +795,47 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     "  View ID: " + view.viewId);
                 view.__destroyView();
             }
-            var html = elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
-            var element = $("<div>" + html + "</div>");
+            // Build an array of child elements
+            //var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
+            var html = "";
+            var last = null;
+            var first = ko.virtualElements.firstChild(elem);
+            var child = first;
+            while (child) {
+                //if (child.outerHTML !== undefined)
+                //    html += child.outerHTML;
+                //else if (child.text !== undefined)
+                //    html += child.text;
+                //else if (child.data !== undefined)
+                //    html += child.data;
+                //else {
+                //    var x = 10; 
+                //}
+                last = child;
+                child = ko.virtualElements.nextSibling(child);
+            }
+            var isf = false;
+            for (var i = 0; i < elem.parentNode.childNodes.length; i++) {
+                var node = elem.parentNode.childNodes[i];
+                if (node === first)
+                    isf = true;
+                if (isf) {
+                    if (node.outerHTML !== undefined)
+                        html += node.outerHTML;
+                    else if (node.text !== undefined)
+                        html += node.text;
+                    else if (node.data !== undefined)
+                        html += node.data;
+                    else {
+                        var x = 10;
+                    }
+                }
+                if (node === last)
+                    break;
+            }
             ko.virtualElements.emptyNode(elem);
+            value.__htmlBody = html;
+            var element = $("<div></div>");
             var parentView = getParentViewFromElement(elem);
             var context = parentView != null ? parentView.context : currentContext;
             if (context === null)
@@ -801,15 +843,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             var factory = new ViewFactory();
             factory.create($(element), viewName, value, context, function (view) {
                 elem.vistoView = view;
-                ko.utils.domNodeDisposal.addDisposeCallback(elem, function () { view.__destroyView(); });
+                ko.utils.domNodeDisposal.addDisposeCallback(elem, function () {
+                    view.__destroyView();
+                });
                 if (parentView !== null)
                     parentView.__addSubView(view);
-                var children = view.elementContainer.get(0).childNodes;
-                for (var i = children.length - 1; i >= 0; i--) {
-                    var child = children[i];
-                    ko.virtualElements.prepend(elem, child);
-                }
-                view.elementContainer = $(elem.parentNode);
+                ko.virtualElements.setDomNodeChildren(elem, view.elementNodes);
+                view.__setHtml = false;
             }).done();
         }
     };
@@ -883,6 +923,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewBase = (function () {
         function ViewBase() {
             /**
+             * Gets the element container which contains the view HTML markup (not available in ctor, initialize() and onLoading()).
+             */
+            this.elementNodes = null;
+            /**
              * Gets the view's parent view.
              */
             this.viewParent = null;
@@ -906,6 +950,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.disposables = [];
             this.context = null;
             this.isViewLoaded = ko.observable(false);
+            this.__setHtml = true;
         }
         /**
          * Enables page restoring for the current page.
@@ -933,7 +978,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Finds elements inside this view with a selector.
          */
         ViewBase.prototype.findElements = function (selector) {
-            return this.elementContainer.find(selector);
+            if (this.elementNodes.length === 0)
+                return $();
+            return $(this.elementNodes[0].parentNode).find(selector); // TODO: Only children and subchildren
         };
         /**
          * Gets an element by ID (defined using the "vs-id" attribute) inside this view.
@@ -985,7 +1032,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (this.viewParent != null)
                     this.viewParent.viewChildren.remove(this);
                 this.isDestroyed = true;
-                ko.cleanNode(this.elementContainer.get(0)); // unapply bindings
+                for (var j = 0; j < this.elementNodes.length; j++)
+                    ko.cleanNode(this.elementNodes[j]); // unapply bindings
             }
         };
         ViewBase.prototype.__setViewParent = function (viewParent) {
@@ -1064,7 +1112,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         Dialog.prototype.close = function (result) {
             this.result = result;
-            exports.closeNativeDialog(this.elementContainer);
+            // TODO: Fix this
+            //closeNativeDialog(this.elementNodes);
         };
         /**
          * [Virtual] Called when the dialog is shown and all animations have finished.
@@ -1091,21 +1140,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // Parameters
     // ----------------------------
     var Parameters = (function () {
-        function Parameters(fullViewName, parameters, element) {
+        function Parameters(fullViewName, parameters) {
             this.parameters = {};
             this.originalParameters = {};
+            if (parameters === undefined || parameters === null)
+                parameters = {};
             this.fullViewName = fullViewName;
-            if (parameters !== undefined && parameters !== null)
-                this.originalParameters = (parameters);
-            // TODO: Improve this
-            var html = element.get(0).innerHTML;
-            var index = html.indexOf(">");
-            if (index >= 0) {
-                html = html.substr(index + 1);
-                index = html.lastIndexOf("<");
-                html = html.substr(0, index);
-            }
-            this.tagContentHtml = html;
+            this.originalParameters = parameters;
+            this.tagContentHtml = parameters.__htmlBody !== undefined ? parameters.__htmlBody : "";
             var content = $(document.createElement("div"));
             content.html(this.tagContentHtml);
             this.tagContent = content;
@@ -1478,7 +1520,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             this.viewParent = this.viewContext.viewParent;
             this.viewLocator = new ViewLocator(fullViewName, this.viewContext);
-            this.parameters = new Parameters(fullViewName, parameters, element);
+            this.parameters = new Parameters(fullViewName, parameters);
             element.html("");
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
             if (!lazySubviewLoading)
@@ -1576,7 +1618,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else
                     view = new View();
             }
-            view.elementContainer = this.containerElement;
+            var childNodesCopy = [];
+            var childNodes = this.containerElement.get(0).childNodes;
+            for (var j = 0; j < childNodes.length; j++)
+                childNodesCopy.push(childNodes[j]);
+            view.elementNodes = childNodesCopy;
             view.viewId = this.viewId;
             view.viewName = this.viewLocator.name;
             view.viewClass = this.viewLocator.className;
@@ -1603,17 +1649,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.view.isViewLoaded(true);
         };
         ViewFactory.prototype.__setHtml = function () {
-            this.element.empty();
-            var childNodesCopy = [];
-            var childNodes = this.containerElement.get(0).childNodes;
-            for (var j = 0; j < childNodes.length; j++)
-                childNodesCopy.push(childNodes[j]);
-            for (var i = 0; i < childNodesCopy.length; i++) {
-                var child = childNodesCopy[i];
-                this.element.get(0).appendChild(child);
+            if (this.view.__setHtml) {
+                this.element.empty();
+                //var childNodesCopy: Node[] = [];
+                //var childNodes = this.containerElement.get(0).childNodes;
+                //for (var j = 0; j < childNodes.length; j++)
+                //    childNodesCopy.push(childNodes[j]);
+                for (var i = 0; i < this.view.elementNodes.length; i++) {
+                    var child = this.view.elementNodes[i];
+                    this.element.get(0).appendChild(child);
+                }
             }
-            if (this.view.elementContainer === this.containerElement)
-                this.view.elementContainer = this.element;
         };
         return ViewFactory;
     })();
@@ -1648,11 +1694,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                                             });
                                             if ($.isFunction(onDomUpdated))
                                                 onDomUpdated(context.view);
-                                            $.each(_this.factories, function (index, factory) {
-                                                factory.__raiseLoadedEvents();
-                                            });
                                             $.each(_this.initializers, function (index, initializer) {
                                                 initializer();
+                                            });
+                                            $.each(_this.factories, function (index, factory) {
+                                                factory.__raiseLoadedEvents();
                                             });
                                             resolve(_this);
                                         }

@@ -138,6 +138,7 @@
     <Content Include="Scripts\common\views\TabControl.js">
       <DependentUpon>TabControl.ts</DependentUpon>
     </Content>
+    <Content Include="Scripts\common\views\WebView.html" />
     <Content Include="Scripts\common\views\WebView.js">
       <DependentUpon>WebView.ts</DependentUpon>
     </Content>

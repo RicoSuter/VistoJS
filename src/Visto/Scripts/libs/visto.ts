@@ -349,7 +349,9 @@ export class VistoContext {
                 onHtmlLoaded(view);
 
             return view;
-        }, onDomUpdated);
+        }, onDomUpdated).then(view => {
+            return view;
+        });
     }
 
     isPageRestore = false;
@@ -467,7 +469,9 @@ export class VistoContext {
                 this.hideLoadingScreen();
                 this.isNavigating = false;
                 return page;
-            }, onDomUpdated);
+            }, onDomUpdated).then(view => {
+                return view;
+            });
         }
     }
 
@@ -930,8 +934,8 @@ ko.bindingHandlers["view"] = {
     },
 
     update(elem: any, valueAccessor: any): void {
-        var value = <{ [key: string]: any }>ko.utils.unwrapObservable(valueAccessor());
-        var viewName = (<any>value).name;
+        var value = <any>ko.utils.unwrapObservable(valueAccessor());
+        var viewName = value.name;
 
         // destroy if view is already loaded and only viewName has changed
         var view = elem.vistoView;
@@ -947,9 +951,56 @@ ko.bindingHandlers["view"] = {
             view.__destroyView();
         }
 
-        var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
-        var element = $("<div>" + html + "</div>");
+        // Build an array of child elements
+        //var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
+
+        var html = "";
+
+
+        var last: any = null;
+        var first: any = ko.virtualElements.firstChild(elem);
+        var child = first;
+        while (child) {
+            //if (child.outerHTML !== undefined)
+            //    html += child.outerHTML;
+            //else if (child.text !== undefined)
+            //    html += child.text;
+            //else if (child.data !== undefined)
+            //    html += child.data;
+            //else {
+            //    var x = 10; 
+            //}
+            last = child;
+            child = ko.virtualElements.nextSibling(child);
+        }
+
+        var isf = false;
+        for (var i = 0; i < elem.parentNode.childNodes.length; i++) {
+            var node = elem.parentNode.childNodes[i];
+            if (node === first)
+                isf = true;
+
+            if (isf) {
+                if (node.outerHTML !== undefined)
+                    html += node.outerHTML;
+                else if (node.text !== undefined)
+                    html += node.text;
+                else if (node.data !== undefined)
+                    html += node.data;
+                else {
+                    var x = 10;
+                }
+            }
+
+            if (node === last)
+                break;
+        }
+
         ko.virtualElements.emptyNode(elem);
+
+        value.__htmlBody = html;
+
+        var element = $("<div></div>");
 
         var parentView = getParentViewFromElement(elem);
         var context = parentView != null ? parentView.context : currentContext;
@@ -961,18 +1012,15 @@ ko.bindingHandlers["view"] = {
         factory.create($(element), viewName, value, context, view => {
             elem.vistoView = view;
 
-            ko.utils.domNodeDisposal.addDisposeCallback(elem, () => { view.__destroyView(); });
+            ko.utils.domNodeDisposal.addDisposeCallback(elem, () => {
+                view.__destroyView();
+            });
 
             if (parentView !== null)
                 parentView.__addSubView(view);
 
-            var children = view.elementContainer.get(0).childNodes;
-            for (var i = children.length - 1; i >= 0; i--) {
-                var child = children[i];
-                ko.virtualElements.prepend(elem, child);
-            }
-
-            view.elementContainer = $(elem.parentNode);
+            ko.virtualElements.setDomNodeChildren(elem, view.elementNodes);
+            view.__setHtml = false;
         }).done();
     }
 };
@@ -1086,7 +1134,7 @@ export class ViewBase {
     /**
      * Gets the element container which contains the view HTML markup (not available in ctor, initialize() and onLoading()). 
      */
-    elementContainer: JQuery; 
+    elementNodes: Node[] = null; 
 
     /**
      * Gets the parameters provided by the creator of the view (e.g. attributes on the custom tag). 
@@ -1151,7 +1199,10 @@ export class ViewBase {
      * Finds elements inside this view with a selector. 
      */
     findElements(selector: string) {
-        return this.elementContainer.find(selector);
+        if (this.elementNodes.length === 0)
+            return $();
+
+        return $(this.elementNodes[0].parentNode).find(selector); // TODO: Only children and subchildren
     }
 
     /**
@@ -1219,7 +1270,9 @@ export class ViewBase {
                 this.viewParent.viewChildren.remove(this);
 
             this.isDestroyed = true;
-            ko.cleanNode(this.elementContainer.get(0)); // unapply bindings
+
+            for (var j = 0; j < this.elementNodes.length; j++)
+                ko.cleanNode(<any>this.elementNodes[j]); // unapply bindings
         }
     }
 
@@ -1236,6 +1289,8 @@ export class ViewBase {
     __addSubView(view: ViewBase) {
         this.subViews.push(view);
     }
+
+    __setHtml: boolean = true;
 
     // ReSharper restore InconsistentNaming
 }
@@ -1291,7 +1346,8 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
      */
     close(result?: DialogResult) {
         this.result = result;
-        closeNativeDialog(this.elementContainer);
+        // TODO: Fix this
+        //closeNativeDialog(this.elementNodes);
     }
 
     /**
@@ -1325,22 +1381,14 @@ export class Parameters {
     tagContent: JQuery;
     tagContentHtml: string;
 
-    constructor(fullViewName: string, parameters: {}, element: JQuery) {
+    constructor(fullViewName: string, parameters: any) {
+        if (parameters === undefined || parameters === null)
+            parameters = {};
+
         this.fullViewName = fullViewName;
+        this.originalParameters = parameters;
 
-        if (parameters !== undefined && parameters !== null)
-            this.originalParameters = <any>(parameters);
-
-        // TODO: Improve this
-        var html = element.get(0).innerHTML;
-        var index = html.indexOf(">");
-        if (index >= 0) {
-            html = html.substr(index + 1);
-            index = html.lastIndexOf("<");
-            html = html.substr(0, index);
-        }
-
-        this.tagContentHtml = html;
+        this.tagContentHtml = parameters.__htmlBody !== undefined ? parameters.__htmlBody : "";
         var content = $(document.createElement("div"));
         content.html(this.tagContentHtml);
         this.tagContent = content;
@@ -1769,7 +1817,7 @@ class ViewFactory {
 
         this.viewParent = this.viewContext.viewParent;
         this.viewLocator = new ViewLocator(fullViewName, this.viewContext);
-        this.parameters = new Parameters(fullViewName, parameters, element);
+        this.parameters = new Parameters(fullViewName, parameters);
         element.html("");
 
         var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
@@ -1887,7 +1935,12 @@ class ViewFactory {
                 view = new View();
         }
 
-        view.elementContainer = this.containerElement;
+        var childNodesCopy: Node[] = [];
+        var childNodes = this.containerElement.get(0).childNodes;
+        for (var j = 0; j < childNodes.length; j++)
+            childNodesCopy.push(childNodes[j]);
+
+        view.elementNodes = childNodesCopy;
         view.viewId = this.viewId;
 
         view.viewName = this.viewLocator.name;
@@ -1926,20 +1979,21 @@ class ViewFactory {
     }
 
     __setHtml() {
-        this.element.empty();
+        if (this.view.__setHtml) {
+            this.element.empty();
 
-        var childNodesCopy: Node[] = [];
-        var childNodes = this.containerElement.get(0).childNodes;
-        for (var j = 0; j < childNodes.length; j++)
-            childNodesCopy.push(childNodes[j]);
+            //var childNodesCopy: Node[] = [];
+            //var childNodes = this.containerElement.get(0).childNodes;
+            //for (var j = 0; j < childNodes.length; j++)
+            //    childNodesCopy.push(childNodes[j]);
 
-        for (var i = 0; i < childNodesCopy.length; i++) {
-            var child = childNodesCopy[i];
-            this.element.get(0).appendChild(child);
+            for (var i = 0; i < this.view.elementNodes.length; i++) {
+                var child = this.view.elementNodes[i];
+                this.element.get(0).appendChild(child);
+            }
+
+            //this.view.elementNodes = childNodesCopy;
         }
-
-        if (this.view.elementContainer === this.containerElement)
-            this.view.elementContainer = this.element;
     }
 
     // ReSharper restore InconsistentNaming
@@ -1978,12 +2032,12 @@ class ViewFactoryContext {
                                         if ($.isFunction(onDomUpdated))
                                             onDomUpdated(context.view);
 
-                                        $.each(this.factories, (index: number, factory: ViewFactory) => {
-                                            factory.__raiseLoadedEvents();
-                                        });
-
                                         $.each(this.initializers, (index: number, initializer: () => void) => {
                                             initializer();
+                                        });
+
+                                        $.each(this.factories, (index: number, factory: ViewFactory) => {
+                                            factory.__raiseLoadedEvents();
                                         });
 
                                         resolve(this);

@@ -3,8 +3,10 @@ import common = require("../main");
 
 export class WebView extends visto.ViewBase {
     url: KnockoutObservable<string>;
+
     initialHtml: string;
     currentBaseUrl: string;
+    root: JQuery;
 
     onLoading() {
         this.url = this.parameters.getObservableString("url", "");
@@ -22,6 +24,7 @@ export class WebView extends visto.ViewBase {
     }
 
     onLoaded() {
+        this.root = this.getViewElement("root");
         this.setHtml(this.initialHtml, this.getBaseUrl(this.url()));
     }
 
@@ -41,7 +44,7 @@ export class WebView extends visto.ViewBase {
     }
 
     private registerSubmitEvent() {
-        this.elementContainer.submit(e => {
+        this.root.submit(e => {
             e.preventDefault();
             var form = $(e.target);
             this.loadHtml({
@@ -53,7 +56,7 @@ export class WebView extends visto.ViewBase {
     }
 
     private registerLinkEvents() {
-        this.elementContainer.find("a").click(args => {
+        this.root.find("a").click(args => {
             var url = $(args.target).attr("href");
             this.navigateToUrl(url);
             return false;
@@ -76,7 +79,7 @@ export class WebView extends visto.ViewBase {
 
     private setHtml(data: string, baseUrl: string) {
         this.currentBaseUrl = baseUrl;
-        this.elementContainer.html(data);
+        this.root.html(data);
         this.registerLinkEvents();
     }
 }
