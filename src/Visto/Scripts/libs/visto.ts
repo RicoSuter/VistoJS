@@ -211,7 +211,7 @@ export class VistoContext {
 
     private showDialogCore(fullViewName: string, parameters: { [key: string]: any }) {
         return Q.Promise<DialogBase>((resolve, reject) => {
-            var container = $("<div style=\"display:none\" />");
+            var container = $("<div />");
             $("body").append(container);
 
             if (parameters === undefined)
@@ -222,6 +222,8 @@ export class VistoContext {
 
             var factory = new ViewFactory();
             return factory.create(container, fullViewName, <any>parameters, this).then((view: DialogBase) => {
+                view.dialogElement = $(container.children().get(0)); 
+
                 openedDialogs++;
 
                 // Remove focus from element of the underlying page to avoid click events on enter press
@@ -231,9 +233,10 @@ export class VistoContext {
                     focusable.blur();
                 }
 
-                showNativeDialog($(container.children().get(0)), view, parameters,
-                    () => { view.onShown(); },
+                showNativeDialog(view.dialogElement, view, parameters,
                     () => {
+                        view.onShown();
+                    }, () => {
                         openedDialogs--;
 
                         view.onClosed();
@@ -349,9 +352,7 @@ export class VistoContext {
                 onHtmlLoaded(view);
 
             return view;
-        }, onDomUpdated).then(view => {
-            return view;
-        });
+        }, onDomUpdated);
     }
 
     isPageRestore = false;
@@ -391,7 +392,7 @@ export class VistoContext {
                             currentSegmentIndex++;
                             var fullViewName = segmentParts[0] + ":" + segmentParts[1];
                             var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                            this.navigateTo(fullViewName, { restoreQuery: restoreQuery }, (view: ViewBase) => {
+                            this.navigateTo(fullViewName, { restoreQuery: restoreQuery }).then((view: ViewBase) => {
                                 navigateToNextSegment(view);
                             }).done();
                         } else {
@@ -421,16 +422,16 @@ export class VistoContext {
     /**
      * Navigates to a given page using in the default frame.
      */
-    navigateTo(fullViewName: string, parameters?: {}, onDomUpdated?: (view: ViewBase) => void): Q.Promise<PageBase>;
-    navigateTo(modulePackage: IModule, viewName: string, parameters?: {}, onDomUpdated?: (view: ViewBase) => void): Q.Promise<PageBase>;
-    navigateTo(a: any, b: any, c?: any, d?: any): Q.Promise<PageBase> {
+    navigateTo(fullViewName: string, parameters?: {}): Q.Promise<PageBase>;
+    navigateTo(modulePackage: IModule, viewName: string, parameters?: {}): Q.Promise<PageBase>;
+    navigateTo(a: any, b: any, c?: any): Q.Promise<PageBase> {
         if (typeof a === "string")
-            return <any>this.navigateToCore(a, b, c);
+            return <any>this.navigateToCore(a, b);
         else
-            return <any>this.navigateToCore(getViewName(a, b), c, d);
+            return <any>this.navigateToCore(getViewName(a, b), c);
     }
 
-    private navigateToCore(fullViewName: string, parameters: {}, onDomUpdated?: (view: ViewBase) => void): Q.Promise<ViewBase> {
+    private navigateToCore(fullViewName: string, parameters: {}): Q.Promise<ViewBase> {
         if (this.frame === null)
             throw "Frame is not set";
 
@@ -455,22 +456,20 @@ export class VistoContext {
         if (currentPage !== null && currentPage !== undefined) {
             return currentPage.view.onNavigatingFrom("forward").then<PageBase>((navigate) => {
                 if (navigate) {
-                    return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, (page) => {
+                    return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, undefined, (page) => {
                         this.hideLoadingScreen();
                         this.isNavigating = false;
                         return page;
-                    }, onDomUpdated);
+                    });
                 } else
                     this.isNavigating = false;
                 return null;
             });
         } else {
-            return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, (page) => {
+            return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, undefined, (page) => {
                 this.hideLoadingScreen();
                 this.isNavigating = false;
                 return page;
-            }, onDomUpdated).then(view => {
-                return view;
             });
         }
     }
@@ -951,29 +950,15 @@ ko.bindingHandlers["view"] = {
             view.__destroyView();
         }
 
-        // Build an array of child elements
-        //var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
-
-        var html = "";
-
-
         var last: any = null;
         var first: any = ko.virtualElements.firstChild(elem);
         var child = first;
         while (child) {
-            //if (child.outerHTML !== undefined)
-            //    html += child.outerHTML;
-            //else if (child.text !== undefined)
-            //    html += child.text;
-            //else if (child.data !== undefined)
-            //    html += child.data;
-            //else {
-            //    var x = 10; 
-            //}
             last = child;
             child = ko.virtualElements.nextSibling(child);
         }
 
+        var html = "";
         var isf = false;
         for (var i = 0; i < elem.parentNode.childNodes.length; i++) {
             var node = elem.parentNode.childNodes[i];
@@ -981,15 +966,16 @@ ko.bindingHandlers["view"] = {
                 isf = true;
 
             if (isf) {
-                if (node.outerHTML !== undefined)
-                    html += node.outerHTML;
-                else if (node.text !== undefined)
-                    html += node.text;
-                else if (node.data !== undefined)
-                    html += node.data;
-                else {
-                    var x = 10;
-                }
+                var wrap = document.createElement('div');
+                wrap.appendChild(node.cloneNode(true));
+                html += wrap.innerHTML; 
+
+                //if (node.outerHTML !== undefined)
+                //    html += node.outerHTML;
+                //else if (node.text !== undefined)
+                //    html += node.text;
+                //else if (node.data !== undefined)
+                //    html += node.data;
             }
 
             if (node === last)
@@ -1019,8 +1005,9 @@ ko.bindingHandlers["view"] = {
             if (parentView !== null)
                 parentView.__addSubView(view);
 
-            ko.virtualElements.setDomNodeChildren(elem, view.elementNodes);
             view.__setHtml = false;
+        }, (view) => {
+            ko.virtualElements.setDomNodeChildren(elem, view.elementNodes);
         }).done();
     }
 };
@@ -1336,6 +1323,8 @@ export class PageBase extends Page<ViewModel> {
 // ----------------------------
 
 export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
+    dialogElement: JQuery;
+
     /**
      * Gets the dialog result. 
      */
@@ -1346,8 +1335,7 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
      */
     close(result?: DialogResult) {
         this.result = result;
-        // TODO: Fix this
-        //closeNativeDialog(this.elementNodes);
+        closeNativeDialog(this.dialogElement);
     }
 
     /**
@@ -1366,7 +1354,6 @@ export class Dialog<TViewModel extends ViewModel> extends View<TViewModel> {
 }
 
 export class DialogBase extends Dialog<ViewModel> {
-
 }
 
 // ----------------------------
@@ -1894,7 +1881,7 @@ class ViewFactory {
             if ($.isFunction(onHtmlLoaded))
                 onHtmlLoaded(this.view);
 
-            return this.viewContext.finalizeView(onDomUpdated).then(() => {
+            return this.viewContext.finalizeView(this.view, onDomUpdated).then(() => {
                 return this.view;
             });
         }
@@ -1982,17 +1969,10 @@ class ViewFactory {
         if (this.view.__setHtml) {
             this.element.empty();
 
-            //var childNodesCopy: Node[] = [];
-            //var childNodes = this.containerElement.get(0).childNodes;
-            //for (var j = 0; j < childNodes.length; j++)
-            //    childNodesCopy.push(childNodes[j]);
-
             for (var i = 0; i < this.view.elementNodes.length; i++) {
                 var child = this.view.elementNodes[i];
                 this.element.get(0).appendChild(child);
             }
-
-            //this.view.elementNodes = childNodesCopy;
         }
     }
 
@@ -2010,7 +1990,7 @@ class ViewFactoryContext {
     restoreQuery: string = undefined;
     loadedViewCount = 0;
 
-    finalizeView(onDomUpdated?: (view: ViewBase) => void) {
+    finalizeView(view: ViewBase, onDomUpdated?: (view: ViewBase) => void) {
         // TODO: Refactor this!
         return Q.Promise<ViewFactoryContext>((resolve, reject) => {
             this.loadedViewCount++;
@@ -2030,22 +2010,41 @@ class ViewFactoryContext {
                                         });
 
                                         if ($.isFunction(onDomUpdated))
-                                            onDomUpdated(context.view);
-
-                                        $.each(this.initializers, (index: number, initializer: () => void) => {
-                                            initializer();
-                                        });
+                                            onDomUpdated(view);
 
                                         $.each(this.factories, (index: number, factory: ViewFactory) => {
                                             factory.__raiseLoadedEvents();
                                         });
 
+                                        // TODO: Should be called first
+                                        $.each(this.initializers, (index: number, initializer: () => void) => {
+                                            initializer();
+                                        });
+
                                         resolve(this);
+                                    } else {
+                                        this.initializers.push(() => {
+                                            if ($.isFunction(onDomUpdated))
+                                                onDomUpdated(view);
+                                            resolve(this);
+                                        });
                                     }
                                 }).done();
                             });
+                        } else {
+                            this.initializers.push(() => {
+                                if ($.isFunction(onDomUpdated))
+                                    onDomUpdated(view);
+                                resolve(this);
+                            });
                         }
                     }).done();
+                });
+            } else {
+                this.initializers.push(() => {
+                    if ($.isFunction(onDomUpdated))
+                        onDomUpdated(view);
+                    resolve(this);
                 });
             }
         });

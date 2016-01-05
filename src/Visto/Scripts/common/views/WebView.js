@@ -11,6 +11,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
         }
         WebView.prototype.onLoading = function () {
             var _this = this;
+            this.root = this.getViewElement("root");
             this.url = this.parameters.getObservableString("url", "");
             this.subscribe(this.url, function (newUrl) { return _this.navigateToUrl(newUrl); });
             this.registerSubmitEvent();
@@ -24,7 +25,6 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             });
         };
         WebView.prototype.onLoaded = function () {
-            this.root = this.getViewElement("root");
             this.setHtml(this.initialHtml, this.getBaseUrl(this.url()));
         };
         WebView.prototype.getBaseUrl = function (url) {

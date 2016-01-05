@@ -179,7 +179,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         VistoContext.prototype.showDialogCore = function (fullViewName, parameters) {
             var _this = this;
             return Q.Promise(function (resolve, reject) {
-                var container = $("<div style=\"display:none\" />");
+                var container = $("<div />");
                 $("body").append(container);
                 if (parameters === undefined)
                     parameters = {};
@@ -187,6 +187,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 _this.showLoadingScreen();
                 var factory = new ViewFactory();
                 return factory.create(container, fullViewName, parameters, _this).then(function (view) {
+                    view.dialogElement = $(container.children().get(0));
                     openedDialogs++;
                     // Remove focus from element of the underlying page to avoid click events on enter press
                     var focusable = $("a,frame,iframe,label,input,select,textarea,button:first");
@@ -194,7 +195,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         focusable.focus();
                         focusable.blur();
                     }
-                    exports.showNativeDialog($(container.children().get(0)), view, parameters, function () { view.onShown(); }, function () {
+                    exports.showNativeDialog(view.dialogElement, view, parameters, function () {
+                        view.onShown();
+                    }, function () {
                         openedDialogs--;
                         view.onClosed();
                         view.__destroyView();
@@ -273,9 +276,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(view);
                 return view;
-            }, onDomUpdated).then(function (view) {
-                return view;
-            });
+            }, onDomUpdated);
         };
         VistoContext.prototype.initializeFrame = function (frame, a, b, c) {
             if (typeof a === "string")
@@ -304,7 +305,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                                 currentSegmentIndex++;
                                 var fullViewName = segmentParts[0] + ":" + segmentParts[1];
                                 var restoreQuery = segmentParts.length === 3 ? segmentParts[2] : undefined;
-                                _this.navigateTo(fullViewName, { restoreQuery: restoreQuery }, function (view) {
+                                _this.navigateTo(fullViewName, { restoreQuery: restoreQuery }).then(function (view) {
                                     navigateToNextSegment(view);
                                 }).done();
                             }
@@ -331,13 +332,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             page.element.css("visibility", "");
             page.element.css("position", "");
         };
-        VistoContext.prototype.navigateTo = function (a, b, c, d) {
+        VistoContext.prototype.navigateTo = function (a, b, c) {
             if (typeof a === "string")
-                return this.navigateToCore(a, b, c);
+                return this.navigateToCore(a, b);
             else
-                return this.navigateToCore(getViewName(a, b), c, d);
+                return this.navigateToCore(getViewName(a, b), c);
         };
-        VistoContext.prototype.navigateToCore = function (fullViewName, parameters, onDomUpdated) {
+        VistoContext.prototype.navigateToCore = function (fullViewName, parameters) {
             var _this = this;
             if (this.frame === null)
                 throw "Frame is not set";
@@ -357,11 +358,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             if (currentPage !== null && currentPage !== undefined) {
                 return currentPage.view.onNavigatingFrom("forward").then(function (navigate) {
                     if (navigate) {
-                        return _this.tryNavigateForward(pageContainer, fullViewName, parameters, _this.frame, function (page) {
+                        return _this.tryNavigateForward(pageContainer, fullViewName, parameters, _this.frame, undefined, function (page) {
                             _this.hideLoadingScreen();
                             _this.isNavigating = false;
                             return page;
-                        }, onDomUpdated);
+                        });
                     }
                     else
                         _this.isNavigating = false;
@@ -369,12 +370,10 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
             }
             else {
-                return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, function (page) {
+                return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, undefined, function (page) {
                     _this.hideLoadingScreen();
                     _this.isNavigating = false;
                     return page;
-                }, onDomUpdated).then(function (view) {
-                    return view;
                 });
             }
         };
@@ -795,40 +794,23 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     "  View ID: " + view.viewId);
                 view.__destroyView();
             }
-            // Build an array of child elements
-            //var html = <string>elem.outerHTML !== undefined ? elem.outerHTML : elem.parentNode.innerHTML;
-            var html = "";
             var last = null;
             var first = ko.virtualElements.firstChild(elem);
             var child = first;
             while (child) {
-                //if (child.outerHTML !== undefined)
-                //    html += child.outerHTML;
-                //else if (child.text !== undefined)
-                //    html += child.text;
-                //else if (child.data !== undefined)
-                //    html += child.data;
-                //else {
-                //    var x = 10; 
-                //}
                 last = child;
                 child = ko.virtualElements.nextSibling(child);
             }
+            var html = "";
             var isf = false;
             for (var i = 0; i < elem.parentNode.childNodes.length; i++) {
                 var node = elem.parentNode.childNodes[i];
                 if (node === first)
                     isf = true;
                 if (isf) {
-                    if (node.outerHTML !== undefined)
-                        html += node.outerHTML;
-                    else if (node.text !== undefined)
-                        html += node.text;
-                    else if (node.data !== undefined)
-                        html += node.data;
-                    else {
-                        var x = 10;
-                    }
+                    var wrap = document.createElement('div');
+                    wrap.appendChild(node.cloneNode(true));
+                    html += wrap.innerHTML;
                 }
                 if (node === last)
                     break;
@@ -848,8 +830,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 });
                 if (parentView !== null)
                     parentView.__addSubView(view);
-                ko.virtualElements.setDomNodeChildren(elem, view.elementNodes);
                 view.__setHtml = false;
+            }, function (view) {
+                ko.virtualElements.setDomNodeChildren(elem, view.elementNodes);
             }).done();
         }
     };
@@ -1112,8 +1095,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          */
         Dialog.prototype.close = function (result) {
             this.result = result;
-            // TODO: Fix this
-            //closeNativeDialog(this.elementNodes);
+            exports.closeNativeDialog(this.dialogElement);
         };
         /**
          * [Virtual] Called when the dialog is shown and all animations have finished.
@@ -1582,7 +1564,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 }
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(this.view);
-                return this.viewContext.finalizeView(onDomUpdated).then(function () {
+                return this.viewContext.finalizeView(this.view, onDomUpdated).then(function () {
                     return _this.view;
                 });
             }
@@ -1651,10 +1633,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.__setHtml = function () {
             if (this.view.__setHtml) {
                 this.element.empty();
-                //var childNodesCopy: Node[] = [];
-                //var childNodes = this.containerElement.get(0).childNodes;
-                //for (var j = 0; j < childNodes.length; j++)
-                //    childNodesCopy.push(childNodes[j]);
                 for (var i = 0; i < this.view.elementNodes.length; i++) {
                     var child = this.view.elementNodes[i];
                     this.element.get(0).appendChild(child);
@@ -1673,7 +1651,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.restoreQuery = undefined;
             this.loadedViewCount = 0;
         }
-        ViewFactoryContext.prototype.finalizeView = function (onDomUpdated) {
+        ViewFactoryContext.prototype.finalizeView = function (view, onDomUpdated) {
             var _this = this;
             // TODO: Refactor this!
             return Q.Promise(function (resolve, reject) {
@@ -1693,19 +1671,41 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                                                 factory.__setHtml();
                                             });
                                             if ($.isFunction(onDomUpdated))
-                                                onDomUpdated(context.view);
-                                            $.each(_this.initializers, function (index, initializer) {
-                                                initializer();
-                                            });
+                                                onDomUpdated(view);
                                             $.each(_this.factories, function (index, factory) {
                                                 factory.__raiseLoadedEvents();
                                             });
+                                            // TODO: Should be called first
+                                            $.each(_this.initializers, function (index, initializer) {
+                                                initializer();
+                                            });
                                             resolve(_this);
+                                        }
+                                        else {
+                                            _this.initializers.push(function () {
+                                                if ($.isFunction(onDomUpdated))
+                                                    onDomUpdated(view);
+                                                resolve(_this);
+                                            });
                                         }
                                     }).done();
                                 });
                             }
+                            else {
+                                _this.initializers.push(function () {
+                                    if ($.isFunction(onDomUpdated))
+                                        onDomUpdated(view);
+                                    resolve(_this);
+                                });
+                            }
                         }).done();
+                    });
+                }
+                else {
+                    _this.initializers.push(function () {
+                        if ($.isFunction(onDomUpdated))
+                            onDomUpdated(view);
+                        resolve(_this);
                     });
                 }
             });

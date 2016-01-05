@@ -9,6 +9,8 @@ export class WebView extends visto.ViewBase {
     root: JQuery;
 
     onLoading() {
+        this.root = this.getViewElement("root");
+
         this.url = this.parameters.getObservableString("url", "");
         this.subscribe(this.url,(newUrl) => this.navigateToUrl(newUrl));
         this.registerSubmitEvent();
@@ -24,7 +26,6 @@ export class WebView extends visto.ViewBase {
     }
 
     onLoaded() {
-        this.root = this.getViewElement("root");
         this.setHtml(this.initialHtml, this.getBaseUrl(this.url()));
     }
 
