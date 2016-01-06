@@ -1,4 +1,4 @@
-// Visto JavaScript Framework (VistoJS) v2.1.2
+// Visto JavaScript Framework (VistoJS) v3.0.0
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 var __extends = (this && this.__extends) || function (d, b) {
@@ -843,6 +843,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewModel = (function () {
         function ViewModel(view, parameters) {
             this.context = null;
+            /**
+             * Gets the parent view model.
+             * Consider enabling inheritPackageFromParent.
+             * This should be avoided to avoid high coupling between views.
+             */
+            this.rootViewModel = null;
             this.view = view;
             this.parameters = parameters;
         }
@@ -922,6 +928,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
              * The property must be set in the view's initialize() method.
              */
             this.inheritPackageFromParent = false;
+            /**
+             * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated.
+             * The property must be set in the view's initialize() method.
+             * The view cannot have an own view model class.
+             */
+            this.inheritParentViewModel = false;
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
@@ -929,14 +941,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.isViewLoaded = ko.observable(false);
             this.__setHtml = true;
         }
-        /**
-         * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated.
-         * The property must be set in the view's initialize() method.
-         * The view cannot have an own view model class.
-         */
-        ViewBase.prototype.inheritViewModelFromParent = function () {
-            this.viewModel = this.viewParent.viewModel;
-        };
         /**
          * Enables page restoring for the current page.
          * This method must be called in the initialize() method.
@@ -960,18 +964,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return this.context.getString(key, this.viewPackage);
         };
         /**
-         * Finds elements inside this view with a selector.
-         */
-        ViewBase.prototype.findElements = function (selector) {
-            if (this.elementNodes.length === 0)
-                return $();
-            return $(this.elementNodes[0].parentNode).find(selector); // TODO: Only children and subchildren
-        };
-        /**
          * Gets an element by ID (defined using the "vs-id" attribute) inside this view.
          */
         ViewBase.prototype.getViewElement = function (id) {
-            return this.findElements("#" + this.viewId + "_" + id);
+            if (this.elementNodes.length === 0)
+                return $();
+            return $(this.elementNodes[0].parentNode).find("#" + this.viewId + "_" + id);
         };
         // event methods
         /**
@@ -1361,7 +1359,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         else if (startsWith(attributeValue, "{") && endsWith(attributeValue, "}")) {
                             attributeValue = attributeValue.substr(1, attributeValue.length - 2);
                             if (attributeValue.indexOf("(") > -1)
-                                attributeValue = "ko.computed(function () { return " + attributeValue + "; })";
+                                attributeValue = "ko.pureComputed(function () { return " + attributeValue + "; })";
                             bindings += attributeName + ": " + attributeValue + ", ";
                         }
                         else
@@ -1537,7 +1535,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // initialize and retrieve restore query
             this.view.initialize(this.parameters);
             this.viewModel.initialize(this.parameters);
-            this.viewModel = this.view.viewModel; // may have changed in view.initialize()
+            // load parent view model
+            if (this.view.viewParent !== null) {
+                this.viewModel.rootViewModel = this.view.inheritParentViewModel ?
+                    this.view.viewParent.viewModel.rootViewModel :
+                    this.viewModel;
+            }
+            else
+                this.viewModel.rootViewModel = this.viewModel;
             if (this.isRootView)
                 this.viewContext.restoreQuery = this.parameters.getRestoreQuery();
             var lazySubviewLoading = this.parameters.getBoolean(lazyViewLoadingOption, false);
@@ -1581,6 +1586,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                     "  View ID: " + this.viewId + "\n" +
                     "  Check if view model could be loaded and bound property/expression is available/correct\n" +
                     err.stack + "\nBound HTML:");
+                console.warn(this.viewModel);
                 console.warn(this.containerElement.get(0).innerHTML);
                 throw err;
             }

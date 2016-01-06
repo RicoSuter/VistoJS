@@ -1,4 +1,4 @@
-﻿// Visto JavaScript Framework (VistoJS) v2.1.2
+﻿// Visto JavaScript Framework (VistoJS) v3.0.0
 // (c) Rico Suter - http://visto.codeplex.com/
 // License: Microsoft Public License (Ms-PL) (https://visto.codeplex.com/license)
 
@@ -222,7 +222,7 @@ export class VistoContext {
 
             var factory = new ViewFactory();
             return factory.create(container, fullViewName, <any>parameters, this).then((view: DialogBase) => {
-                view.dialogElement = $(container.children().get(0)); 
+                view.dialogElement = $(container.children().get(0));
 
                 openedDialogs++;
 
@@ -1091,6 +1091,13 @@ export class ViewModel {
     destroy() {
         // must be empty
     }
+
+    /**
+     * Gets the parent view model.
+     * Consider enabling inheritPackageFromParent. 
+     * This should be avoided to avoid high coupling between views. 
+     */
+    rootViewModel: ViewModel = null;
 }
 
 // ----------------------------
@@ -1139,19 +1146,17 @@ export class ViewBase {
     viewChildren = ko.observableArray<ViewBase>();
 
     /**
-     * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated. 
-     * The property must be set in the view's initialize() method. 
-     * The view cannot have an own view model class. 
-     */
-    inheritViewModelFromParent() {
-        (<any>this).viewModel = (<any>this.viewParent).viewModel;
-    }
-
-    /**
      * Gets or sets a value indicating whether the package scope for child views is inherited from the parent view. 
      * The property must be set in the view's initialize() method. 
      */
     inheritPackageFromParent = false;
+
+    /**
+     * Gets or sets a value indicating whether the view should use the view model of the parent view and thus no own view model is instantiated. 
+     * The property must be set in the view's initialize() method. 
+     * The view cannot have an own view model class. 
+     */
+    inheritParentViewModel = false;
 
     private isDestroyed = false;
     private subViews: ViewBase[] = <Array<any>>[];
@@ -1185,20 +1190,13 @@ export class ViewBase {
     }
 
     /**
-     * Finds elements inside this view with a selector. 
-     */
-    findElements(selector: string) {
-        if (this.elementNodes.length === 0)
-            return $();
-
-        return $(this.elementNodes[0].parentNode).find(selector); // TODO: Only children and subchildren
-    }
-
-    /**
      * Gets an element by ID (defined using the "vs-id" attribute) inside this view. 
      */
     getViewElement(id: string) {
-        return this.findElements("#" + this.viewId + "_" + id);
+        if (this.elementNodes.length === 0)
+            return $();
+
+        return $(this.elementNodes[0].parentNode).find("#" + this.viewId + "_" + id);
     }
 
     isViewLoaded = ko.observable<boolean>(false);
@@ -1216,8 +1214,8 @@ export class ViewBase {
      * [Virtual] Called before the view is added to the DOM with the ability to perform async work. 
      * The callback() must be called when the work has been performed.
      */
-    onLoading<T>(): Q.Promise<T> {
-        return Q<T>(null);
+    onLoading(): Q.Promise<void> {
+        return Q<void>(null);
     }
 
     /**
@@ -1633,7 +1631,7 @@ export class ResourceManager {
                             attributeValue = attributeValue.substr(1, attributeValue.length - 2);
 
                             if (attributeValue.indexOf("(") > -1)
-                                attributeValue = "ko.computed(function () { return " + attributeValue + "; })";
+                                attributeValue = "ko.pureComputed(function () { return " + attributeValue + "; })";
 
                             bindings += attributeName + ": " + attributeValue + ", ";
                         }
@@ -1848,7 +1846,14 @@ class ViewFactory {
         // initialize and retrieve restore query
         this.view.initialize(this.parameters);
         this.viewModel.initialize(this.parameters);
-        this.viewModel = (<any>this.view).viewModel; // may have changed in view.initialize()
+
+        // load parent view model
+        if (this.view.viewParent !== null) {
+            this.viewModel.rootViewModel = this.view.inheritParentViewModel ?
+                (<any>this.view.viewParent).viewModel.rootViewModel :
+                this.viewModel;
+        } else
+            this.viewModel.rootViewModel = this.viewModel;
 
         if (this.isRootView)
             this.viewContext.restoreQuery = this.parameters.getRestoreQuery();
@@ -1898,7 +1903,7 @@ class ViewFactory {
                 "  View ID: " + this.viewId + "\n" +
                 "  Check if view model could be loaded and bound property/expression is available/correct\n" +
                 err.stack + "\nBound HTML:");
-
+            console.warn(this.viewModel);
             console.warn(this.containerElement.get(0).innerHTML);
             throw err;
         }
@@ -1949,7 +1954,6 @@ class ViewFactory {
             viewModel = new ViewModel(view, this.parameters);
 
         (<any>view).viewModel = viewModel;
-
         return viewModel;
     }
 
