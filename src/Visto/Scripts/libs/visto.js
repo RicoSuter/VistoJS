@@ -44,7 +44,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             });
         }
         var factory = new ViewFactory();
-        return factory.create($(rootElement), options.startView, options.startParameters, vistoContext).then(function () {
+        return factory.create($(rootElement), null, options.startView, options.startParameters, vistoContext).then(function () {
             return vistoContext;
         });
     }
@@ -179,14 +179,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         VistoContext.prototype.showDialogCore = function (fullViewName, parameters) {
             var _this = this;
             return Q.Promise(function (resolve, reject) {
-                var container = $("<div />");
+                var container = $(document.createElement("div"));
                 $("body").append(container);
                 if (parameters === undefined)
                     parameters = {};
                 parameters[isDialogParameter] = true;
                 _this.showLoadingScreen();
                 var factory = new ViewFactory();
-                return factory.create(container, fullViewName, parameters, _this).then(function (view) {
+                return factory.create(container, null, fullViewName, parameters, _this).then(function (view) {
                     view.dialogElement = $(container.children().get(0));
                     openedDialogs++;
                     // Remove focus from element of the underlying page to avoid click events on enter press
@@ -239,7 +239,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 parameters = {};
             parameters[isPageParameter] = true;
             var factory = new ViewFactory();
-            return factory.create(element, fullViewName, parameters, this, function (view) {
+            return factory.create(element, getViewFromElement(frame.get(0)), fullViewName, parameters, this, function (view) {
                 element.get(0).vistoView = view;
                 var restoreQuery = view.parameters.getRestoreQuery();
                 _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
@@ -768,13 +768,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // KnockoutJS extensions
     // ----------------------------
-    // Handler to define areas where a view model should not evaluate bindings
-    ko.bindingHandlers["stopBinding"] = {
-        init: function () {
-            return { controlsDescendantBindings: true };
-        }
-    };
-    ko.virtualElements.allowedBindings["stopBinding"] = true;
     // Handler to instantiate views directly in HTML (e.g. <span data-bind="view: { name: ... }" />)
     ko.bindingHandlers["view"] = {
         init: function () {
@@ -802,12 +795,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 child = ko.virtualElements.nextSibling(child);
             }
             var html = "";
-            var isf = false;
+            var isFirstFound = false;
             for (var i = 0; i < elem.parentNode.childNodes.length; i++) {
                 var node = elem.parentNode.childNodes[i];
                 if (node === first)
-                    isf = true;
-                if (isf) {
+                    isFirstFound = true;
+                if (isFirstFound) {
                     var wrap = document.createElement('div');
                     wrap.appendChild(node.cloneNode(true));
                     html += wrap.innerHTML;
@@ -817,13 +810,16 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
             ko.virtualElements.emptyNode(elem);
             value.__htmlBody = html;
-            var element = $("<div></div>");
+            var element = $(document.createElement("div"));
+            // find context
             var parentView = getParentViewFromElement(elem);
+            if (parentView === null)
+                parentView = getViewFromElement(elem);
             var context = parentView != null ? parentView.context : currentContext;
             if (context === null)
                 throw "Could not find Visto context.";
             var factory = new ViewFactory();
-            factory.create($(element), viewName, value, context, function (view) {
+            factory.create($(element), parentView, viewName, value, context, function (view) {
                 elem.vistoView = view;
                 ko.utils.domNodeDisposal.addDisposeCallback(elem, function () {
                     view.__destroyView();
@@ -844,11 +840,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         function ViewModel(view, parameters) {
             this.context = null;
             /**
-             * Gets the parent view model.
-             * Consider enabling inheritPackageFromParent.
-             * This should be avoided to avoid high coupling between views.
+             * Gets the root view model.
              */
             this.rootViewModel = null;
+            /**
+             * Gets the parent view model.
+             * The usage of the parent view model should be avoided to avoid high coupling between views.
+             */
+            this.parentViewModel = null;
             this.view = view;
             this.parameters = parameters;
         }
@@ -933,7 +932,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
              * The property must be set in the view's initialize() method.
              * The view cannot have an own view model class.
              */
-            this.inheritParentViewModel = false;
+            this.inheritRootViewModel = false;
             this.isDestroyed = false;
             this.subViews = [];
             this.disposables = [];
@@ -967,9 +966,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Gets an element by ID (defined using the "vs-id" attribute) inside this view.
          */
         ViewBase.prototype.getViewElement = function (id) {
-            if (this.elementNodes.length === 0)
-                return $();
-            return $(this.elementNodes[0].parentNode).find("#" + this.viewId + "_" + id);
+            var element = $();
+            var selector = "#" + this.viewId + "_" + id;
+            if (this.elementNodes.length !== 0)
+                element = $(this.elementNodes[0].parentNode).find(selector);
+            if (element.length === 0)
+                console.warn("Could not find view element " + selector + " in view " + this.viewName + ".");
+            return element;
         };
         // event methods
         /**
@@ -1375,7 +1378,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 else
                     bindings += "name: " + (pkg === "" ? "'" + view + "'" : "'" + pkg + ":" + view + "'");
                 return '<!-- ko view: { ' + bindings + ' } -->' + htmlAttributes + (tagClosing === "/>" ? "<!-- /ko -->" : "");
-                //return '<span data-bind="view: { ' + bindings + ' }" ' + htmlAttributes + tagClosing;
             });
             data = data.replace(/<\/vs-([a-zA-Z0-9-]+?)>/g, "<!-- /ko -->");
             return data;
@@ -1486,14 +1488,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewFactory = (function () {
         function ViewFactory() {
         }
-        ViewFactory.prototype.create = function (element, fullViewName, parameters, context, onHtmlLoaded, onDomUpdated) {
+        ViewFactory.prototype.create = function (element, viewParent, fullViewName, parameters, context, onHtmlLoaded, onDomUpdated) {
             var _this = this;
             this.element = element;
             this.context = context;
             if (currentViewContext === undefined || currentViewContext === null) {
                 // from foreach, other late-bindings or root view
                 this.viewContext = new ViewFactoryContext();
-                this.viewContext.viewParent = getParentViewFromElement(element.get(0));
+                this.viewContext.viewParent = viewParent;
                 this.isRootView = true;
             }
             else {
@@ -1537,7 +1539,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.viewModel.initialize(this.parameters);
             // load parent view model
             if (this.view.viewParent !== null) {
-                this.viewModel.rootViewModel = this.view.inheritParentViewModel ?
+                this.viewModel.rootViewModel = this.view.inheritRootViewModel ?
                     this.view.viewParent.viewModel.rootViewModel :
                     this.viewModel;
             }
@@ -1575,15 +1577,22 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.applyBindings = function () {
             try {
                 log("Apply bindings: \n" +
+                    "  View ID: " + this.viewId + "\n" +
                     "  View: " + this.view.viewName + " (parent: " + (this.view.viewParent != null ? this.view.viewParent.viewName : "n/a") + ")\n" +
-                    "  View Model: " + this.viewModel.view.viewName);
+                    "  ViewModel: " + this.viewModel.view.viewName + "Model\n" +
+                    "  RootViewModel: " + this.viewModel.rootViewModel.view.viewName + "Model" +
+                    (this.viewModel.parentViewModel !== null ? "\n  ParentViewModel: " +
+                        this.viewModel.parentViewModel.view.viewName + "Model" : ""));
                 ko.applyBindings(this.viewModel, this.containerElement.get(0));
             }
             catch (err) {
                 console.error("Error applying bindings: \n" +
-                    "  View: " + this.view.viewName + "'\n" +
-                    "  View Model: " + this.viewModel.view.viewName + "'\n" +
                     "  View ID: " + this.viewId + "\n" +
+                    "  View: " + this.view.viewName + " (parent: " + (this.view.viewParent != null ? this.view.viewParent.viewName : "n/a") + ")\n" +
+                    "  ViewModel: " + this.viewModel.view.viewName + "Model\n" +
+                    "  RootViewModel: " + this.viewModel.rootViewModel.view.viewName + "Model" +
+                    (this.viewModel.parentViewModel !== null ? "\n  ParentViewModel: " +
+                        this.viewModel.parentViewModel.view.viewName + "Model" : "") +
                     "  Check if view model could be loaded and bound property/expression is available/correct\n" +
                     err.stack + "\nBound HTML:");
                 console.warn(this.viewModel);
@@ -1626,6 +1635,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             else
                 viewModel = new ViewModel(view, this.parameters);
             view.viewModel = viewModel;
+            view.viewModel.parentViewModel = view.viewParent !== null ? view.viewParent.viewModel : null;
             return viewModel;
         };
         // ReSharper disable InconsistentNaming
@@ -1657,59 +1667,54 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         }
         ViewFactoryContext.prototype.finalizeView = function (view, onDomUpdated) {
             var _this = this;
-            // TODO: Refactor this!
+            // TODO: Refactor this! => also reject exceptions!
             return Q.Promise(function (resolve, reject) {
+                _this.initializers.push(function () {
+                    if ($.isFunction(onDomUpdated))
+                        onDomUpdated(view);
+                    resolve(_this);
+                });
                 _this.loadedViewCount++;
                 if (_this.loadedViewCount === _this.viewCount) {
                     _this.loadedViewCount = 0;
                     $.each(_this.factories, function (index, context) {
-                        context.view.onLoading().then(function () {
-                            _this.loadedViewCount++;
-                            if (_this.loadedViewCount === _this.viewCount) {
-                                _this.loadedViewCount = 0;
-                                $.each(_this.factories, function (index, context) {
-                                    context.viewModel.onLoading().then(function () {
-                                        _this.loadedViewCount++;
-                                        if (_this.loadedViewCount === _this.viewCount) {
-                                            $.each(_this.factories.reverse(), function (index, factory) {
-                                                factory.__setHtml();
-                                            });
-                                            if ($.isFunction(onDomUpdated))
-                                                onDomUpdated(view);
-                                            $.each(_this.factories, function (index, factory) {
-                                                factory.__raiseLoadedEvents();
-                                            });
-                                            // TODO: Should be called first
-                                            $.each(_this.initializers, function (index, initializer) {
-                                                initializer();
-                                            });
-                                            resolve(_this);
+                        try {
+                            context.view.onLoading().then(function () {
+                                _this.loadedViewCount++;
+                                if (_this.loadedViewCount === _this.viewCount) {
+                                    _this.loadedViewCount = 0;
+                                    $.each(_this.factories, function (index, context) {
+                                        try {
+                                            context.viewModel.onLoading().then(function () {
+                                                _this.loadedViewCount++;
+                                                if (_this.loadedViewCount === _this.viewCount) {
+                                                    try {
+                                                        $.each(_this.factories.reverse(), function (index, factory) {
+                                                            factory.__setHtml();
+                                                        });
+                                                        $.each(_this.initializers, function (index, initializer) {
+                                                            initializer();
+                                                        });
+                                                        $.each(_this.factories, function (index, factory) {
+                                                            factory.__raiseLoadedEvents();
+                                                        });
+                                                    }
+                                                    catch (e) {
+                                                        reject(e);
+                                                    }
+                                                }
+                                            }).done();
                                         }
-                                        else {
-                                            _this.initializers.push(function () {
-                                                if ($.isFunction(onDomUpdated))
-                                                    onDomUpdated(view);
-                                                resolve(_this);
-                                            });
+                                        catch (e) {
+                                            reject(e);
                                         }
-                                    }).done();
-                                });
-                            }
-                            else {
-                                _this.initializers.push(function () {
-                                    if ($.isFunction(onDomUpdated))
-                                        onDomUpdated(view);
-                                    resolve(_this);
-                                });
-                            }
-                        }).done();
-                    });
-                }
-                else {
-                    _this.initializers.push(function () {
-                        if ($.isFunction(onDomUpdated))
-                            onDomUpdated(view);
-                        resolve(_this);
+                                    });
+                                }
+                            }).done();
+                        }
+                        catch (e) {
+                            reject(e);
+                        }
                     });
                 }
             });
