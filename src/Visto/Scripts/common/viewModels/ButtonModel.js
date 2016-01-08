@@ -13,6 +13,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
         ButtonModel.prototype.initialize = function () {
             this.enabled = this.parameters.getObservableBoolean("enabled", true);
             this.content(this.parameters.tagContentHtml);
+            this.click = this.parameters.getFunction("click", this);
         };
         return ButtonModel;
     })(visto.ViewModel);
