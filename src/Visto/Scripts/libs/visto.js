@@ -269,10 +269,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 log("Navigated to\n" +
                     "  New page: " + view.viewClass + "\n" +
                     "  Page stack size: " + pageStack.length);
-                if ($.isFunction(view.onNavigatedTo))
-                    view.onNavigatedTo("forward");
+                view.__tryCallMethodRecursive("onNavigatedTo", ["forward"]);
                 if (currentPage !== null && currentPage !== undefined)
-                    currentPage.view.onNavigatedFrom("forward");
+                    currentPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["forward"]);
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(view);
                 return view;
@@ -355,7 +354,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // load currently visible page
             var currentPage = this.getCurrentPageDescription();
             this.showLoadingScreen(currentPage !== null);
-            if (currentPage !== null && currentPage !== undefined) {
+            if (currentPage !== null && currentPage !== undefined && $.isFunction(currentPage.view.onNavigatingFrom)) {
                 return currentPage.view.onNavigatingFrom("forward").then(function (navigate) {
                     if (navigate) {
                         return _this.tryNavigateForward(pageContainer, fullViewName, parameters, _this.frame, undefined, function (page) {
@@ -406,7 +405,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 }
             });
         };
-        VistoContext.prototype.onUrlChanged = function () {
+        VistoContext.prototype.triggerNavigateBack = function () {
             var _this = this;
             if (this.isNavigating)
                 return; // TODO: What to do here? Go forward?
@@ -423,9 +422,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         if (openedDialogs > 0)
                             this.tryNavigateBack(false, currentPage, pageStack);
                         else {
-                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
-                                _this.tryNavigateBack(navigate, currentPage, pageStack);
-                            }).done();
+                            if ($.isFunction(currentPage.view.onNavigatingFrom)) {
+                                currentPage.view.onNavigatingFrom("back").then(function (navigate) {
+                                    _this.tryNavigateBack(navigate, currentPage, pageStack);
+                                }).done();
+                            }
+                            else
+                                this.tryNavigateBack(true, currentPage, pageStack);
                         }
                     }
                 }
@@ -446,8 +449,8 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 log("Navigated back to\n" +
                     "  Page: " + previousPage.view.viewClass + "\n" +
                     "  Page stack size: " + pageStack.length);
-                previousPage.view.onNavigatedTo("back");
-                currentPage.view.onNavigatedFrom("back");
+                previousPage.view.__tryCallMethodRecursive("onNavigatedTo", ["back"]);
+                previousPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["back"]);
                 if ($.isFunction(this.backNavigationResolve))
                     this.backNavigationResolve();
             }
@@ -725,7 +728,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     $(window).hashchange(function () {
         if (urlNavigationHistory.length > 1) {
             var context = urlNavigationHistory[urlNavigationHistory.length - 1];
-            context.onUrlChanged();
+            context.triggerNavigateBack();
         }
     });
     // ----------------------------
@@ -1032,6 +1035,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewBase.prototype.__addSubView = function (view) {
             this.subViews.push(view);
         };
+        ViewBase.prototype.__tryCallMethod = function (methodName, args) {
+            if ($.isFunction(this[methodName]))
+                return this[methodName].apply(this, args);
+            return undefined;
+        };
+        ViewBase.prototype.__tryCallMethodRecursive = function (methodName, args) {
+            ko.utils.arrayForEach(this.viewChildren(), function (child) {
+                child.__tryCallMethodRecursive(methodName, args);
+            });
+            return this.__tryCallMethod(methodName, args);
+        };
         return ViewBase;
     })();
     exports.ViewBase = ViewBase;
@@ -1052,19 +1066,19 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             _super.apply(this, arguments);
         }
         /**
-         * [Virtual] Called when navigated to this page.
+         * [Virtual] Called when navigated to this page (type may be 'back' or 'forward').
          */
         Page.prototype.onNavigatedTo = function (type) {
             // must be empty
         };
         /**
-         * [Virtual] Called after navigated from this page.
+         * [Virtual] Called after navigated from this page (type may be 'back' or 'forward').
          */
         Page.prototype.onNavigatedFrom = function (type) {
             // must be empty
         };
         /**
-         * [Virtual] Called when navigating to this page.
+         * [Virtual] Called when navigating to this page (type may be 'back' or 'forward').
          * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
          */
         Page.prototype.onNavigatingFrom = function (type) {
@@ -1165,7 +1179,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Gets a function parameter and sets the this/caller to the parent element's view model if no caller is set.
          */
         Parameters.prototype.getFunction = function (key, viewModel) {
-            var func = this.getObject("click", null);
+            var func = this.getObject(key, null);
             if (func === null)
                 return null;
             return func;

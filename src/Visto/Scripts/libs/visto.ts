@@ -270,7 +270,7 @@ export class VistoContext {
     /**
      * Gets the current page from the given frame or the default frame. 
      */
-    getCurrentPage(): PageBase {
+    getCurrentPage(): ViewBase {
         var description = this.getCurrentPageDescription();
         if (description !== null && description !== undefined)
             return description.view;
@@ -342,11 +342,9 @@ export class VistoContext {
                 "  New page: " + view.viewClass + "\n" +
                 "  Page stack size: " + pageStack.length);
 
-            if ($.isFunction((<any>view).onNavigatedTo))
-                (<any>view).onNavigatedTo("forward");
-
+            view.__tryCallMethodRecursive("onNavigatedTo", ["forward"]);
             if (currentPage !== null && currentPage !== undefined)
-                currentPage.view.onNavigatedFrom("forward");
+                currentPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["forward"]);
 
             if ($.isFunction(onHtmlLoaded))
                 onHtmlLoaded(view);
@@ -453,8 +451,8 @@ export class VistoContext {
         var currentPage = this.getCurrentPageDescription();
 
         this.showLoadingScreen(currentPage !== null);
-        if (currentPage !== null && currentPage !== undefined) {
-            return currentPage.view.onNavigatingFrom("forward").then<PageBase>((navigate) => {
+        if (currentPage !== null && currentPage !== undefined && $.isFunction((<PageBase>currentPage.view).onNavigatingFrom)) {
+            return (<PageBase>currentPage.view).onNavigatingFrom("forward").then<PageBase>((navigate) => {
                 if (navigate) {
                     return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, undefined, (page) => {
                         this.hideLoadingScreen();
@@ -498,6 +496,9 @@ export class VistoContext {
                 this.backNavigationResolve = <any>resolve;
                 this.backNavigationReject = reject;
                 history.go(-1);
+
+                //// CUSTOM
+                //this.triggerNavigateBack();
             }
         });
     }
@@ -505,7 +506,7 @@ export class VistoContext {
     private backNavigationResolve: () => void = null;
     private backNavigationReject: (reason: any) => void = null;
 
-    private onUrlChanged() {
+    private triggerNavigateBack() {
         if (this.isNavigating)
             return; // TODO: What to do here? Go forward?
 
@@ -523,9 +524,12 @@ export class VistoContext {
                     if (openedDialogs > 0)
                         this.tryNavigateBack(false, currentPage, pageStack);
                     else {
-                        currentPage.view.onNavigatingFrom("back").then((navigate: boolean) => {
-                            this.tryNavigateBack(navigate, currentPage, pageStack);
-                        }).done();
+                        if ($.isFunction((<PageBase>currentPage.view).onNavigatingFrom)) {
+                            (<PageBase>currentPage.view).onNavigatingFrom("back").then((navigate: boolean) => {
+                                this.tryNavigateBack(navigate, currentPage, pageStack);
+                            }).done();
+                        } else
+                            this.tryNavigateBack(true, currentPage, pageStack);
                     }
                 }
             }
@@ -553,8 +557,8 @@ export class VistoContext {
                 "  Page: " + previousPage.view.viewClass + "\n" +
                 "  Page stack size: " + pageStack.length);
 
-            previousPage.view.onNavigatedTo("back");
-            currentPage.view.onNavigatedFrom("back");
+            previousPage.view.__tryCallMethodRecursive("onNavigatedTo", ["back"]);
+            previousPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["back"]);
 
             if ($.isFunction(this.backNavigationResolve))
                 this.backNavigationResolve();
@@ -869,7 +873,7 @@ export function addInitializer(completed: () => void) {
 (<any>$(window)).hashchange(() => {
     if (urlNavigationHistory.length > 1) {
         var context = urlNavigationHistory[urlNavigationHistory.length - 1];
-        (<any>context).onUrlChanged();
+        (<any>context).triggerNavigateBack();
     }
 });
 
@@ -1274,6 +1278,19 @@ export class ViewBase {
         this.subViews.push(view);
     }
 
+    __tryCallMethod(methodName: string, args: any[]) {
+        if ($.isFunction((<any>this)[methodName]))
+            return (<any>this)[methodName].apply(this, args);
+        return undefined;
+    }
+
+    __tryCallMethodRecursive(methodName: string, args: any[]) {
+        ko.utils.arrayForEach(this.viewChildren(), child => {
+            child.__tryCallMethodRecursive(methodName, args);
+        });
+        return this.__tryCallMethod(methodName, args);
+    }
+
     __setHtml: boolean = true;
 
     // ReSharper restore InconsistentNaming
@@ -1289,21 +1306,21 @@ export class View<TViewModel extends ViewModel> extends ViewBase {
 
 export class Page<TViewModel extends ViewModel> extends View<TViewModel> {
     /**
-     * [Virtual] Called when navigated to this page. 
+     * [Virtual] Called when navigated to this page (type may be 'back' or 'forward'). 
      */
     onNavigatedTo(type: string) {
         // must be empty
     }
 
     /**
-     * [Virtual] Called after navigated from this page. 
+     * [Virtual] Called after navigated from this page (type may be 'back' or 'forward').
      */
     onNavigatedFrom(type: string) {
         // must be empty
     }
 
     /**
-     * [Virtual] Called when navigating to this page. 
+     * [Virtual] Called when navigating to this page (type may be 'back' or 'forward').
      * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
      */
     onNavigatingFrom(type: string): Q.Promise<boolean> {
@@ -1414,7 +1431,7 @@ export class Parameters {
      * Gets a function parameter and sets the this/caller to the parent element's view model if no caller is set.
      */
     getFunction(key: string, viewModel: ViewModel): any {
-        var func = this.getObject<any>("click", null);
+        var func = this.getObject<any>(key, null);
         if (func === null)
             return null;
         return func; 
@@ -2092,7 +2109,7 @@ export interface IModule {
 }
 
 export interface IPage {
-    view: PageBase;
+    view: ViewBase;
     hash: number;
     element: JQuery;
 }
