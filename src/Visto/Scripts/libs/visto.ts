@@ -22,8 +22,6 @@ var urlNavigationHistory: VistoContext[] = [];
 // Constants
 // ----------------------------
 
-//var viewIdAttribute = "visto-view-id";
-var pageStackAttribute = "page-stack";
 var lazyViewLoadingOption = "lazyLoading";
 
 var isPageParameter = "__isPage";
@@ -54,7 +52,7 @@ export function initialize(options: IVistoOptions) {
     }
 
     var factory = new ViewFactory();
-    return factory.create($(rootElement), options.startView, options.startParameters, vistoContext).then(() => {
+    return factory.create($(rootElement), null, options.startView, options.startParameters, vistoContext).then(() => {
         return vistoContext;
     });
 }
@@ -221,7 +219,7 @@ export class VistoContext {
             this.showLoadingScreen();
 
             var factory = new ViewFactory();
-            return factory.create(container, fullViewName, <any>parameters, this).then((view: DialogBase) => {
+            return factory.create(container, null, fullViewName, <any>parameters, this).then((view: DialogBase) => {
                 view.dialogElement = $(container.children().get(0));
 
                 openedDialogs++;
@@ -266,11 +264,12 @@ export class VistoContext {
 
     private currentNavigationPath = "";
     private navigationCount = 0;
+    private pageStack: IPage[] = [];
 
     /**
      * Gets the current page from the given frame or the default frame. 
      */
-    getCurrentPage(): PageBase {
+    getCurrentPage(): ViewBase {
         var description = this.getCurrentPageDescription();
         if (description !== null && description !== undefined)
             return description.view;
@@ -285,12 +284,7 @@ export class VistoContext {
     }
 
     private getPageStack() {
-        var pageStack: any = this.frame.data(pageStackAttribute);
-        if (pageStack === null || pageStack === undefined) {
-            pageStack = new Array();
-            this.frame.data(pageStackAttribute, pageStack);
-        }
-        return <IPage[]>pageStack;
+        return this.pageStack;
     }
 
     private tryNavigateForward(element: JQuery, fullViewName: string, parameters: any, frame: JQuery,
@@ -302,14 +296,13 @@ export class VistoContext {
         parameters[isPageParameter] = true;
 
         var factory = new ViewFactory();
-        return factory.create(element, fullViewName, parameters, this, (view: ViewBase) => {
+        return factory.create(element, getViewFromElement(frame.get(0)), fullViewName, parameters, this, (view: ViewBase) => {
             (<any>element.get(0)).vistoView = view;
 
             var restoreQuery = view.parameters.getRestoreQuery();
             this.currentNavigationPath = this.currentNavigationPath + "/" + encodeURIComponent(
                 view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
 
-            // CUSTOM
             if (this.frame !== null)
                 (<any>window).location = "#" + this.currentNavigationPath;
 
@@ -317,7 +310,6 @@ export class VistoContext {
 
             var currentPage = this.getCurrentPageDescription();
             if (currentPage !== null && currentPage !== undefined) {
-                // CUSTOM: Comment out
                 currentPage.element.css("visibility", "hidden");
                 currentPage.element.css("position", "absolute");
             }
@@ -342,11 +334,9 @@ export class VistoContext {
                 "  New page: " + view.viewClass + "\n" +
                 "  Page stack size: " + pageStack.length);
 
-            if ($.isFunction((<any>view).onNavigatedTo))
-                (<any>view).onNavigatedTo("forward");
-
+            view.__tryCallMethodRecursive("onNavigatedTo", ["forward"]);
             if (currentPage !== null && currentPage !== undefined)
-                currentPage.view.onNavigatedFrom("forward");
+                currentPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["forward"]);
 
             if ($.isFunction(onHtmlLoaded))
                 onHtmlLoaded(view);
@@ -376,7 +366,6 @@ export class VistoContext {
 
             this.frame = frame;
 
-            // CUSTOM
             var urlSegments = decodeURIComponent(window.location.hash).split("/");
             if (urlSegments.length > 1) {
                 this.isPageRestore = true;
@@ -442,7 +431,6 @@ export class VistoContext {
 
         // append new invisible page to DOM
         var pageContainer = $(document.createElement("div"));
-        //pageContainer.css("display", "table-cell"); // CUSTOM
         pageContainer.css("visibility", "hidden");
         pageContainer.css("position", "absolute");
         pageContainer.attr("visto-page", fullViewName);
@@ -453,8 +441,8 @@ export class VistoContext {
         var currentPage = this.getCurrentPageDescription();
 
         this.showLoadingScreen(currentPage !== null);
-        if (currentPage !== null && currentPage !== undefined) {
-            return currentPage.view.onNavigatingFrom("forward").then<PageBase>((navigate) => {
+        if (currentPage !== null && currentPage !== undefined && $.isFunction((<PageBase>currentPage.view).onNavigatingFrom)) {
+            return (<PageBase>currentPage.view).onNavigatingFrom("forward").then<PageBase>((navigate) => {
                 if (navigate) {
                     return this.tryNavigateForward(pageContainer, fullViewName, parameters, this.frame, undefined, (page) => {
                         this.hideLoadingScreen();
@@ -505,7 +493,7 @@ export class VistoContext {
     private backNavigationResolve: () => void = null;
     private backNavigationReject: (reason: any) => void = null;
 
-    private onUrlChanged() {
+    private triggerNavigateBack() {
         if (this.isNavigating)
             return; // TODO: What to do here? Go forward?
 
@@ -523,9 +511,12 @@ export class VistoContext {
                     if (openedDialogs > 0)
                         this.tryNavigateBack(false, currentPage, pageStack);
                     else {
-                        currentPage.view.onNavigatingFrom("back").then((navigate: boolean) => {
-                            this.tryNavigateBack(navigate, currentPage, pageStack);
-                        }).done();
+                        if ($.isFunction((<PageBase>currentPage.view).onNavigatingFrom)) {
+                            (<PageBase>currentPage.view).onNavigatingFrom("back").then((navigate: boolean) => {
+                                this.tryNavigateBack(navigate, currentPage, pageStack);
+                            }).done();
+                        } else
+                            this.tryNavigateBack(true, currentPage, pageStack);
                     }
                 }
             }
@@ -553,13 +544,12 @@ export class VistoContext {
                 "  Page: " + previousPage.view.viewClass + "\n" +
                 "  Page stack size: " + pageStack.length);
 
-            previousPage.view.onNavigatedTo("back");
-            currentPage.view.onNavigatedFrom("back");
+            previousPage.view.__tryCallMethodRecursive("onNavigatedTo", ["back"]);
+            previousPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["back"]);
 
             if ($.isFunction(this.backNavigationResolve))
                 this.backNavigationResolve();
         } else {
-            // CUSTOM
             if (this.frame !== null)
                 (<any>window).location = "#" + currentPage.hash;
 
@@ -869,7 +859,7 @@ export function addInitializer(completed: () => void) {
 (<any>$(window)).hashchange(() => {
     if (urlNavigationHistory.length > 1) {
         var context = urlNavigationHistory[urlNavigationHistory.length - 1];
-        (<any>context).onUrlChanged();
+        (<any>context).triggerNavigateBack();
     }
 });
 
@@ -972,14 +962,17 @@ ko.bindingHandlers["view"] = {
 
         var element = $(document.createElement("div"));
 
+        // find context
         var parentView = getParentViewFromElement(elem);
-        var context = parentView != null ? parentView.context : currentContext;
+        if (parentView === null)
+            parentView = getViewFromElement(elem);
 
+        var context = parentView != null ? parentView.context : currentContext;
         if (context === null)
             throw "Could not find Visto context.";
 
         var factory = new ViewFactory();
-        factory.create($(element), viewName, value, context, view => {
+        factory.create($(element), parentView, viewName, value, context, view => {
             elem.vistoView = view;
 
             ko.utils.domNodeDisposal.addDisposeCallback(elem, () => {
@@ -1271,6 +1264,19 @@ export class ViewBase {
         this.subViews.push(view);
     }
 
+    __tryCallMethod(methodName: string, args: any[]) {
+        if ($.isFunction((<any>this)[methodName]))
+            return (<any>this)[methodName].apply(this, args);
+        return undefined;
+    }
+
+    __tryCallMethodRecursive(methodName: string, args: any[]) {
+        ko.utils.arrayForEach(this.viewChildren(), child => {
+            child.__tryCallMethodRecursive(methodName, args);
+        });
+        return this.__tryCallMethod(methodName, args);
+    }
+
     __setHtml: boolean = true;
 
     // ReSharper restore InconsistentNaming
@@ -1286,21 +1292,21 @@ export class View<TViewModel extends ViewModel> extends ViewBase {
 
 export class Page<TViewModel extends ViewModel> extends View<TViewModel> {
     /**
-     * [Virtual] Called when navigated to this page. 
+     * [Virtual] Called when navigated to this page (type may be 'back' or 'forward'). 
      */
     onNavigatedTo(type: string) {
         // must be empty
     }
 
     /**
-     * [Virtual] Called after navigated from this page. 
+     * [Virtual] Called after navigated from this page (type may be 'back' or 'forward').
      */
     onNavigatedFrom(type: string) {
         // must be empty
     }
 
     /**
-     * [Virtual] Called when navigating to this page. 
+     * [Virtual] Called when navigating to this page (type may be 'back' or 'forward').
      * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
      */
     onNavigatingFrom(type: string): Q.Promise<boolean> {
@@ -1411,7 +1417,7 @@ export class Parameters {
      * Gets a function parameter and sets the this/caller to the parent element's view model if no caller is set.
      */
     getFunction(key: string, viewModel: ViewModel): any {
-        var func = this.getObject<any>("click", null);
+        var func = this.getObject<any>(key, null);
         if (func === null)
             return null;
         return func; 
@@ -1779,7 +1785,7 @@ class ViewFactory {
 
     viewParent: ViewBase;
 
-    create(element: JQuery, fullViewName: string, parameters: any, context: VistoContext,
+    create(element: JQuery, viewParent: ViewBase, fullViewName: string, parameters: any, context: VistoContext,
         onHtmlLoaded?: (view: ViewBase) => void, onDomUpdated?: (view: ViewBase) => void) {
 
         this.element = element;
@@ -1788,7 +1794,7 @@ class ViewFactory {
         if (currentViewContext === undefined || currentViewContext === null) {
             // from foreach, other late-bindings or root view
             this.viewContext = new ViewFactoryContext();
-            this.viewContext.viewParent = getParentViewFromElement(element.get(0));
+            this.viewContext.viewParent = viewParent;
             this.isRootView = true;
         } else {
             this.viewContext = currentViewContext;
@@ -1914,9 +1920,12 @@ class ViewFactory {
         var view: ViewBase;
 
         var hasView = this.viewModule !== undefined && this.viewModule !== null;
-        if (hasView)
+        if (hasView) {
+            if (this.viewModule[this.viewLocator.className] === undefined)
+                throw "Could not find class " + this.viewLocator.className + " in view module.";
+
             view = <ViewBase>(new this.viewModule[this.viewLocator.className]());
-        else {
+        } else {
             if (this.parameters.getBoolean(isPageParameter, false))
                 view = new Page();
             else if (this.parameters.getBoolean(isDialogParameter, false))
@@ -1949,8 +1958,12 @@ class ViewFactory {
         var viewModel: ViewModel;
 
         var hasViewModel = this.viewModelModule !== undefined && this.viewModelModule !== null;
-        if (hasViewModel)
+        if (hasViewModel) {
+            if (this.viewModelModule[this.viewLocator.className + "Model"] === undefined)
+                throw "Could not find class " + this.viewLocator.className + "Model in view model module.";
+
             viewModel = <ViewModel>(new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
+        }
         else
             viewModel = new ViewModel(view, this.parameters);
 
@@ -2089,7 +2102,7 @@ export interface IModule {
 }
 
 export interface IPage {
-    view: PageBase;
+    view: ViewBase;
     hash: number;
     element: JQuery;
 }

@@ -19,8 +19,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     // ----------------------------
     // Constants
     // ----------------------------
-    //var viewIdAttribute = "visto-view-id";
-    var pageStackAttribute = "page-stack";
     var lazyViewLoadingOption = "lazyLoading";
     var isPageParameter = "__isPage";
     var isDialogParameter = "__isDialog";
@@ -44,7 +42,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             });
         }
         var factory = new ViewFactory();
-        return factory.create($(rootElement), options.startView, options.startParameters, vistoContext).then(function () {
+        return factory.create($(rootElement), null, options.startView, options.startParameters, vistoContext).then(function () {
             return vistoContext;
         });
     }
@@ -73,6 +71,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.pageStackSize = ko.observable(0);
             this.currentNavigationPath = "";
             this.navigationCount = 0;
+            this.pageStack = [];
             this.isPageRestore = false;
             this.backNavigationResolve = null;
             this.backNavigationReject = null;
@@ -186,7 +185,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 parameters[isDialogParameter] = true;
                 _this.showLoadingScreen();
                 var factory = new ViewFactory();
-                return factory.create(container, fullViewName, parameters, _this).then(function (view) {
+                return factory.create(container, null, fullViewName, parameters, _this).then(function (view) {
                     view.dialogElement = $(container.children().get(0));
                     openedDialogs++;
                     // Remove focus from element of the underlying page to avoid click events on enter press
@@ -226,12 +225,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return null;
         };
         VistoContext.prototype.getPageStack = function () {
-            var pageStack = this.frame.data(pageStackAttribute);
-            if (pageStack === null || pageStack === undefined) {
-                pageStack = new Array();
-                this.frame.data(pageStackAttribute, pageStack);
-            }
-            return pageStack;
+            return this.pageStack;
         };
         VistoContext.prototype.tryNavigateForward = function (element, fullViewName, parameters, frame, onHtmlLoaded, onDomUpdated) {
             var _this = this;
@@ -239,17 +233,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 parameters = {};
             parameters[isPageParameter] = true;
             var factory = new ViewFactory();
-            return factory.create(element, fullViewName, parameters, this, function (view) {
+            return factory.create(element, getViewFromElement(frame.get(0)), fullViewName, parameters, this, function (view) {
                 element.get(0).vistoView = view;
                 var restoreQuery = view.parameters.getRestoreQuery();
                 _this.currentNavigationPath = _this.currentNavigationPath + "/" + encodeURIComponent(view.viewName + (restoreQuery !== undefined && restoreQuery !== null ? (":" + restoreQuery) : ""));
-                // CUSTOM
                 if (_this.frame !== null)
                     window.location = "#" + _this.currentNavigationPath;
                 urlNavigationHistory.push(view.context);
                 var currentPage = _this.getCurrentPageDescription();
                 if (currentPage !== null && currentPage !== undefined) {
-                    // CUSTOM: Comment out
                     currentPage.element.css("visibility", "hidden");
                     currentPage.element.css("position", "absolute");
                 }
@@ -269,10 +261,9 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 log("Navigated to\n" +
                     "  New page: " + view.viewClass + "\n" +
                     "  Page stack size: " + pageStack.length);
-                if ($.isFunction(view.onNavigatedTo))
-                    view.onNavigatedTo("forward");
+                view.__tryCallMethodRecursive("onNavigatedTo", ["forward"]);
                 if (currentPage !== null && currentPage !== undefined)
-                    currentPage.view.onNavigatedFrom("forward");
+                    currentPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["forward"]);
                 if ($.isFunction(onHtmlLoaded))
                     onHtmlLoaded(view);
                 return view;
@@ -290,7 +281,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 if (_this.frame !== null)
                     throw new Error("The default frame is already initialized.");
                 _this.frame = frame;
-                // CUSTOM
                 var urlSegments = decodeURIComponent(window.location.hash).split("/");
                 if (urlSegments.length > 1) {
                     _this.isPageRestore = true;
@@ -347,7 +337,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             this.isNavigating = true;
             // append new invisible page to DOM
             var pageContainer = $(document.createElement("div"));
-            //pageContainer.css("display", "table-cell"); // CUSTOM
             pageContainer.css("visibility", "hidden");
             pageContainer.css("position", "absolute");
             pageContainer.attr("visto-page", fullViewName);
@@ -355,7 +344,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // load currently visible page
             var currentPage = this.getCurrentPageDescription();
             this.showLoadingScreen(currentPage !== null);
-            if (currentPage !== null && currentPage !== undefined) {
+            if (currentPage !== null && currentPage !== undefined && $.isFunction(currentPage.view.onNavigatingFrom)) {
                 return currentPage.view.onNavigatingFrom("forward").then(function (navigate) {
                     if (navigate) {
                         return _this.tryNavigateForward(pageContainer, fullViewName, parameters, _this.frame, undefined, function (page) {
@@ -406,7 +395,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 }
             });
         };
-        VistoContext.prototype.onUrlChanged = function () {
+        VistoContext.prototype.triggerNavigateBack = function () {
             var _this = this;
             if (this.isNavigating)
                 return; // TODO: What to do here? Go forward?
@@ -423,9 +412,13 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                         if (openedDialogs > 0)
                             this.tryNavigateBack(false, currentPage, pageStack);
                         else {
-                            currentPage.view.onNavigatingFrom("back").then(function (navigate) {
-                                _this.tryNavigateBack(navigate, currentPage, pageStack);
-                            }).done();
+                            if ($.isFunction(currentPage.view.onNavigatingFrom)) {
+                                currentPage.view.onNavigatingFrom("back").then(function (navigate) {
+                                    _this.tryNavigateBack(navigate, currentPage, pageStack);
+                                }).done();
+                            }
+                            else
+                                this.tryNavigateBack(true, currentPage, pageStack);
                         }
                     }
                 }
@@ -446,13 +439,12 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 log("Navigated back to\n" +
                     "  Page: " + previousPage.view.viewClass + "\n" +
                     "  Page stack size: " + pageStack.length);
-                previousPage.view.onNavigatedTo("back");
-                currentPage.view.onNavigatedFrom("back");
+                previousPage.view.__tryCallMethodRecursive("onNavigatedTo", ["back"]);
+                previousPage.view.__tryCallMethodRecursive("onNavigatedFrom", ["back"]);
                 if ($.isFunction(this.backNavigationResolve))
                     this.backNavigationResolve();
             }
             else {
-                // CUSTOM
                 if (this.frame !== null)
                     window.location = "#" + currentPage.hash;
                 if ($.isFunction(this.backNavigationReject))
@@ -725,7 +717,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     $(window).hashchange(function () {
         if (urlNavigationHistory.length > 1) {
             var context = urlNavigationHistory[urlNavigationHistory.length - 1];
-            context.onUrlChanged();
+            context.triggerNavigateBack();
         }
     });
     // ----------------------------
@@ -811,12 +803,15 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             ko.virtualElements.emptyNode(elem);
             value.__htmlBody = html;
             var element = $(document.createElement("div"));
+            // find context
             var parentView = getParentViewFromElement(elem);
+            if (parentView === null)
+                parentView = getViewFromElement(elem);
             var context = parentView != null ? parentView.context : currentContext;
             if (context === null)
                 throw "Could not find Visto context.";
             var factory = new ViewFactory();
-            factory.create($(element), viewName, value, context, function (view) {
+            factory.create($(element), parentView, viewName, value, context, function (view) {
                 elem.vistoView = view;
                 ko.utils.domNodeDisposal.addDisposeCallback(elem, function () {
                     view.__destroyView();
@@ -1029,6 +1024,17 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewBase.prototype.__addSubView = function (view) {
             this.subViews.push(view);
         };
+        ViewBase.prototype.__tryCallMethod = function (methodName, args) {
+            if ($.isFunction(this[methodName]))
+                return this[methodName].apply(this, args);
+            return undefined;
+        };
+        ViewBase.prototype.__tryCallMethodRecursive = function (methodName, args) {
+            ko.utils.arrayForEach(this.viewChildren(), function (child) {
+                child.__tryCallMethodRecursive(methodName, args);
+            });
+            return this.__tryCallMethod(methodName, args);
+        };
         return ViewBase;
     })();
     exports.ViewBase = ViewBase;
@@ -1049,19 +1055,19 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             _super.apply(this, arguments);
         }
         /**
-         * [Virtual] Called when navigated to this page.
+         * [Virtual] Called when navigated to this page (type may be 'back' or 'forward').
          */
         Page.prototype.onNavigatedTo = function (type) {
             // must be empty
         };
         /**
-         * [Virtual] Called after navigated from this page.
+         * [Virtual] Called after navigated from this page (type may be 'back' or 'forward').
          */
         Page.prototype.onNavigatedFrom = function (type) {
             // must be empty
         };
         /**
-         * [Virtual] Called when navigating to this page.
+         * [Virtual] Called when navigating to this page (type may be 'back' or 'forward').
          * The callback() must be called with a boolean stating whether to navigate or cancel the navigation operation.
          */
         Page.prototype.onNavigatingFrom = function (type) {
@@ -1162,7 +1168,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
          * Gets a function parameter and sets the this/caller to the parent element's view model if no caller is set.
          */
         Parameters.prototype.getFunction = function (key, viewModel) {
-            var func = this.getObject("click", null);
+            var func = this.getObject(key, null);
             if (func === null)
                 return null;
             return func;
@@ -1485,14 +1491,14 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
     var ViewFactory = (function () {
         function ViewFactory() {
         }
-        ViewFactory.prototype.create = function (element, fullViewName, parameters, context, onHtmlLoaded, onDomUpdated) {
+        ViewFactory.prototype.create = function (element, viewParent, fullViewName, parameters, context, onHtmlLoaded, onDomUpdated) {
             var _this = this;
             this.element = element;
             this.context = context;
             if (currentViewContext === undefined || currentViewContext === null) {
                 // from foreach, other late-bindings or root view
                 this.viewContext = new ViewFactoryContext();
-                this.viewContext.viewParent = getParentViewFromElement(element.get(0));
+                this.viewContext.viewParent = viewParent;
                 this.isRootView = true;
             }
             else {
@@ -1600,8 +1606,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.instantiateView = function () {
             var view;
             var hasView = this.viewModule !== undefined && this.viewModule !== null;
-            if (hasView)
+            if (hasView) {
+                if (this.viewModule[this.viewLocator.className] === undefined)
+                    throw "Could not find class " + this.viewLocator.className + " in view module.";
                 view = (new this.viewModule[this.viewLocator.className]());
+            }
             else {
                 if (this.parameters.getBoolean(isPageParameter, false))
                     view = new Page();
@@ -1627,8 +1636,11 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         ViewFactory.prototype.instantiateViewModel = function (view) {
             var viewModel;
             var hasViewModel = this.viewModelModule !== undefined && this.viewModelModule !== null;
-            if (hasViewModel)
+            if (hasViewModel) {
+                if (this.viewModelModule[this.viewLocator.className + "Model"] === undefined)
+                    throw "Could not find class " + this.viewLocator.className + "Model in view model module.";
                 viewModel = (new this.viewModelModule[this.viewLocator.className + "Model"](view, this.parameters));
+            }
             else
                 viewModel = new ViewModel(view, this.parameters);
             view.viewModel = viewModel;
