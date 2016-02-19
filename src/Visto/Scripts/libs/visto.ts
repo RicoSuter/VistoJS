@@ -486,6 +486,9 @@ export class VistoContext {
                 this.backNavigationResolve = <any>resolve;
                 this.backNavigationReject = reject;
                 history.go(-1);
+
+                //// CUSTOM
+                //this.triggerNavigateBack();
             }
         });
     }
