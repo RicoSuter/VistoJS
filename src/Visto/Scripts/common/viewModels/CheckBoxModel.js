@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "./ValidationControlModel"], function (require, exports, validationControlModel) {
+    "use strict";
     var CheckBoxModel = (function (_super) {
         __extends(CheckBoxModel, _super);
         function CheckBoxModel() {
@@ -14,7 +15,7 @@ define(["require", "exports", "./ValidationControlModel"], function (require, ex
             this.checked = this.parameters.getObservableBoolean("checked", false);
         };
         return CheckBoxModel;
-    })(validationControlModel.ValidationControlModel);
+    }(validationControlModel.ValidationControlModel));
     exports.CheckBoxModel = CheckBoxModel;
 });
 //# sourceMappingURL=CheckBoxModel.js.map

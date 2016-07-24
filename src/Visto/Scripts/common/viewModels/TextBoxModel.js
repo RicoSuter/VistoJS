@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "./ValidationControlModel"], function (require, exports, validationControlModel) {
+    "use strict";
     var TextBoxModel = (function (_super) {
         __extends(TextBoxModel, _super);
         function TextBoxModel() {
@@ -47,7 +48,7 @@ define(["require", "exports", "./ValidationControlModel"], function (require, ex
             return errors;
         };
         return TextBoxModel;
-    })(validationControlModel.ValidationControlModel);
+    }(validationControlModel.ValidationControlModel));
     exports.TextBoxModel = TextBoxModel;
 });
 //# sourceMappingURL=TextBoxModel.js.map

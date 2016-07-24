@@ -1,4 +1,5 @@
 define(["require", "exports"], function (require, exports) {
+    "use strict";
     function getItems() {
         return Q.delay(1000).then(function () {
             return [

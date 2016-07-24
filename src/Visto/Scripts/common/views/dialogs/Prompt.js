@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+    "use strict";
     var Prompt = (function (_super) {
         __extends(Prompt, _super);
         function Prompt() {
@@ -29,7 +30,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             input.select();
         };
         return Prompt;
-    })(visto.Dialog);
+    }(visto.Dialog));
     exports.Prompt = Prompt;
 });
 //# sourceMappingURL=Prompt.js.map

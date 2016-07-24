@@ -1,4 +1,5 @@
 define(["require", "exports", "libs/visto", "common/main"], function (require, exports, visto, common) {
+    "use strict";
     common.registerTagAliases();
     visto.initialize({
         startView: "MainView",

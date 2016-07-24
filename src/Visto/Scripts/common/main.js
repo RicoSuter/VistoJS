@@ -1,4 +1,5 @@
 define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, pkg) {
+    "use strict";
     var tagAliasesRegistered = false;
     /**
      * Registers common control aliases so that they can be used without specifying the common package.

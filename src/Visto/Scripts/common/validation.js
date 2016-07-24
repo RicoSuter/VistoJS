@@ -1,4 +1,5 @@
 define(["require", "exports"], function (require, exports) {
+    "use strict";
     function isFormValid(view, formElement) {
         return isFormValidInternal(formElement, view.viewChildren);
     }

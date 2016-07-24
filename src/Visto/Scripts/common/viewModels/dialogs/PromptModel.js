@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+    "use strict";
     var PromptModel = (function (_super) {
         __extends(PromptModel, _super);
         function PromptModel() {
@@ -15,7 +16,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.output = parameters.getObservableString("output", "");
         };
         return PromptModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.PromptModel = PromptModel;
 });
 //# sourceMappingURL=PromptModel.js.map

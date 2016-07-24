@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+    "use strict";
     var ValidationControlModel = (function (_super) {
         __extends(ValidationControlModel, _super);
         function ValidationControlModel() {
@@ -43,7 +44,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             return [];
         };
         return ValidationControlModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.ValidationControlModel = ValidationControlModel;
 });
 //# sourceMappingURL=ValidationControlModel.js.map

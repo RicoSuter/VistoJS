@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto", "common/validation"], function (require, exports, visto, validation) {
+    "use strict";
     var FormPage = (function (_super) {
         __extends(FormPage, _super);
         function FormPage() {
@@ -15,7 +16,7 @@ define(["require", "exports", "libs/visto", "common/validation"], function (requ
             this.viewModel.isFormValid = isFormValid;
         };
         return FormPage;
-    })(visto.Page);
+    }(visto.Page));
     exports.FormPage = FormPage;
 });
 //# sourceMappingURL=FormPage.js.map

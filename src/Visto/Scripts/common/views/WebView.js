@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto", "../main"], function (require, exports, visto, common) {
+    "use strict";
     var WebView = (function (_super) {
         __extends(WebView, _super);
         function WebView() {
@@ -79,7 +80,7 @@ define(["require", "exports", "libs/visto", "../main"], function (require, expor
             this.registerLinkEvents();
         };
         return WebView;
-    })(visto.ViewBase);
+    }(visto.ViewBase));
     exports.WebView = WebView;
 });
 //# sourceMappingURL=WebView.js.map

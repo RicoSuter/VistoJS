@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+    "use strict";
     var ConfirmModel = (function (_super) {
         __extends(ConfirmModel, _super);
         function ConfirmModel() {
@@ -15,7 +16,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.buttons = parameters.getObject("buttons");
         };
         return ConfirmModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.ConfirmModel = ConfirmModel;
 });
 //# sourceMappingURL=ConfirmModel.js.map

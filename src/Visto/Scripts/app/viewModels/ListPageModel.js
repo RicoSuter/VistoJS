@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto", "common/main", "SampleService", "module"], function (require, exports, visto, common, svc, pkg) {
+    "use strict";
     var ListPageModel = (function (_super) {
         __extends(ListPageModel, _super);
         function ListPageModel() {
@@ -40,7 +41,7 @@ define(["require", "exports", "libs/visto", "common/main", "SampleService", "mod
             this.items.remove(item);
         };
         return ListPageModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.ListPageModel = ListPageModel;
     ;
 });

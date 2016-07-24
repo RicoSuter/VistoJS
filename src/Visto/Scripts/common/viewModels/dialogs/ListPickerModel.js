@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+    "use strict";
     var ListPickerModel = (function (_super) {
         __extends(ListPickerModel, _super);
         function ListPickerModel() {
@@ -18,7 +19,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.optionsText = parameters.getString("optionsText", "title");
         };
         return ListPickerModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.ListPickerModel = ListPickerModel;
 });
 //# sourceMappingURL=ListPickerModel.js.map

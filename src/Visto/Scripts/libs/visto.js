@@ -7,6 +7,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/hashchange"], function (require, exports, __hashchange) {
+    "use strict";
     /// <reference path="jquery.d.ts" />
     /// <reference path="knockout.d.ts" />
     /// <reference path="q.d.ts" />
@@ -494,7 +495,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         };
         return VistoContext;
-    })();
+    }());
     exports.VistoContext = VistoContext;
     (function (DialogResult) {
         DialogResult[DialogResult["Undefined"] = 0] = "Undefined";
@@ -660,7 +661,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         };
         return Event;
-    })();
+    }());
     exports.Event = Event;
     // ----------------------------
     // Views
@@ -895,7 +896,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             // must be empty
         };
         return ViewModel;
-    })();
+    }());
     exports.ViewModel = ViewModel;
     // ----------------------------
     // View
@@ -1036,7 +1037,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return this.__tryCallMethod(methodName, args);
         };
         return ViewBase;
-    })();
+    }());
     exports.ViewBase = ViewBase;
     var View = (function (_super) {
         __extends(View, _super);
@@ -1044,7 +1045,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             _super.apply(this, arguments);
         }
         return View;
-    })(ViewBase);
+    }(ViewBase));
     exports.View = View;
     // ----------------------------
     // Page
@@ -1074,7 +1075,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return Q(true);
         };
         return Page;
-    })(View);
+    }(View));
     exports.Page = Page;
     var PageBase = (function (_super) {
         __extends(PageBase, _super);
@@ -1082,7 +1083,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             _super.apply(this, arguments);
         }
         return PageBase;
-    })(Page);
+    }(Page));
     exports.PageBase = PageBase;
     // ----------------------------
     // Dialog
@@ -1114,7 +1115,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
         Dialog.prototype.onClosed = function () {
         };
         return Dialog;
-    })(View);
+    }(View));
     exports.Dialog = Dialog;
     var DialogBase = (function (_super) {
         __extends(DialogBase, _super);
@@ -1122,7 +1123,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             _super.apply(this, arguments);
         }
         return DialogBase;
-    })(Dialog);
+    }(Dialog));
     exports.DialogBase = DialogBase;
     // ----------------------------
     // Parameters
@@ -1258,7 +1259,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         };
         return Parameters;
-    })();
+    }());
     exports.Parameters = Parameters;
     // ----------------------------
     // View factory
@@ -1416,7 +1417,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             return data.replace(/{{(.*?)}}/g, function (g) { return "<span data-bind=\"text: " + g.substr(2, g.length - 4) + "\"></span>"; });
         };
         return ResourceManager;
-    })();
+    }());
     exports.ResourceManager = ResourceManager;
     var BundledResourceManager = (function (_super) {
         __extends(BundledResourceManager, _super);
@@ -1486,7 +1487,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             });
         };
         return BundledResourceManager;
-    })(ResourceManager);
+    }(ResourceManager));
     exports.BundledResourceManager = BundledResourceManager;
     var ViewFactory = (function () {
         function ViewFactory() {
@@ -1663,7 +1664,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             }
         };
         return ViewFactory;
-    })();
+    }());
     var ViewFactoryContext = (function () {
         function ViewFactoryContext() {
             this.factories = [];
@@ -1729,7 +1730,7 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
             });
         };
         return ViewFactoryContext;
-    })();
+    }());
     var ViewLocator = (function () {
         function ViewLocator(fullViewName, context) {
             if (fullViewName.indexOf(":") !== -1) {
@@ -1752,6 +1753,6 @@ define(["require", "exports", "libs/hashchange"], function (require, exports, __
                 this.className = this.view;
         }
         return ViewLocator;
-    })();
+    }());
 });
 //# sourceMappingURL=visto.js.map

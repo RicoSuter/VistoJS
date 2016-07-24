@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto"], function (require, exports, visto) {
+    "use strict";
     var TabControlModel = (function (_super) {
         __extends(TabControlModel, _super);
         function TabControlModel() {
@@ -21,7 +22,7 @@ define(["require", "exports", "libs/visto"], function (require, exports, visto) 
             this.selectedTab(tab.view.toString());
         };
         return TabControlModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.TabControlModel = TabControlModel;
 });
 //# sourceMappingURL=TabControlModel.js.map

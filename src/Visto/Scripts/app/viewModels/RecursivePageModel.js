@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto", "module"], function (require, exports, visto, pkg) {
+    "use strict";
     var RecursivePageModel = (function (_super) {
         __extends(RecursivePageModel, _super);
         function RecursivePageModel() {
@@ -16,7 +17,7 @@ define(["require", "exports", "libs/visto", "module"], function (require, export
             this.context.navigateTo(pkg, "RecursivePage").done();
         };
         return RecursivePageModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.RecursivePageModel = RecursivePageModel;
 });
 //# sourceMappingURL=RecursivePageModel.js.map

@@ -4,6 +4,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 define(["require", "exports", "libs/visto", "common/main", "module"], function (require, exports, visto, common, pkg) {
+    "use strict";
     var HomePageModel = (function (_super) {
         __extends(HomePageModel, _super);
         function HomePageModel() {
@@ -40,7 +41,7 @@ define(["require", "exports", "libs/visto", "common/main", "module"], function (
             this.context.showDialog(pkg, "SampleDialog").done();
         };
         return HomePageModel;
-    })(visto.ViewModel);
+    }(visto.ViewModel));
     exports.HomePageModel = HomePageModel;
     ;
 });
