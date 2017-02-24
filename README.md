@@ -76,4 +76,4 @@ To create an empty Visual Studio project with the framework installed:
 
 ## Final notes
 
-The Visto JavaScript framework is currently developed and maintained by [Rico Suter](http://rsuter.com). 
+The Visto JavaScript framework is developed and maintained by [Rico Suter](http://rsuter.com). 
